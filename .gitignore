@@ -1,0 +1,12 @@
+# キャッシュ（取得データ。コミット不要）
+cache/
+
+# Python
+__pycache__/
+*.pyc
+
+# エディタ/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
