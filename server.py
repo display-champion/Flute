@@ -271,6 +271,14 @@ INDEX_HTML = r"""<!DOCTYPE html>
   .matrix-wrap{overflow:auto;max-height:75vh;border:1px solid var(--line);border-radius:10px;}
   .matrix td.dai{position:sticky;left:0;background:#1d2238;font-weight:700;z-index:2;}
   .matrix th.dai{position:sticky;left:0;background:#1d2238;z-index:3;}
+  /* 合計列を右端に固定（横スクロールしても常に見える） */
+  .matrix td.tot,.matrix th.tot{position:sticky;background:#1d2238;text-align:right;
+        width:80px;min-width:80px;max-width:80px;font-variant-numeric:tabular-nums;}
+  .matrix td.tot{z-index:2;}
+  .matrix th.tot{z-index:4;}
+  .matrix .tot10{right:0;}
+  .matrix .tot7{right:80px;}
+  .matrix .tot3{right:160px;border-left:2px solid var(--accent);}
   .cell{font-variant-numeric:tabular-nums;}
   .muted{color:var(--mut);}
   .legend{font-size:11px;color:var(--mut);margin:6px 0 0;}
@@ -434,15 +442,18 @@ function renderMatrix(){
       if(!kishuOf[r.dai]) kishuOf[r.dai]=r.kishu;
     });
   });
-  const totals = {};
-  daiList.forEach(dn=>{ let s=0; DAYS.forEach(d=>{const v=lookup[dn]?.[d.id]; if(v!=null&&!isNaN(v)) s+=v;}); totals[dn]=s; });
+  // 直近N日分の合計（データのある日のみ加算。1日もなければ null）
+  const sumOf=(dn,list)=>{let s=0,has=false;list.forEach(d=>{const v=lookup[dn]?.[d.id];if(v!=null&&!isNaN(v)){s+=v;has=true;}});return has?s:null;};
+  const tot3={}, tot7={}, tot10={};
+  daiList.forEach(dn=>{ tot3[dn]=sumOf(dn,DAYS.slice(0,3)); tot7[dn]=sumOf(dn,DAYS.slice(0,7)); tot10[dn]=sumOf(dn,DAYS); });
 
   const ms=matrixSort;
+  const totMap={total:tot10, total7:tot7, total3:tot3};
   daiList.sort((a,b)=>{
     if(ms.key==="kishu"){const x=kishuOf[a]||"",y=kishuOf[b]||"";return ms.dir==="asc"?x.localeCompare(y,"ja"):y.localeCompare(x,"ja");}
     let x,y;
     if(ms.key==="dai"){x=parseInt(a)||0;y=parseInt(b)||0;}
-    else if(ms.key==="total"){x=totals[a];y=totals[b];}
+    else if(totMap[ms.key]){x=totMap[ms.key][a];y=totMap[ms.key][b];}
     else if(ms.key.indexOf("day:")===0){const id=ms.key.slice(4);x=lookup[a]?.[id];y=lookup[b]?.[id];}
     if(x==null||isNaN(x)){ if(y==null||isNaN(y))return 0; return 1; }   // 空欄は末尾
     if(y==null||isNaN(y))return -1;
@@ -452,7 +463,13 @@ function renderMatrix(){
   const mh=(k,label,cls)=>`<th class="sortable ${cls||''} ${ms.key===k?'act':''}" data-k="${k}">${label}${arw(k,ms)}</th>`;
   const head = `<tr>${mh('dai','台番','dai')}${mh('kishu','機種(直近)','l')}`
       + DAYS.map(d=>mh('day:'+d.id, esc(d.date))).join("")
-      + mh('total','10日計') + `</tr>`;
+      + mh('total3','3日計','tot tot3') + mh('total7','7日計','tot tot7') + mh('total','10日計','tot tot10')
+      + `</tr>`;
+  const totCell=(v,c2)=>{
+    if(v==null) return `<td class="tot ${c2} muted">-</td>`;
+    const c=v>0?"pos":(v<0?"neg":"muted");
+    return `<td class="tot ${c2} ${c}"><b>${(v>0?"+":"")+v.toLocaleString()}</b></td>`;
+  };
   const body = daiList.map(dn=>{
     const cells = DAYS.map(d=>{
       const v = lookup[dn]?.[d.id];
@@ -463,9 +480,9 @@ function renderMatrix(){
       return `<td class="cell ${cls}" style="${bg}">${(v>0?"+":"")+v.toLocaleString()}</td>`;
     }).join("");
     return `<tr><td class="dai">${esc(dn)}</td><td class="l">${esc(kishuOf[dn]||"")}</td>${cells}`
-      + `<td class="cell ${totals[dn]>0?'pos':(totals[dn]<0?'neg':'muted')}"><b>${(totals[dn]>0?"+":"")+totals[dn].toLocaleString()}</b></td></tr>`;
+      + totCell(tot3[dn],'tot3') + totCell(tot7[dn],'tot7') + totCell(tot10[dn],'tot10') + `</tr>`;
   }).join("");
-  $("#tabbody").innerHTML = `<div class="hint">同じ台番(座席)の差枚を10日横断で比較。列見出し（台番・機種・各日・10日計）クリックで並び替え。色が濃いほど絶対値が大きい。</div>`
+  $("#tabbody").innerHTML = `<div class="hint">同じ台番(座席)の差枚を横断比較。右端に直近 3日計・7日計・10日計 を固定表示（横スクロールしても常時表示）。列見出し（台番・機種・各日・各合計）クリックで並び替え。色が濃いほど絶対値が大きい。</div>`
     + `<div class="matrix-wrap"><table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   $("#tabbody").querySelectorAll("th.sortable").forEach(th=>{
     th.onclick=()=>{
