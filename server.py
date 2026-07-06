@@ -48,7 +48,7 @@ _lock = threading.Lock()
 # ---------------------------------------------------------------------------
 # 取得まわり
 # ---------------------------------------------------------------------------
-def http_get(url, use_cookie=False):
+def http_get(url, use_cookie=False, referer=None):
     with _lock:
         wait = REQUEST_DELAY - (time.time() - _last_fetch[0])
         if wait > 0:
@@ -62,6 +62,9 @@ def http_get(url, use_cookie=False):
     }
     if use_cookie:
         headers["Cookie"] = "_d2=%s" % get_d2()
+    if referer:
+        # 個別記事ページはReferer無しだと本文の代わりに location.reload(); のスタブを返す対策がある
+        headers["Referer"] = referer
     req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=30) as r:
         data = r.read()
@@ -76,15 +79,15 @@ def get_d2():
         return _d2_cache["value"]
     try:
         # 適当な既知レポートからトークンを採取
-        html = http_get(BASE + "/1740665/")
+        html = http_get(BASE + "/1740665/", referer=BASE + "/")
         m = re.search(r"\$\.cookie\(\s*['\"]_d2['\"]\s*,\s*['\"]([^'\"]+)['\"]", html)
         if m:
             _d2_cache["value"] = m.group(1)
+            return _d2_cache["value"]
     except Exception:
         pass
-    if not _d2_cache["value"]:
-        _d2_cache["value"] = FALLBACK_D2
-    return _d2_cache["value"]
+    # 抽出に失敗した場合はキャッシュせず、次回呼び出しで再抽出を試みる
+    return FALLBACK_D2
 
 
 def _strip(x):
@@ -142,7 +145,7 @@ def report_ranking(post_id):
         except Exception:
             pass
     url = "%s/%s/?kishu=all" % (BASE, post_id)
-    html = http_get(url, use_cookie=True)
+    html = http_get(url, use_cookie=True, referer=BASE + "/")
     i = html.find("全台")
     seg = html[i:] if i >= 0 else html
     j = seg.find("<table>")
@@ -281,8 +284,35 @@ INDEX_HTML = r"""<!DOCTYPE html>
   .matrix .tot3{right:160px;border-left:2px solid var(--accent);}
   .cell{font-variant-numeric:tabular-nums;}
   .muted{color:var(--mut);}
+  .reco{background:linear-gradient(180deg,#232a45,#181c2e);border:1px solid var(--line);
+        border-radius:12px;padding:12px 14px;margin-bottom:14px;}
+  .reco-title{font-weight:700;font-size:15px;margin-bottom:9px;}
+  .reco-sub{font-weight:400;font-size:11px;color:var(--mut);margin-left:8px;}
+  .recotbl{width:auto;min-width:min(100%,660px);font-size:13px;}
+  .recotbl th{position:static;}
+  .recotbl td.comp{font-weight:800;color:var(--accent);}
+  .recotbl td.rk{font-weight:800;text-align:center;font-size:15px;}
+  .recotbl td.rk1{color:#ffd54a;} .recotbl td.rk2{color:#cfd8e3;} .recotbl td.rk3{color:#e0a879;}
   .legend{font-size:11px;color:var(--mut);margin:6px 0 0;}
   a{color:var(--accent);}
+  /* スマホ対応 */
+  @media (max-width:640px){
+    header{padding:12px 12px;}
+    h1{font-size:16px;}
+    .wrap{padding:12px 8px;}
+    input[type=text]{font-size:16px;padding:10px 12px;} /* 16px未満はiOSが自動ズームするため */
+    button{padding:10px 14px;}
+    .daygrid{grid-template-columns:1fr;}
+    table{font-size:12px;}
+    th,td{padding:4px 6px;}
+    td.kishu{min-width:110px;max-width:160px;}
+    .matrix td.tot,.matrix th.tot{width:64px;min-width:64px;max-width:64px;font-size:11px;padding:4px;}
+    .matrix .tot7{right:64px;}
+    .matrix .tot3{right:128px;}
+    .matrix-wrap{max-height:70vh;}
+    .recotbl{font-size:12px;}
+    .reco-sub{display:block;margin:4px 0 0;}
+  }
 </style>
 </head>
 <body>
@@ -427,6 +457,60 @@ function renderDaily(){
   });
 }
 
+// おすすめ機種：機種名ごとに直近3/7/10日の「差枚プラス率(勝率)」を求め、重み付き合成
+function computeReco(){
+  const W3=0.5, W7=0.3, W10=0.2;   // 直近を重視した重み
+  const stat={};   // 機種名 -> 集計
+  DAYS.forEach((d,i)=>{
+    (REPORTS[d.id]||[]).forEach(r=>{
+      const name=r.kishu||""; if(!name) return;
+      const v=parseNum(r.samai); if(v==null) return;
+      const s = stat[name] || (stat[name]={n3:0,p3:0,n7:0,p7:0,n10:0,p10:0,dais:new Set(),sum:0});
+      if(i<10){ s.n10++; if(v>0) s.p10++; s.sum+=v; s.dais.add(r.dai); }
+      if(i<7){  s.n7++;  if(v>0) s.p7++; }
+      if(i<3){  s.n3++;  if(v>0) s.p3++; }
+    });
+  });
+  const arr=[];
+  for(const name in stat){
+    const s=stat[name];
+    if(s.n10<3) continue;   // 標本が少なすぎる機種は除外(偶然の高勝率を排除)
+    const r3=s.n3>0? s.p3/s.n3 : null;
+    const r7=s.n7>0? s.p7/s.n7 : null;
+    const r10=s.n10>0? s.p10/s.n10 : null;
+    let csum=0, wsum=0;
+    if(r3!=null){ csum+=W3*r3; wsum+=W3; }
+    if(r7!=null){ csum+=W7*r7; wsum+=W7; }
+    if(r10!=null){ csum+=W10*r10; wsum+=W10; }
+    const comp = wsum>0? csum/wsum : 0;
+    arr.push({name, comp, r3, r7, r10, n10:s.n10, dai:s.dais.size, avg:s.sum/s.n10});
+  }
+  arr.sort((a,b)=> b.comp-a.comp || b.n10-a.n10 || b.avg-a.avg);
+  return arr.slice(0,5);
+}
+function recoHTML(){
+  const top=computeReco();
+  const pct=x=> x==null? "-" : Math.round(x*100)+"%";
+  if(!top.length){
+    return `<div class="reco"><div class="reco-title">🎯 おすすめ機種 TOP5</div>`
+      + `<div class="muted" style="padding:6px 2px;">十分なデータがありません。</div></div>`;
+  }
+  const rows=top.map((m,i)=>`<tr>
+      <td class="rk rk${i+1}">${i+1}</td>
+      <td class="l">${esc(m.name)}</td>
+      <td class="comp">${Math.round(m.comp*100)}%</td>
+      <td>${pct(m.r3)}</td><td>${pct(m.r7)}</td><td>${pct(m.r10)}</td>
+      <td class="muted">${m.dai}台/${m.n10}件</td>
+      <td class="${m.avg>0?'pos':(m.avg<0?'neg':'muted')}">${(m.avg>0?"+":"")+Math.round(m.avg).toLocaleString()}</td>
+    </tr>`).join("");
+  return `<div class="reco">
+    <div class="reco-title">🎯 おすすめ機種 TOP5<span class="reco-sub">機種ごとの差枚プラス率(勝率)を 直近3日/7日/10日 で合成（重み 50/30/20%）・標本3件以上</span></div>
+    <div style="overflow:auto;"><table class="recotbl">
+      <tr><th>順位</th><th class="l">機種</th><th>おすすめ度</th><th>3日</th><th>7日</th><th>10日</th><th>標本</th><th>平均差枚</th></tr>
+      ${rows}
+    </table></div></div>`;
+}
+
 function renderMatrix(){
   // 台番 を行、日付を列にした差枚ピボット
   const dais = new Set();
@@ -482,7 +566,8 @@ function renderMatrix(){
     return `<tr><td class="dai">${esc(dn)}</td><td class="l">${esc(kishuOf[dn]||"")}</td>${cells}`
       + totCell(tot3[dn],'tot3') + totCell(tot7[dn],'tot7') + totCell(tot10[dn],'tot10') + `</tr>`;
   }).join("");
-  $("#tabbody").innerHTML = `<div class="hint">同じ台番(座席)の差枚を横断比較。右端に直近 3日計・7日計・10日計 を固定表示（横スクロールしても常時表示）。列見出し（台番・機種・各日・各合計）クリックで並び替え。色が濃いほど絶対値が大きい。</div>`
+  $("#tabbody").innerHTML = recoHTML()
+    + `<div class="hint">同じ台番(座席)の差枚を横断比較。右端に直近 3日計・7日計・10日計 を固定表示（横スクロールしても常時表示）。列見出し（台番・機種・各日・各合計）クリックで並び替え。色が濃いほど絶対値が大きい。</div>`
     + `<div class="matrix-wrap"><table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table></div>`;
   $("#tabbody").querySelectorAll("th.sortable").forEach(th=>{
     th.onclick=()=>{
