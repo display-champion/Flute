@@ -1,33 +1,38 @@
 # ダンジョン雑魚モーション（Unity 用）
 
-`../dungeon_minor.html` をブラウザで開くと、敵ごとに全クリップの動きを確認できます。
+`../dungeon_minor.html` をブラウザで開くと、敵ごとに全クリップの動き（手足を含む）を確認できます。
 このファイルは `../tools/export_unity.mjs` が自動生成します（手で編集しても作り直すと消えます）。
 
-名前に「人」を含む敵（EN-09 / 12 / 13 / 33 / 54）は、人型モデルの骨を動かす別の仕組みです。`Humanoid/README.md` を見てください。
+人の形をした敵（名前に「人」を含む5体と、人の形の骨で動かす12体）は、人型モデルの骨を動かす別の仕組みです。`Humanoid/README.md` を見てください。
 
 ## 仕組み
 
-- 骨を使わず、モデル全体の位置・回転・伸び縮みだけで動かす方式です。どのモデルにも付けられます。
-- 構成：`敵の本体（Animator ＋ EnemyMotion）` → 子 `Motion`（クリップが動かす） → モデル
+- **体全体**：子 `Motion` の位置・回転・伸び縮みで動かします。どのモデルにも付けられます。
+- **手足**：`Motion/Limbs/` の下の「代理の関節」も動かします。`LimbRetarget` が、Inspector で割り当てたモデルの骨を、
+  代理の関節の「初期からの向きの変化」と同じだけ回します（モデルの骨の軸や初期の曲がり方が違っても使えます）。
+  - 割り当てなかった手足は動きません（体全体の動きだけになります）。
+- 構成：`敵の本体（Animator ＋ EnemyMotion ＋ LimbRetarget）` → 子 `Motion`（体全体）→ モデル
 - 回転や伸び縮みの中心（軸）は体の種類ごとに決めてあり、クリップに織り込み済みです（下の表）。
 - 敵の大きさ（1.3倍・2倍など）は、敵の本体の Scale で変えてください。動きの幅も一緒に大きくなります。
 
 ## 使い方
 
-1. `EnemyMotion.cs` と、使う体の種類のフォルダ（例：`Mushroom/`）を Assets に置く。
-2. 敵の本体の GameObject に `EnemyMotion` を付ける（Animator も自動で付きます）。
+1. `EnemyMotion.cs`・`LimbRetarget.cs`・`LimbRigs.cs` と、使う体の種類のフォルダ（例：`Creature/`）を Assets に置く。
+2. 敵の本体の GameObject に `EnemyMotion` と `LimbRetarget` を付ける（Animator も自動で付きます）。
    - 子に `Motion` が無ければ自動で作り、今ある子（モデル）をその下へ移します。
    - モデルは `Motion` の下に、足元が原点・+Z が正面になるよう置く（浮く敵は下の表の高さに体の中心を合わせる）。
 3. **Clips** にその敵のクリップを入れる（下の「敵ごとのクリップ」）。
-4. ゲーム側から `GetComponent<EnemyMotion>().Play("Attack_Lunge")` のように名前の末尾で再生する。
-   - `Play("Death")` で Death_SporeBurst、`Play("Move")` で妖精の Move_Flee も再生されるので、どの敵も同じ名前（Idle / Move / Hit / Death）で呼べます。
+4. `LimbRetarget` の **Body** に体の種類（例：Creature）を入れると、**Chains** に手足の欄が並びます。
+   各欄の **Bones** に、付け根から先へ順にモデルの骨を入れてください（例：LegFL なら 前左脚の付け根・ひじ（ひざ））。
+   骨の本数は下の表の「骨○本」です。足りない分は空のままで構いません。
+5. ゲーム側から `GetComponent<EnemyMotion>().Play("Attack_Bite")` のように名前の末尾で再生する。
+   - `Play("Death")` で Death_SporeBurst、`Play("Move")` で Move_Flee なども再生されるので、どの敵も同じ名前（Idle / Move / Hit / Death）で呼べます。
    - 1回きりのクリップが終わると自動で待機（Idle）に戻ります。名前に Death を含むクリップは最後の姿勢で止まります。
-   - 移動中は `Play("Move")`、止まったら `Play("Idle")`。
-5. **On Motion Event** に処理をつなぐと、攻撃が当たる瞬間などにイベント名（Hit / Stomp など）付きで呼ばれます。
+6. **On Motion Event** に処理をつなぐと、攻撃が当たる瞬間などにイベント名（Hit / Stomp など）付きで呼ばれます。
    **On Motion Finished** は1回きりのクリップが終わったときに呼ばれます。
 
-長い突進（ハチの Attack_Charge）と転がり（岩ダンゴの Attack_Roll）は、クリップはその場で「構え → 突進中の姿勢 → 止まる」だけを動かします。
-ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の本体を前へ動かしてください。
+長い突進（ハチの Attack_Charge）、転がり（岩・樽の Attack_Roll）、大跳躍（Attack_Pounce）、跳ねての体当たり（Attack_LeapTackle）は、
+クリップはその場で「構え → 突進中の姿勢 → 止まる」だけを動かします。イベントの間にゲーム側で敵の本体を前へ動かしてください。
 短い飛びかかり・噛みつき・刺す動きは、クリップの中で前に出て元の位置に戻ります。
 
 ## 敵ごとのクリップ
@@ -50,37 +55,25 @@ ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の�
 | EN-11 | 世界樹の瘤 | Plant | Dormant / WakeUp / Idle / Attack_Slam / Hit / Death | 1倍 |
 | EN-14 | 翼の悪魔（小） | Flyer | Idle / Move / Attack_Dive / Hit / Death | 0.8倍 |
 | EN-15 | 岩の魔物 | RockBall | Idle / Move / Attack_Roll_Long / Hit / Death | 1.67倍 |
-| EN-18 | 石くれ人形 | Upright | Idle / Move / Attack_HeavySlam / Hit / Death | 1倍 |
 | EN-19 | 洞の小蜘蛛 | Spider | Idle / Move / Descend / Attack_Web / Hit / Death | 1倍 |
 | EN-20 | 骨の小竜 | Flyer | Idle / Move / Attack_GlideBite / Hit / Death_Collapse / Reassemble | 0.8倍 |
 | EN-21 | 炎の魔物 | Creature | Idle / Move / Attack_Tackle / Hit / Death | 1倍 |
 | EN-22 | 火蜥蜴 | Creature | Idle / Move / Attack_Breath / Hit / Death | 0.7倍 |
 | EN-23 | 鉄殻虫 | Creature | Idle / Move / Attack_Bite / Flipped / Hit / Death | 1倍 |
-| EN-24 | 湯煙の精 | Phantom | Idle / Move / Appear / Attack_Blow / Vanish / Hit / Death | 1倍 |
 | EN-25 | 湯あたりガエル | Creature | Idle / Move / Attack_Pounce / Hit / Death | 1倍 |
 | EN-26 | 巡回の検品機 | Clockwork | Idle / Move / Alert | 1倍 |
-| EN-27 | 天の番兵 | Upright | Idle / Move / Attack_Swing / Hit / Death | 1倍 |
-| EN-28 | 仕分けの手 | Upright | Idle / Move / Attack_GrabThrow / Hit / Death | 1.2倍 |
 | EN-29 | 水路の清掃機 | Whale | Idle / Move / Attack_LeapTackle / Hit / Death | 1倍 |
 | EN-30 | 歯車の子 | Clockwork | Idle / Move / Attack_SpinJump / Hit / Death | 0.5倍 |
 | EN-31 | 迷い羽根 | Bee | Idle / Move_Flutter / Attack_Slash / Hit / Death | 1倍 |
 | EN-32 | 監督の魔物 | Creature | Idle / Move / Attack_Whip / Hit / Death | 1倍 |
 | EN-34 | 炎喰いの子 | Creature | Idle / Move / Attack_Bite / Grow / Hit / Death | 0.6倍 |
 | EN-35 | 冷えた溶岩の殻 | RockBall | Idle / Move / Attack_Roll_Long / Hit / Death_Shatter | 1.67倍 |
-| EN-36 | 看守の犬 | Hound | Idle / Move / Sniff / Bark / Attack_Bite / Hit / Death | 1倍 |
-| EN-37 | 鎖の魂 | Phantom | Dormant / WakeUp / Idle / Move / Attack_ChainLash / Hit / Death | 1倍 |
-| EN-38 | 無音の影 | Phantom | Idle / Move / Attack_Strike / Hit / Death | 1倍 |
-| EN-39 | 聖堂騎士 | Upright | Idle / Move / Attack_Combo2 / Hit / Death | 1倍 |
-| EN-40 | 動く鎧 | Upright | Idle / Move / Attack_HeavySlam / Hit / Death | 1.1倍 |
 | EN-41 | 書架の魔物 | Clockwork | Idle / Move / Attack_Throw / Hit / Death | 1倍 |
 | EN-44 | 酔いバチ | Bee | Idle / Move_Drunk / Attack_DoubleSting / Hit / Death | 1倍 |
 | EN-45 | 樽の子 | Barrel | Disguise / Reveal / Idle / Move / Attack_Roll / Hit / Death | 0.8倍 |
 | EN-46 | 箱入りの忘れ物 | Box | Disguise / Attack_Bite / Idle / Move / Hit / Death | 1倍 |
-| EN-47 | 名を失くした亡者 | Upright | Idle / Move / Attack_Punch / Hit / Death | 1倍 |
-| EN-48 | 苔の石像 | Upright | Disguise / Ambush_Punch / Idle / Move / Hit / Death | 1倍 |
 | EN-49 | 墓守の鬼火 | Fairy | Idle / Move / Attack_Touch / Hit / Death | 1倍 |
 | EN-50 | 墓荒らしの魔物 | Creature | Idle / Move / Attack_Bite / Dig_Escape / Hit / Death | 1倍 |
-| EN-51 | 笑う死者 | Upright | Idle_Laugh / Move / Attack_Grab / Hit / Death_Crumble | 1倍 |
 | EN-52 | 侵食の蔦 | Plant | Submerged / Attack_Erupt / Idle / Hit / Death | 1倍 |
 | EN-53 | 庭の番 | Plant | Idle / Move / Attack_Lunge / Hit / Death | 1倍 |
 | EN-55 | 刈り込み鋏 | Shears | Idle / Move / Attack_Snip2 / Hit / Death | 1倍 |
@@ -160,37 +153,12 @@ ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の�
 | Flyer_Attack_GlideBite | 1.8秒 | しない | Hit（0.85秒） |
 | Flyer_Death_Collapse | 1.2秒 | しない | Collapse（0.5秒） |
 | Flyer_Reassemble | 1.6秒 | しない | Reformed（1.2秒） |
-| Upright_Idle | 2.4秒 | する | ― |
-| Upright_Move | 0.9秒 | する | ― |
-| Upright_Hit | 0.4秒 | しない | ― |
-| Upright_Death | 1.6秒 | しない | Down（0.8秒） |
-| Upright_Attack_HeavySlam | 2.4秒 | しない | Hit（0.98秒）、Recover（1.6秒） |
-| Upright_Attack_Swing | 1.3秒 | しない | Hit（0.5秒） |
-| Upright_Attack_Combo2 | 1.9秒 | しない | Hit（0.43秒）、Hit（0.83秒） |
-| Upright_Attack_GrabThrow | 2.6秒 | しない | Grab（1秒）、Throw（1.5秒） |
-| Upright_Attack_Punch | 1.1秒 | しない | Hit（0.45秒） |
-| Upright_Attack_Grab | 1.8秒 | しない | Grab（0.5秒）、Release（1.4秒） |
-| Upright_Disguise | 2秒 | する | ― |
-| Upright_Ambush_Punch | 1.4秒 | しない | Awake（0.15秒）、Hit（0.58秒） |
-| Upright_Idle_Laugh | 1.2秒 | する | ― |
-| Upright_Death_Crumble | 2秒 | しない | Crumble（0.6秒） |
 | Spider_Idle | 1.6秒 | する | ― |
 | Spider_Move | 0.3秒 | する | ― |
 | Spider_Hit | 0.4秒 | しない | ― |
 | Spider_Death | 1.2秒 | しない | Down（0.5秒） |
 | Spider_Descend | 1.6秒 | しない | Land（1.35秒） |
 | Spider_Attack_Web | 1.3秒 | しない | Web（0.52秒） |
-| Phantom_Idle | 2.4秒 | する | ― |
-| Phantom_Move | 1.6秒 | する | ― |
-| Phantom_Hit | 0.4秒 | しない | ― |
-| Phantom_Death | 1.4秒 | しない | Vanish（1.3499999999999999秒） |
-| Phantom_Appear | 1秒 | しない | Visible（0.5秒） |
-| Phantom_Vanish | 0.8秒 | しない | Hidden（0.75秒） |
-| Phantom_Attack_Blow | 2.2秒 | しない | BlowStart（0.4秒）、BlowEnd（1.8秒） |
-| Phantom_Dormant | 3秒 | する | ― |
-| Phantom_WakeUp | 1.2秒 | しない | Awake（0.8秒） |
-| Phantom_Attack_ChainLash | 1.4秒 | しない | Hit（0.6秒） |
-| Phantom_Attack_Strike | 1秒 | しない | Hit（0.38秒） |
 | Clockwork_Idle | 1秒 | する | ― |
 | Clockwork_Move | 0.8秒 | する | ― |
 | Clockwork_Hit | 0.4秒 | しない | ― |
@@ -203,13 +171,6 @@ ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の�
 | Whale_Hit | 0.4秒 | しない | ― |
 | Whale_Death | 2秒 | しない | Down（1.2秒） |
 | Whale_Attack_LeapTackle | 2秒 | しない | LeapStart（0.5秒）、Hit（1.05秒） |
-| Hound_Idle | 1秒 | する | ― |
-| Hound_Move | 0.4秒 | する | ― |
-| Hound_Sniff | 1.6秒 | する | ― |
-| Hound_Bark | 1.2秒 | しない | Bark（0.35秒）、Bark（0.75秒） |
-| Hound_Attack_Bite | 1秒 | しない | Hit（0.45秒） |
-| Hound_Hit | 0.4秒 | しない | ― |
-| Hound_Death | 1.6秒 | しない | Down（0.6秒） |
 | Barrel_Disguise | 2秒 | する | ― |
 | Barrel_Reveal | 0.9秒 | しない | Reveal（0.2秒） |
 | Barrel_Idle | 1.6秒 | する | ― |
@@ -229,31 +190,28 @@ ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の�
 | Shears_Hit | 0.4秒 | しない | ― |
 | Shears_Death | 1.3秒 | しない | Down（0.6秒） |
 
-## 体の種類
+## 体の種類と手足
 
-| 体の種類 | 軸の位置（足元が原点） | モデルの置き方 |
-|---|---|---|
-| Mushroom（キノコ） | (0, 0, 0) | 足元が原点。キノコ CHR-013 をそのまま Motion の子に置く |
-| Bee（ハチ） | (0, 1, 0) | 胴体の中心が高さ 1.0m に来るよう置く（その高さでホバリング） |
-| Fairy（光の妖精） | (0, 1.2, 0) | 光の玉の中心が高さ 1.2m に来るよう置く |
-| RockBall（岩ダンゴ） | (0, 0.3, 0) | 足元が原点。丸まったときの球の中心が高さ 0.3m（0.6倍のクリーチャーを想定） |
-| Slug（ナメクジ） | (0, 0.06, -0.3) | 足元が原点、頭が +Z。しっぽの付け根（後ろ 0.3m）を軸に伸び縮みする |
-| Creature（四つ足の獣） | (0, 0.35, 0) | 足元が原点。ファンタジークリーチャー CHR-011（体の中心が高さ 0.35m 前後） |
-| Plant（植物） | (0, 0, 0) | 根元が原点。植物クリーチャー CHR-016 |
-| Flyer（翼の悪魔） | (0, 1.6, 0) | 胴体の中心が高さ 1.6m に来るよう置く（翼の悪魔 CHR-023） |
-| Upright（人の形（体全体）） | (0, 0, 0) | 足元が原点。鎧戦士・ロボット・亡者など（人型の骨は使わず体全体で動かす） |
-| Spider（蜘蛛） | (0, 0.2, 0) | 足元が原点。体の中心が高さ 0.2m |
-| Phantom（浮かぶ人影） | (0, 1, 0) | 体の中心が高さ 1.0m に来るよう置く（湯気・鎖・影でできた人影） |
-| Clockwork（時計仕掛け） | (0, 0.45, 0) | 足元が原点。スチームパンク時計クリーチャー CHR-015（体の中心が高さ 0.45m） |
-| Whale（小型のクジラ） | (0, 0.3, 0) | 水面（または底）が原点。サイバークジラ CHR-009 を 0.5 倍で |
-| Hound（四つ足の犬） | (0, 0.6, 0) | 足元が原点。狼の獣人 CHR-025 を四つ足にしたもの（体の中心が高さ 0.6m） |
-| Barrel（樽） | (0, 0.4, 0) | 足元が原点。高さ 0.8m・半径 0.3m の樽 |
-| Box（木箱） | (0, 0, -0.3) | 足元が原点。箱の後ろ下の角（後ろ 0.3m）を軸に傾く |
-| Shears（浮かぶ鋏） | (0, 1.1, 0) | 鋏の留め具が高さ 1.1m に来るよう置く。刃先が +Z |
+| 体の種類 | 軸の位置（足元が原点） | モデルの置き方 | 手足（LimbRetarget の鎖） |
+|---|---|---|---|
+| Mushroom（キノコ） | (0, 0, 0) | 足元が原点。キノコ CHR-013 をそのまま Motion の子に置く | ArmL（骨1本）、ArmR（骨1本）、FootL（骨1本）、FootR（骨1本） |
+| Bee（ハチ） | (0, 1, 0) | 胴体の中心が高さ 1.0m に来るよう置く（その高さでホバリング） | WingL（骨1本）、WingR（骨1本）、HindWingL（骨1本）、HindWingR（骨1本）、Leg1L（骨1本）、Leg1R（骨1本）、Leg2L（骨1本）、Leg2R（骨1本）、Leg3L（骨1本）、Leg3R（骨1本） |
+| Fairy（光の妖精） | (0, 1.2, 0) | 光の玉の中心が高さ 1.2m に来るよう置く | WingL（骨1本）、WingR（骨1本） |
+| RockBall（岩ダンゴ） | (0, 0.3, 0) | 足元が原点。丸まったときの球の中心が高さ 0.3m（0.6倍のクリーチャーを想定） | LegFL（骨2本）、LegBL（骨2本）、LegFR（骨2本）、LegBR（骨2本） |
+| Slug（ナメクジ） | (0, 0.06, -0.3) | 足元が原点、頭が +Z。しっぽの付け根（後ろ 0.3m）を軸に伸び縮みする | EyeL（骨2本）、EyeR（骨2本） |
+| Creature（四つ足の獣） | (0, 0.35, 0) | 足元が原点。ファンタジークリーチャー CHR-011（体の中心が高さ 0.35m 前後） | LegFL（骨2本）、LegBL（骨2本）、Tail（骨2本）、Neck（骨1本）、LegFR（骨2本）、LegBR（骨2本） |
+| Plant（植物） | (0, 0, 0) | 根元が原点。植物クリーチャー CHR-016 | LeafL（骨2本）、LeafR（骨2本） |
+| Flyer（翼の悪魔） | (0, 1.6, 0) | 胴体の中心が高さ 1.6m に来るよう置く（翼の悪魔 CHR-023） | WingL（骨2本）、WingR（骨2本）、LegL（骨2本）、LegR（骨2本）、Tail（骨2本） |
+| Spider（蜘蛛） | (0, 0.2, 0) | 足元が原点。体の中心が高さ 0.2m | Leg1L（骨2本）、Leg1R（骨2本）、Leg2L（骨2本）、Leg2R（骨2本）、Leg3L（骨2本）、Leg3R（骨2本）、Leg4L（骨2本）、Leg4R（骨2本） |
+| Clockwork（時計仕掛け） | (0, 0.45, 0) | 足元が原点。スチームパンク時計クリーチャー CHR-015（体の中心が高さ 0.45m） | ArmL（骨2本）、ArmR（骨2本）、LegL（骨2本）、LegR（骨2本）、LegB（骨2本） |
+| Whale（小型のクジラ） | (0, 0.3, 0) | 水面（または底）が原点。サイバークジラ CHR-009 を 0.5 倍で | Tail（骨2本）、FinL（骨1本）、FinR（骨1本） |
+| Barrel（樽） | (0, 0.4, 0) | 足元が原点。高さ 0.8m・半径 0.3m の樽 | FootL（骨1本）、FootR（骨1本） |
+| Box（木箱） | (0, 0, -0.3) | 足元が原点。箱の後ろ下の角（後ろ 0.3m）を軸に傾く | Lid（骨1本） |
+| Shears（浮かぶ鋏） | (0, 1.1, 0) | 鋏の留め具が高さ 1.1m に来るよう置く。刃先が +Z | BladeL（骨1本）、BladeR（骨1本）、HandleL（骨1本）、HandleR（骨1本） |
 
 ## 作り直し方
 
-`../dungeon_minor.html` の `==POSE-BEGIN==`〜`==POSE-END==` にクリップ定義があります。編集したら次を実行すると .anim とこの README が作り直されます（Node.js のみ必要）。
+`../dungeon_minor.html` の `==POSE-BEGIN==`〜`==POSE-END==` にクリップと手足の定義があります。編集したら次を実行すると .anim・LimbRigs.cs・この README が作り直されます（Node.js のみ必要）。
 
 ```
 node <dungeon_minor フォルダ>/tools/export_unity.mjs
@@ -261,4 +219,5 @@ node <dungeon_minor フォルダ>/tools/export_unity.mjs
 
 ## 注意
 
-- Unity での実際の動作はまだ確認できていません。うまく動かないときはエラーの文面を教えてください。
+- Unity での実際の動作はまだ確認できていません。うまく動かないときはエラーの文面や見た目を教えてください。
+- 手足の初期の向きは、代理の関節とモデルで違っていても構いません（向きの「変化」だけを写すため）。ただし、代理の関節とモデルで骨の付き方（どちらへ伸びているか）が大きく違うと、曲がる向きがずれることがあります。

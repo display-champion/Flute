@@ -22,15 +22,15 @@ const m = html.match(/\/\/ ==POSE-BEGIN==[^\n]*\n([\s\S]*?)\/\/ ==POSE-END==/);
 if (!m) throw new Error("dungeon_humanoid.html に POSE-BEGIN / POSE-END の目印が見つかりません");
 const { CLIPS, ENEMIES, RIGS, JOINTS, REST, evalClip } = new Function(`${m[1]}\nreturn { CLIPS, ENEMIES, RIGS, JOINTS, REST, evalClip };`)();
 
-const RATES = [20, 30, 60, 120, 180];
-const TOLERANCE = 0.002;   // 2mm（身長 1.7m 前後の人型なので見た目には影響しない）
+const RATES = [20, 30, 60, 120, 180, 240];
+const TOLERANCE = 0.0012;  // 関節ごと（親の関節からの位置）で 1.2mm。鎖の先でも数 mm 以内に収まる
 const EPS = 1e-4;
 
 const parentOf = Object.fromEntries(JOINTS);
 const pathOf = (j) => (parentOf[j] ? `${pathOf(parentOf[j])}/${j}` : `Proxy/${j}`);
 const localOf = (P, j) => (parentOf[j] ? P[j].map((v, i) => v - P[parentOf[j]][i]) : P[j]);
 
-const f = (v) => (Math.abs(v) < 1e-7 ? "0" : Number(v.toPrecision(7)).toString());
+const f = (v) => (Math.abs(v) < 1e-7 ? "0" : Number(v.toPrecision(6)).toString());
 const vec = (a) => `{x: ${f(a[0])}, y: ${f(a[1])}, z: ${f(a[2])}}`;
 
 function keyTimes(c, rate) {
@@ -39,24 +39,26 @@ function keyTimes(c, rate) {
   for (let i = 0; i <= n; i++) ts.add((c.dur * i / n).toFixed(6));
   return [...ts].map(Number).sort((a, b) => a - b);
 }
-function buildKeys(c, rate) {
-  const at = (u) => evalClip(c, c.loop ? ((u % c.dur) + c.dur) % c.dur : Math.min(Math.max(u, 0), c.dur));
-  const keys = Object.fromEntries(JOINTS.map(([j]) => [j, []]));
+// 姿勢は何度も使うので時刻ごとに覚えておく
+const poseCache = new Map();
+function poseAt(c, u) {
+  const t = c.loop ? ((u % c.dur) + c.dur) % c.dur : Math.min(Math.max(u, 0), c.dur);
+  const k = `${c.rig}_${c.name}_${t.toFixed(7)}`;
+  if (!poseCache.has(k)) poseCache.set(k, evalClip(c, t));
+  return poseCache.get(k);
+}
+// 関節 j のキー（入りと出の傾きは片側差分）
+function jointKeys(c, j, rate) {
+  const ks = [];
   for (const t of keyTimes(c, rate)) {
-    const cur = at(t);
-    const a = !c.loop && t - EPS < 0 ? cur : at(t - EPS);
-    const b = !c.loop && t + EPS > c.dur ? cur : at(t + EPS);
-    for (const [j] of JOINTS) {
-      const v = localOf(cur, j), va = localOf(a, j), vb = localOf(b, j);
-      keys[j].push({ time: t, value: v, inSlope: v.map((x, i) => (x - va[i]) / EPS), outSlope: v.map((x, i) => (vb[i] - x) / EPS) });
-    }
+    const v = localOf(poseAt(c, t), j);
+    const va = !c.loop && t - EPS < 0 ? v : localOf(poseAt(c, t - EPS), j);
+    const vb = !c.loop && t + EPS > c.dur ? v : localOf(poseAt(c, t + EPS), j);
+    ks.push({ time: t, value: v, inSlope: v.map((x, i) => (x - va[i]) / EPS), outSlope: v.map((x, i) => (vb[i] - x) / EPS) });
   }
-  for (const [j] of JOINTS) {
-    const ks = keys[j];
-    if (c.loop) { ks[0].inSlope = ks[ks.length - 1].inSlope; ks[ks.length - 1].outSlope = ks[0].outSlope; }
-    else { ks[0].inSlope = [0, 0, 0]; ks[ks.length - 1].outSlope = [0, 0, 0]; }
-  }
-  return keys;
+  if (c.loop) { ks[0].inSlope = ks[ks.length - 1].inSlope; ks[ks.length - 1].outSlope = ks[0].outSlope; }
+  else { ks[0].inSlope = [0, 0, 0]; ks[ks.length - 1].outSlope = [0, 0, 0]; }
+  return ks;
 }
 function hermite(keys, t) {
   let i = keys.findIndex((k) => k.time >= t);
@@ -65,12 +67,27 @@ function hermite(keys, t) {
   const h00 = 2 * s ** 3 - 3 * s ** 2 + 1, h10 = s ** 3 - 2 * s ** 2 + s, h01 = -2 * s ** 3 + 3 * s ** 2, h11 = s ** 3 - s ** 2;
   return a.value.map((_, k) => h00 * a.value[k] + h10 * h * a.outSlope[k] + h01 * b.value[k] + h11 * h * b.inSlope[k]);
 }
-// 関節の位置（親から足し合わせた世界位置）で元の姿勢とのずれを測る
-function maxError(c, keys) {
+// 関節ごとに、細かさを上げながら親からの位置のずれが許容値に収まるキーを探す
+function bestJointKeys(c, j) {
+  const n = Math.max(200, Math.round(c.dur * 300));
+  let ks, err, rate;
+  for (rate of RATES) {
+    ks = jointKeys(c, j, rate);
+    err = 0;
+    for (let i = 0; i <= n; i++) {
+      const t = c.dur * i / n, want = localOf(poseAt(c, t), j), got = hermite(ks, t);
+      err = Math.max(err, Math.hypot(want[0] - got[0], want[1] - got[1], want[2] - got[2]));
+    }
+    if (err <= TOLERANCE) break;
+  }
+  return { ks, err, rate };
+}
+// 組み立てた関節の世界位置で、元の姿勢とのずれを測る（報告用）
+function chainError(c, keys) {
   let worst = 0;
   const n = Math.max(200, Math.round(c.dur * 300));
   for (let i = 0; i <= n; i++) {
-    const t = c.dur * i / n, want = evalClip(c, t), got = {};
+    const t = c.dur * i / n, want = poseAt(c, t), got = {};
     for (const [j, p] of JOINTS) {
       const l = hermite(keys[j], t);
       got[j] = p ? l.map((v, k) => v + got[p][k]) : l;
@@ -85,12 +102,11 @@ const compact = (ks) => (spread(ks) > 1e-6 ? ks : [
   { ...ks[ks.length - 1], value: ks[0].value, inSlope: [0, 0, 0], outSlope: [0, 0, 0] },
 ]);
 
+// キーは time / value / inSlope / outSlope だけ書く（重みは使わないので省く）
 function vectorCurve(ks, p) {
-  const w = "{x: 0.3333333, y: 0.3333333, z: 0.3333333}";
   let s = "  - curve:\n      serializedVersion: 2\n      m_Curve:\n";
   for (const k of ks) {
     s += `      - serializedVersion: 3\n        time: ${f(k.time)}\n        value: ${vec(k.value)}\n        inSlope: ${vec(k.inSlope)}\n        outSlope: ${vec(k.outSlope)}\n`;
-    s += `        tangentMode: 0\n        weightedMode: 0\n        inWeight: ${w}\n        outWeight: ${w}\n`;
   }
   return s + `      m_PreInfinity: 2\n      m_PostInfinity: 2\n      m_RotationOrder: 4\n    path: ${p}\n`;
 }
@@ -98,7 +114,6 @@ function floatCurve(ks, i, attr, p) {
   let s = "  - curve:\n      serializedVersion: 2\n      m_Curve:\n";
   for (const k of ks) {
     s += `      - serializedVersion: 3\n        time: ${f(k.time)}\n        value: ${f(k.value[i])}\n        inSlope: ${f(k.inSlope[i])}\n        outSlope: ${f(k.outSlope[i])}\n`;
-    s += "        tangentMode: 0\n        weightedMode: 0\n        inWeight: 0.33333334\n        outWeight: 0.33333334\n";
   }
   return s + `      m_PreInfinity: 2\n      m_PostInfinity: 2\n      m_RotationOrder: 4\n    attribute: ${attr}\n    path: ${p}\n    classID: 4\n    script: {fileID: 0}\n`;
 }
@@ -108,8 +123,10 @@ fs.mkdirSync(outDir, { recursive: true });
 let bytes = 0;
 for (const c of CLIPS) {
   const name = `${c.rig}_${c.name}`;
-  let keys, err, rate;
-  for (rate of RATES) { keys = buildKeys(c, rate); err = maxError(c, keys); if (err <= TOLERANCE) break; }
+  const keys = {};
+  let rate = 0;
+  for (const [j] of JOINTS) { const r = bestJointKeys(c, j); keys[j] = r.ks; rate = Math.max(rate, r.rate); }
+  const err = chainError(c, keys);
   report.push({ name, rate, err });
   let posC = "", edC = "";
   for (const [j] of JOINTS) {
@@ -234,6 +251,6 @@ ${list}
 
 const worst = report.reduce((a, b) => (b.err > a.err ? b : a));
 console.log(`人型クリップ ${CLIPS.length} 本 / 合計 ${(bytes / 1024).toFixed(0)} KB → ${path.relative(process.cwd(), outDir)}`);
-console.log(`関節位置のずれ 最大 ${(worst.err * 1000).toFixed(3)} mm（${worst.name}）`);
-console.log(`キーを細かくしたクリップ: ${report.filter((r) => r.rate > RATES[0]).map((r) => `${r.name}(${r.rate})`).join(", ") || "なし"}`);
-if (report.some((r) => r.err > TOLERANCE)) console.warn("注意: 許容値を超えたクリップがあります");
+console.log(`関節位置のずれ（鎖の先まで足し合わせ）最大 ${(worst.err * 1000).toFixed(3)} mm（${worst.name}）`);
+console.log(`いちばん細かい関節が 120/秒 以上のクリップ: ${report.filter((r) => r.rate >= 120).map((r) => `${r.name}(${r.rate})`).join(", ") || "なし"}`);
+if (report.some((r) => r.err > 0.003)) console.warn("注意: 3mm を超えるずれがあるクリップがあります");

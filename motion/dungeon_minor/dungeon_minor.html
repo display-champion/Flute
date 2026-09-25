@@ -917,6 +917,396 @@
     const rs = qRot(q, [pv[0] * scl[0], pv[1] * scl[1], pv[2] * scl[2]]);
     return { pos: [pos[0] + pv[0] - rs[0], pos[1] + pv[1] - rs[1], pos[2] + pv[2] - rs[2]], rot: q, scl };
   }
+  // ======================================================================
+  // 手足（第2段階）：Motion の子「Limbs」の下に、手足・羽・しっぽ・刃・ふたの代理の関節を置いて動かす
+  // 関節の位置は Motion から見た座標（足元が原点）。Unity の LimbRetarget が、関節の「初期からの向きの変化」を
+  // Inspector で割り当てたモデルの骨に写す。モデルに無い手足は割り当てなければ無視される
+  // ======================================================================
+  const v3 = {
+    add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+    sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+    mul: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  };
+  const AX = { x: [1, 0, 0], y: [0, 1, 0], z: [0, 0, 1] };
+  // v を単位軸 k まわりに deg 度回す（右ねじ）
+  function rot3(v, k, deg) {
+    const c = cos(deg * DEG), s = sin(deg * DEG);
+    const kx = [k[1] * v[2] - k[2] * v[1], k[2] * v[0] - k[0] * v[2], k[0] * v[1] - k[1] * v[0]];
+    const kd = k[0] * v[0] + k[1] * v[1] + k[2] * v[2];
+    return [v[0] * c + kx[0] * s + k[0] * kd * (1 - c), v[1] * c + kx[1] * s + k[1] * kd * (1 - c), v[2] * c + kx[2] * s + k[2] * kd * (1 - c)];
+  }
+  // 順運動学：rots[i] = [[軸, 度], ...] を関節 i で、それより先の関節すべてに順にかける
+  function fk(rest, rots) {
+    const J = rest.map((p) => p.slice());
+    for (let i = 0; i < J.length - 1; i++) {
+      for (const [ax, deg] of rots[i] || []) {
+        if (!deg) continue;
+        for (let k = i + 1; k < J.length; k++) J[k] = v3.add(J[i], rot3(v3.sub(J[k], J[i]), AX[ax], deg));
+      }
+    }
+    return J;
+  }
+  const mirror = (pts) => pts.map((p) => [-p[0], p[1], p[2]]);
+  const scalePts = (pts, k) => pts.map((p) => p.map((v) => v * k));
+  // ループするクリップでは、周期内に整数回になるよう周波数を合わせる
+  const loopHz = (c, hz) => (c.loop ? Math.max(1, Math.round(hz * c.dur)) / c.dur : hz);
+
+  // 四つ足の脚：swing 前へ振る（度）、bend 先の関節を曲げる（度）、splay 外へ開く（度）
+  const legRots = (s, swing, bend, splay) => [[["x", -swing], ["z", s * -splay]], [["x", bend]]];
+  // 横へ伸びる手足（羽・葉・腕）：up 上げる、fwd 前へ振る、bend 先を前へ曲げる
+  const sideRots = (s, up, fwd, bend = 0) => [[["z", s * up], ["y", -s * fwd]], [["y", -s * bend]]];
+
+  const CREATURE_CHAINS = {
+    LegFL: [[-0.18, 0.3, 0.25], [-0.19, 0.15, 0.27], [-0.2, 0.0, 0.28]],
+    LegBL: [[-0.18, 0.3, -0.3], [-0.19, 0.15, -0.32], [-0.2, 0.0, -0.3]],
+    Tail: [[0, 0.38, -0.48], [0, 0.37, -0.66], [0, 0.36, -0.84]],
+    Neck: [[0, 0.45, 0.28], [0, 0.5, 0.42]],
+  };
+  CREATURE_CHAINS.LegFR = mirror(CREATURE_CHAINS.LegFL);
+  CREATURE_CHAINS.LegBR = mirror(CREATURE_CHAINS.LegBL);
+
+  // 四つ足共通の姿勢づくり
+  function quadPose(chains, g) {
+    const out = {};
+    const legs = [["LegFL", -1, true, 0], ["LegFR", 1, true, 0.5], ["LegBL", -1, false, 0.5], ["LegBR", 1, false, 0]];
+    legs.forEach(([name, s, front, ph], i) => {
+      if (!chains[name]) return;
+      let swing = 0, bend = 0, splay = g.splay * 45;
+      if (g.gait != null) {
+        const a = TAU * (g.gait + ph);
+        swing += g.stride * sin(a);
+        bend += g.lift * Math.max(0, cos(a)) ** 2;
+      }
+      swing += g.reach * (front ? 70 : -30) + g.tuck * (front ? -55 : 55);
+      bend += g.tuck * (front ? 100 : -100) + g.reach * (front ? -20 : 0);
+      swing += g.flail * 35 * sin(TAU * 6 * g.t + i * 1.7);
+      bend += g.flail * 30 * sin(TAU * 6 * g.t + i * 1.7 + 1);
+      if (front) { swing += g.dig * 50 * sin(TAU * 5 * g.t + (s > 0 ? Math.PI : 0)); bend += g.dig * 40 * Math.max(0, sin(TAU * 5 * g.t + (s > 0 ? Math.PI : 0))); }
+      out[name] = fk(chains[name], legRots(s, swing, front ? bend : -bend, splay));
+    });
+    if (chains.Tail) {
+      const w = g.wag * sin(TAU * g.wagHz * g.t);
+      out.Tail = fk(chains.Tail, [[["y", w], ["x", g.tailLift]], [["y", w * 0.8], ["x", g.tailLift * 0.5]]]);
+    }
+    if (chains.Neck) out.Neck = fk(chains.Neck, [[["x", -g.head]]]);
+    return out;
+  }
+  const QUAD0 = { gait: null, stride: 25, lift: 35, reach: 0, tuck: 0, flail: 0, dig: 0, splay: 0, wag: 8, wagHz: 0.8, tailLift: 0, head: 0 };
+
+  // 各クリップでの手足の指示（t は秒、c はクリップ）。書いていないクリップは待機と同じ
+  const LIMBS = {
+    Creature: {
+      chains: CREATURE_CHAINS,
+      pose: quadPose,
+      base: QUAD0,
+      clips: {
+        Idle: (t, c) => ({ wagHz: loopHz(c, 0.8), head: 3 * sin(TAU * t / c.dur) }),
+        Move: (t, c) => ({ gait: t / c.dur, stride: 28, lift: 40, wag: 12, wagHz: loopHz(c, 1.6), head: 5 * sin(TAU * 2 * t / c.dur) }),
+        Attack_Bite: (t) => ({ reach: env(t, 0.3, 0.95), head: -15 * env(t, 0.1, 0.4) - 25 * env(t, 0.45, 0.8), tailLift: 20 * env(t, 0.2, 1.0) }),
+        Attack_Tackle: (t) => ({ gait: t / 0.25, stride: 35 * env(t, 0.35, 0.75), lift: 40, head: -20 * env(t, 0.3, 1.0), tailLift: 25 * env(t, 0.3, 1.1) }),
+        Attack_Breath: (t) => ({ splay: 0.2 * env(t, 0.2, 1.8), head: 25 * env(t, 0.0, 0.5) - 10 * env(t, 0.45, 1.5), wag: 4 }),
+        Attack_Pounce: (t) => ({ tuck: 0.8 * env(t, 0.1, 0.6) + 0.5 * env(t, 1.0, 1.4), reach: env(t, 0.5, 1.15), tailLift: 30 * env(t, 0.4, 1.3) }),
+        Attack_Whip: (t) => ({ splay: 0.2 * env(t, 0.2, 1.3), wag: 40 * env(t, 0.4, 1.0), wagHz: 1.2 }),
+        Burrow: (t) => ({ dig: env(t, 0.05, 1.2), head: -20 * env(t, 0.1, 1.2) }),
+        Emerge_Bite: (t) => ({ tuck: t < 0.4 ? 1 : 1 - clamp((t - 0.4) / 0.15, 0, 1), reach: env(t, 0.4, 0.9), head: 25 * env(t, 0.35, 0.65) - 25 * env(t, 0.6, 0.95) }),
+        Flipped: (t) => ({ flail: env(t, 0.3, 2.1), wag: 25, wagHz: 3 }),
+        Grow: (t) => ({ splay: 0.3 * env(t, 0.2, 1.1), head: 15 * env(t, 0.2, 1.1), tailLift: 30 * env(t, 0.2, 1.1) }),
+        Dig_Escape: (t) => ({ dig: env(t, 0.15, 1.5), head: -30 * clamp(t / 0.3, 0, 1) }),
+        Hit: (t) => ({ splay: 0.4 * env(t, 0, 0.35), head: 20 * env(t, 0, 0.3), wag: 0 }),
+        Death: (t) => ({ splay: 0.8 * clamp(t / 0.6, 0, 1), head: -20 * clamp(t / 0.6, 0, 1), tailLift: -15 * clamp(t / 0.6, 0, 1), wag: 0 }),
+      },
+    },
+    RockBall: {
+      chains: Object.fromEntries(Object.entries(CREATURE_CHAINS).filter(([k]) => k.startsWith("Leg")).map(([k, v]) => [k, scalePts(v, 0.6)])),
+      pose: quadPose,
+      base: QUAD0,
+      clips: {
+        Idle: (t, c) => ({ wag: 5, wagHz: loopHz(c, 0.6) }),
+        Move: (t, c) => ({ gait: t / c.dur, stride: 25, lift: 30, wag: 8, wagHz: loopHz(c, 1.4) }),
+        Attack_Roll: (t) => ({ tuck: clamp(t / 0.35, 0, 1) * (1 - clamp((t - 1.9) / 0.4, 0, 1)), wag: 0 }),
+        Attack_Roll_Long: (t) => ({ tuck: clamp(t / 0.35, 0, 1) * (1 - clamp((t - 3.3) / 0.4, 0, 1)), flail: 0.3 * env(t, 1.8, 3.3), wag: 0 }),
+        Hit: (t) => ({ splay: 0.3 * env(t, 0, 0.35), wag: 0 }),
+        Death: (t) => ({ splay: 0.7 * clamp(t / 0.8, 0, 1), wag: 0 }),
+        Death_Shatter: (t) => ({ tuck: 0.6 * env(t, 0, 0.5), splay: clamp((t - 0.45) / 0.1, 0, 1), wag: 0 }),
+      },
+    },
+    Mushroom: {
+      chains: {
+        ArmL: [[-0.14, 0.22, 0.02], [-0.25, 0.12, 0.05]], ArmR: mirror([[-0.14, 0.22, 0.02], [-0.25, 0.12, 0.05]]),
+        FootL: [[-0.07, 0.07, 0], [-0.07, 0, 0.07]], FootR: mirror([[-0.07, 0.07, 0], [-0.07, 0, 0.07]]),
+      },
+      base: { armUp: 0, armFwd: 0, step: 0, footBack: 0, sway: 0 },
+      pose: (ch, g) => ({
+        ArmL: fk(ch.ArmL, sideRots(-1, g.armUp + g.sway, g.armFwd)), ArmR: fk(ch.ArmR, sideRots(1, g.armUp - g.sway, g.armFwd)),
+        FootL: fk(ch.FootL, [[["x", -(g.step + g.footBack)]]]), FootR: fk(ch.FootR, [[["x", -(-g.step + g.footBack)]]]),
+      }),
+      clips: {
+        Idle: (t, c) => ({ sway: 8 * sin(TAU * t / c.dur) }),
+        Move: (t, c) => { const u = t / c.dur; return { step: 25 * sin(TAU * u), armUp: 30 * sin(Math.PI * u) }; },
+        Attack_Lunge: (t) => ({ armUp: 30 * env(t, 0.3, 1.0), armFwd: 70 * env(t, 0.4, 1.0), footBack: 30 * env(t, 0.45, 0.8) }),
+        Attack_Stomp: (t) => ({ armUp: 80 * env(t, 0.3, 1.05), footBack: -20 * env(t, 0.5, 1.0) }),
+        Hit: (t) => ({ armUp: 40 * env(t, 0, 0.35) }),
+        Death: (t) => ({ armUp: 50 * clamp(t / 0.6, 0, 1) }),
+        Death_SporeBurst: (t) => ({ armUp: 50 * clamp(t / 0.6, 0, 1) + 20 * env(t, 1.3, 1.7) }),
+      },
+    },
+    Bee: {
+      chains: {
+        WingL: [[-0.03, 1.1, -0.02], [-0.3, 1.14, -0.05]], WingR: mirror([[-0.03, 1.1, -0.02], [-0.3, 1.14, -0.05]]),
+        HindWingL: [[-0.03, 1.08, -0.07], [-0.2, 1.1, -0.12]], HindWingR: mirror([[-0.03, 1.08, -0.07], [-0.2, 1.1, -0.12]]),
+        Leg1L: [[-0.05, 0.92, 0.06], [-0.11, 0.78, 0.12]], Leg1R: mirror([[-0.05, 0.92, 0.06], [-0.11, 0.78, 0.12]]),
+        Leg2L: [[-0.06, 0.9, 0], [-0.13, 0.75, -0.02]], Leg2R: mirror([[-0.06, 0.9, 0], [-0.13, 0.75, -0.02]]),
+        Leg3L: [[-0.05, 0.9, -0.06], [-0.12, 0.76, -0.14]], Leg3R: mirror([[-0.05, 0.9, -0.06], [-0.12, 0.76, -0.14]]),
+      },
+      base: { hz: 12, amp: 45, bias: 15, fold: 0, grab: 0, dangle: 0 },
+      pose: (ch, g) => {
+        const out = {};
+        const flap = g.bias + g.amp * sin(TAU * g.hz * g.t);
+        for (const [n, s] of [["WingL", -1], ["WingR", 1]]) out[n] = fk(ch[n], [[["z", s * flap * (1 - g.fold)], ["y", s * 80 * g.fold]]]);
+        for (const [n, s] of [["HindWingL", -1], ["HindWingR", 1]]) out[n] = fk(ch[n], [[["z", s * (g.bias + g.amp * sin(TAU * g.hz * g.t - 0.6)) * (1 - g.fold)], ["y", s * 80 * g.fold]]]);
+        [1, 2, 3].forEach((i) => {
+          for (const [side, s] of [["L", -1], ["R", 1]]) {
+            const n = `Leg${i}${side}`;
+            out[n] = fk(ch[n], [[["x", -(g.grab * (60 - 10 * i)) - g.dangle * 10 * sin(TAU * 1.5 * g.t + i)], ["z", s * -10 * g.grab]]]);
+          }
+        });
+        return out;
+      },
+      clips: {
+        Idle: (t, c) => ({ hz: loopHz(c, 12), dangle: 1 }),
+        Move: (t, c) => ({ hz: loopHz(c, 12), dangle: 1 }),
+        Move_Flutter: (t, c) => ({ hz: loopHz(c, 3), amp: 35, bias: 10, dangle: 0.5 }),
+        Move_Drunk: (t, c) => ({ hz: loopHz(c, 10), amp: 45 + 10 * sin(TAU * t / c.dur), dangle: 1.5 }),
+        Attack_Sting: (t) => ({ grab: env(t, 0.35, 0.8), amp: 50 }),
+        Attack_Charge: (t) => ({ grab: 0.3 * env(t, 0.6, 1.6), amp: 55, fold: 0.15 * env(t, 0.65, 1.5) }),
+        Attack_Ram: (t) => ({ grab: 0.6 * env(t, 0.3, 0.7), amp: 50 }),
+        Attack_Slash: (t) => ({ grab: 0.5 * env(t, 0.25, 0.65), hz: 6, amp: 60 }),
+        Attack_DoubleSting: (t) => ({ grab: env(t, 0.3, 0.7) + env(t, 0.9, 1.3), hz: 10, dangle: 1 }),
+        Hit: (t) => ({ grab: -0.3 * env(t, 0, 0.3), amp: 30 }),
+        Death: (t) => ({ amp: 45 * (1 - clamp((t - 0.6) / 0.3, 0, 1)), fold: clamp((t - 0.8) / 0.3, 0, 1), grab: 0.5 * clamp((t - 0.9) / 0.3, 0, 1) }),
+      },
+    },
+    Fairy: {
+      chains: { WingL: [[-0.05, 1.25, -0.02], [-0.22, 1.3, -0.05]], WingR: mirror([[-0.05, 1.25, -0.02], [-0.22, 1.3, -0.05]]) },
+      base: { hz: 8, amp: 35, bias: 10, fold: 0 },
+      pose: (ch, g) => {
+        const flap = g.bias + g.amp * sin(TAU * g.hz * g.t);
+        return Object.fromEntries([["WingL", -1], ["WingR", 1]].map(([n, s]) => [n, fk(ch[n], [[["z", s * flap * (1 - g.fold)], ["y", s * 70 * g.fold]]])]));
+      },
+      clips: {
+        Idle: (t, c) => ({ hz: loopHz(c, 6) }),
+        Move: (t, c) => ({ hz: loopHz(c, 8) }),
+        Move_Flee: (t, c) => ({ hz: loopHz(c, 10), amp: 45 }),
+        Attack_Powder: (t) => ({ hz: 10, amp: 50 + 15 * env(t, 0.5, 0.9) }),
+        Attack_Touch: (t) => ({ hz: 9, amp: 40, fold: 0.3 * env(t, 0.3, 0.6) }),
+        Hit: () => ({ hz: 10, amp: 25 }),
+        Death: (t) => ({ hz: 8, amp: 35 * (1 - t / 1.2), fold: clamp(t / 1.2, 0, 1) }),
+      },
+    },
+    Flyer: {
+      chains: {
+        WingL: [[-0.1, 1.75, -0.05], [-0.45, 1.82, -0.1], [-0.82, 1.72, -0.12]], WingR: mirror([[-0.1, 1.75, -0.05], [-0.45, 1.82, -0.1], [-0.82, 1.72, -0.12]]),
+        LegL: [[-0.07, 1.4, 0], [-0.07, 1.22, 0.04], [-0.07, 1.06, 0.0]], LegR: mirror([[-0.07, 1.4, 0], [-0.07, 1.22, 0.04], [-0.07, 1.06, 0.0]]),
+        Tail: [[0, 1.42, -0.12], [0, 1.38, -0.35], [0, 1.33, -0.56]],
+      },
+      base: { hz: 2, amp: 35, bias: 5, fold: 0, reach: 0, swish: 6, limp: 0 },
+      pose: (ch, g) => {
+        const out = {};
+        const a = TAU * g.hz * g.t, flap = g.bias + g.amp * sin(a), tipLag = g.amp * 0.4 * sin(a - 0.8);
+        for (const [n, s] of [["WingL", -1], ["WingR", 1]]) {
+          const up = flap * (1 - g.fold) - g.limp * 35;
+          out[n] = fk(ch[n], [[["z", s * up], ["y", s * 70 * g.fold]], [["z", s * tipLag * (1 - g.fold)], ["y", -s * 110 * g.fold]]]);
+        }
+        for (const [n, s] of [["LegL", -1], ["LegR", 1]]) out[n] = fk(ch[n], [[["x", -(60 * g.reach) + 10 * g.limp]], [["x", 40 * (1 - g.reach) - 30 * g.reach]]]);
+        out.Tail = fk(ch.Tail, [[["y", g.swish * sin(TAU * 0.7 * g.t)], ["x", -15 * g.limp]], [["y", g.swish * 0.8 * sin(TAU * 0.7 * g.t - 0.7)]]]);
+        return out;
+      },
+      clips: {
+        Idle: (t, c) => ({ hz: loopHz(c, 2), amp: 40 }),
+        Move: (t, c) => ({ hz: loopHz(c, 0.5), amp: 10, bias: 8, swish: 10 }),
+        Attack_Dive: (t) => ({ hz: 3, amp: 40 * (1 - env(t, 0.45, 2.0)), fold: 0.8 * env(t, 0.45, 1.0) + 0.5 * env(t, 0.9, 1.95), reach: env(t, 0.7, 1.1) }),
+        Attack_GlideBite: (t) => ({ hz: 1, amp: 10, bias: 15, fold: 0.2 * env(t, 0.4, 0.9), reach: 0.6 * env(t, 0.6, 1.0) }),
+        Hit: (t) => ({ hz: 4, amp: 50, limp: 0.3 * env(t, 0, 0.3) }),
+        Death: (t) => ({ amp: 40 * (1 - clamp(t / 0.3, 0, 1)), limp: clamp(t / 0.6, 0, 1), swish: 0 }),
+        Death_Collapse: (t) => ({ amp: 0, limp: clamp(t / 0.4, 0, 1), fold: 0.5 * clamp((t - 0.5) / 0.3, 0, 1), swish: 0 }),
+        Reassemble: (t) => ({ amp: 40 * clamp((t - 1.0) / 0.4, 0, 1), limp: 1 - clamp((t - 0.6) / 0.6, 0, 1), fold: 0.5 * (1 - clamp((t - 0.6) / 0.6, 0, 1)), hz: 2 }),
+      },
+    },
+    Plant: {
+      chains: { LeafL: [[-0.1, 0.45, 0], [-0.35, 0.42, 0.05], [-0.58, 0.34, 0.1]], LeafR: mirror([[-0.1, 0.45, 0], [-0.35, 0.42, 0.05], [-0.58, 0.34, 0.1]]) },
+      base: { up: 0, fwd: 0, curl: 0, sway: 0 },
+      pose: (ch, g) => ({
+        LeafL: fk(ch.LeafL, sideRots(-1, g.up + g.sway, g.fwd, g.curl)),
+        LeafR: fk(ch.LeafR, sideRots(1, g.up - g.sway, g.fwd, g.curl)),
+      }),
+      clips: {
+        Idle: (t, c) => ({ sway: 10 * sin(TAU * t / c.dur) }),
+        Move: (t, c) => ({ sway: 15 * sin(TAU * t / c.dur), fwd: 10 * sin(TAU * 2 * t / c.dur) }),
+        Attack_Spit: (t) => ({ up: 30 * env(t, 0.1, 0.65), fwd: 25 * env(t, 0.5, 1.0) }),
+        Dormant: () => ({ curl: 80, up: -20, fwd: 40 }),
+        WakeUp: (t) => { const k = clamp(t / 0.7, 0, 1); return { curl: 80 * (1 - k), up: -20 * (1 - k) + 40 * env(t, 0.3, 1.1), fwd: 40 * (1 - k) }; },
+        Attack_Slam: (t) => ({ up: 70 * env(t, 0.0, 0.7) - 30 * env(t, 0.62, 1.3), fwd: 60 * env(t, 0.55, 1.3), curl: 30 * env(t, 0.55, 1.2) }),
+        Submerged: () => ({ curl: 90, up: 40, fwd: 0 }),
+        Attack_Erupt: (t) => ({ curl: 90 * (1 - clamp((t - 1.0) / 0.2, 0, 1)), up: 40 + 40 * env(t, 1.0, 1.6), sway: 10 * sin(TAU * 2 * t) * env(t, 1.2, 2.0) }),
+        Attack_Lunge: (t) => ({ fwd: 50 * env(t, 0.35, 1.0), up: 15 * env(t, 0.2, 0.6) }),
+        Hit: (t) => ({ up: 30 * env(t, 0, 0.3), sway: 0 }),
+        Death: (t) => ({ up: -40 * clamp(t / 1.0, 0, 1), curl: 30 * clamp(t / 1.0, 0, 1) }),
+      },
+    },
+    Spider: {
+      chains: Object.fromEntries([0, 1, 2, 3].flatMap((i) => {
+        const L = [[-0.1, 0.2, 0.12 - 0.09 * i], [-0.3, 0.32, 0.18 - 0.13 * i], [-0.42, 0.0, 0.24 - 0.18 * i]];
+        return [[`Leg${i + 1}L`, L], [`Leg${i + 1}R`, mirror(L)]];
+      })),
+      base: { gait: null, raise: 0, curl: 0, spread: 0 },
+      pose: (ch, g) => {
+        const out = {};
+        [0, 1, 2, 3].forEach((i) => {
+          for (const [side, s] of [["L", -1], ["R", 1]]) {
+            const n = `Leg${i + 1}${side}`;
+            const ph = ((i + (s > 0 ? 1 : 0)) % 2) * 0.5;
+            let up = 0, fwd = 0, bend = 0;
+            if (g.gait != null) { const a = TAU * (g.gait + ph); fwd += 18 * sin(a); up += 15 * Math.max(0, cos(a)) ** 2; }
+            if (i === 0) up += 50 * g.raise;
+            up += 25 * g.spread - 30 * g.curl;
+            bend += 70 * g.curl - 20 * g.spread;
+            out[n] = fk(ch[n], [[["z", s * up], ["y", -s * fwd]], [["z", -s * bend]]]);
+          }
+        });
+        return out;
+      },
+      clips: {
+        Idle: () => ({}),
+        Move: (t, c) => ({ gait: t / c.dur }),
+        Descend: (t) => ({ spread: 1 - clamp((t - 1.2) / 0.3, 0, 1) }),
+        Attack_Web: (t) => ({ raise: env(t, 0.1, 1.0) }),
+        Hit: (t) => ({ curl: 0.4 * env(t, 0, 0.35) }),
+        Death: (t) => ({ curl: clamp(t / 0.6, 0, 1) }),
+      },
+    },
+    Clockwork: {
+      chains: {
+        ArmL: [[-0.3, 0.55, 0.05], [-0.45, 0.42, 0.15], [-0.5, 0.3, 0.3]], ArmR: mirror([[-0.3, 0.55, 0.05], [-0.45, 0.42, 0.15], [-0.5, 0.3, 0.3]]),
+        LegL: [[-0.15, 0.18, 0.02], [-0.17, 0.08, 0.04], [-0.17, 0, 0.06]], LegR: mirror([[-0.15, 0.18, 0.02], [-0.17, 0.08, 0.04], [-0.17, 0, 0.06]]),
+        LegB: [[0, 0.18, -0.12], [0, 0.08, -0.15], [0, 0, -0.17]],
+      },
+      base: { gait: null, armUp: 0, armFwd: 0, armBend: 0, tick: 0 },
+      pose: (ch, g) => {
+        const out = {};
+        for (const [n, s] of [["ArmL", -1], ["ArmR", 1]]) out[n] = fk(ch[n], sideRots(s, g.armUp + (s < 0 ? g.tick : -g.tick), g.armFwd, g.armBend));
+        [["LegL", -1, 0], ["LegR", 1, 0.5], ["LegB", 0, 0.25]].forEach(([n, s, ph]) => {
+          let sw = 0, b = 0;
+          if (g.gait != null) { const a = TAU * (g.gait + ph); sw = 25 * sin(a); b = 30 * Math.max(0, cos(a)) ** 2; }
+          out[n] = fk(ch[n], [[["x", -sw]], [["x", b]]]);
+        });
+        return out;
+      },
+      clips: {
+        Idle: (t, c) => ({ tick: 6 * (sin(TAU * t / c.dur) + 0.3 * sin(3 * TAU * t / c.dur)) }),   // カチカチと振れる
+        Move: (t, c) => ({ gait: t / c.dur, armFwd: 10 * sin(TAU * t / c.dur) }),
+        Alert: (t) => ({ armUp: 70 * env(t, 0.1, 1.1), armBend: 20 * sin(TAU * 10 * t) * env(t, 0.3, 0.9) }),
+        Attack_SpinJump: (t) => ({ armUp: 60 * env(t, 0.3, 1.0), armFwd: -20 * env(t, 0.35, 0.8) }),
+        Attack_Throw: (t) => ({ armUp: 40 * env(t, 0, 0.6), armFwd: -40 * env(t, 0.0, 0.45) + 80 * env(t, 0.4, 0.9), armBend: 40 * env(t, 0, 0.45) }),
+        Hit: (t) => ({ armUp: 30 * env(t, 0, 0.3) }),
+        Death: (t) => ({ armUp: -30 * clamp(t / 0.6, 0, 1), armBend: 40 * clamp(t / 0.6, 0, 1) }),
+      },
+    },
+    Whale: {
+      chains: {
+        Tail: [[0, 0.32, -0.62], [0, 0.34, -0.82], [0, 0.36, -1.02]],
+        FinL: [[-0.27, 0.22, 0.1], [-0.48, 0.18, 0.06]], FinR: mirror([[-0.27, 0.22, 0.1], [-0.48, 0.18, 0.06]]),
+      },
+      base: { hz: 0.5, amp: 10, fin: 8, finHz: 0.5, curl: 0 },
+      pose: (ch, g) => {
+        const a = TAU * g.hz * g.t;
+        return {
+          Tail: fk(ch.Tail, [[["x", g.amp * sin(a) + g.curl]], [["x", g.amp * 0.9 * sin(a - 0.9) + g.curl]]]),
+          FinL: fk(ch.FinL, [[["z", -(g.fin * sin(TAU * g.finHz * g.t))]]]),
+          FinR: fk(ch.FinR, [[["z", g.fin * sin(TAU * g.finHz * g.t)]]]),
+        };
+      },
+      clips: {
+        Idle: (t, c) => ({ hz: loopHz(c, 0.5), finHz: loopHz(c, 0.5) }),
+        Move: (t, c) => ({ hz: loopHz(c, 1.0), amp: 22, finHz: loopHz(c, 1.0), fin: 12 }),
+        Attack_LeapTackle: (t) => ({ hz: 2.5, amp: 30 * (1 - env(t, 0.6, 1.1)), curl: 25 * env(t, 0.55, 1.0) - 20 * env(t, 0.9, 1.3), fin: 20 }),
+        Hit: () => ({ hz: 3, amp: 25 }),
+        Death: (t) => ({ amp: 10 * (1 - clamp(t / 1.2, 0, 1)), fin: 3 }),
+      },
+    },
+    Shears: {
+      chains: {
+        BladeL: [[0, 1.1, 0], [-0.03, 1.1, 0.72]], BladeR: [[0, 1.1, 0], [0.03, 1.1, 0.72]],
+        HandleL: [[0, 1.1, 0], [-0.1, 1.1, -0.35]], HandleR: [[0, 1.1, 0], [0.1, 1.1, -0.35]],
+      },
+      base: { open: 10 },
+      // 刃を開く：左の刃と右の持ち手、右の刃と左の持ち手がそれぞれ一体で回る
+      pose: (ch, g) => ({
+        BladeL: fk(ch.BladeL, [[["y", -g.open / 2]]]), HandleR: fk(ch.HandleR, [[["y", -g.open / 2]]]),
+        BladeR: fk(ch.BladeR, [[["y", g.open / 2]]]), HandleL: fk(ch.HandleL, [[["y", g.open / 2]]]),
+      }),
+      clips: {
+        Idle: (t, c) => ({ open: 12 + 6 * sin(TAU * t / c.dur) }),
+        Move: () => ({ open: 10 }),
+        Attack_Snip2: (t) => ({ open: 10 + 45 * env(t, 0.05, 0.42) + 45 * env(t, 0.42, 0.72) }),
+        Hit: (t) => ({ open: 10 + 25 * env(t, 0, 0.3) }),
+        Death: (t) => ({ open: 10 + 50 * clamp(t / 0.6, 0, 1) }),
+      },
+    },
+    Box: {
+      chains: { Lid: [[0, 0.56, -0.3], [0, 0.56, 0.3]] },
+      base: { open: 0 },
+      pose: (ch, g) => ({ Lid: fk(ch.Lid, [[["x", -g.open]]]) }),
+      clips: {
+        Disguise: () => ({}),
+        Idle: (t, c) => ({ open: 8 * Math.max(0, sin(TAU * 2 * t / c.dur)) }),
+        Move: (t, c) => ({ open: 12 * sin(Math.PI * t / c.dur) }),
+        Attack_Bite: (t) => ({ open: 60 * env(t, 0.0, 0.45) }),
+        Hit: (t) => ({ open: 30 * env(t, 0, 0.3) }),
+        Death: (t) => ({ open: 90 * clamp(t / 0.5, 0, 1) }),
+      },
+    },
+    Barrel: {
+      chains: { FootL: [[-0.1, 0.08, 0.02], [-0.1, 0, 0.1]], FootR: mirror([[-0.1, 0.08, 0.02], [-0.1, 0, 0.1]]) },
+      base: { step: 0, tuck: 0 },
+      pose: (ch, g) => ({
+        FootL: fk(ch.FootL, [[["x", -g.step - 90 * g.tuck]]]),
+        FootR: fk(ch.FootR, [[["x", g.step - 90 * g.tuck]]]),
+      }),
+      clips: {
+        Disguise: () => ({ tuck: 1 }),
+        Reveal: (t) => ({ tuck: 1 - clamp(t / 0.25, 0, 1), step: 30 * sin(TAU * 4 * t) * env(t, 0.4, 0.9) }),
+        Idle: () => ({}),
+        Move: (t, c) => ({ step: 30 * sin(TAU * t / c.dur) }),
+        Attack_Roll: (t) => ({ tuck: clamp(Math.min(t / 0.3, (2.0 - t) / 0.3), 0, 1) }),
+        Hit: (t) => ({ step: 30 * env(t, 0, 0.3) }),
+        Death: (t) => ({ tuck: 0, step: 40 * clamp(t / 0.3, 0, 1) }),
+      },
+    },
+    Slug: {
+      chains: { EyeL: [[-0.05, 0.25, 0.3], [-0.05, 0.33, 0.3], [-0.05, 0.41, 0.3]], EyeR: mirror([[-0.05, 0.25, 0.3], [-0.05, 0.33, 0.3], [-0.05, 0.41, 0.3]]) },
+      base: { wave: 0, retract: 0, look: 0 },
+      pose: (ch, g) => Object.fromEntries([["EyeL", -1], ["EyeR", 1]].map(([n, s]) => [n,
+        fk(ch[n], [[["z", s * -(10 + g.wave * sin(TAU * 0.7 * g.t + (s > 0 ? 1 : 0)))], ["x", g.look - 30 * g.retract]], [["x", 70 * g.retract]]])])),
+      clips: {
+        Idle: (t, c) => ({ wave: 12 * sin(TAU * t / c.dur) }),
+        Move: (t, c) => ({ wave: 8, look: 15 * sin(TAU * t / c.dur) }),
+        Attack_Bite: (t) => ({ look: -20 * env(t, 0.2, 0.6) + 30 * env(t, 0.55, 1.0) }),
+        Hit: (t) => ({ retract: env(t, 0, 0.4) }),
+        Death: (t) => ({ retract: clamp(t / 0.6, 0, 1) }),
+      },
+    },
+  };
+  LIMBS.Creature.chains = CREATURE_CHAINS;
+
+  // クリップの時刻 t における手足の関節位置 { 鎖の名前: [関節の位置...] }（手足の無い体は null）
+  function evalLimbs(c, t) {
+    const L = LIMBS[c.body];
+    if (!L) return null;
+    const f = L.clips[c.name] || L.clips.Idle || (() => ({}));
+    const g = { ...L.base, ...f(clamp(t, 0, c.dur), c), t: clamp(t, 0, c.dur) };
+    return L.pose(L.chains, g);
+  }
+  const restLimbs = (body) => LIMBS[body] ? LIMBS[body].chains : null;
   // ==POSE-END==
 
   // ---------- 確認用の形（Unity には出力しない） ----------
@@ -934,41 +1324,26 @@
       { c: [0, 1.0, 0], r: [0.12, 0.12, 0.12], col: "$" },
       { c: [0, 1.02, 0.17], r: [0.08, 0.08, 0.08], col: "#221f1b" },
       { c: [0, 0.94, -0.44], r: [0.02, 0.02, 0.06], col: "#221f1b" },
-      { c: [-0.16, 1.12, -0.03], r: [0.16, 0.01, 0.07], col: "#bfdbfe", a: 0.45 },
-      { c: [0.16, 1.12, -0.03], r: [0.16, 0.01, 0.07], col: "#bfdbfe", a: 0.45 },
     ],
     Fairy: [
       { c: [0, 1.2, 0], r: [0.12, 0.12, 0.12], col: "$", glow: true },
-      { c: [-0.13, 1.26, -0.03], r: [0.1, 0.01, 0.05], col: "#e0f2fe", a: 0.5 },
-      { c: [0.13, 1.26, -0.03], r: [0.1, 0.01, 0.05], col: "#e0f2fe", a: 0.5 },
       { c: [-0.035, 1.22, 0.11], r: [0.015, 0.02, 0.01], col: "#1c1a17" },
       { c: [0.035, 1.22, 0.11], r: [0.015, 0.02, 0.01], col: "#1c1a17" },
     ],
     RockBall: [
       { c: [0, 0.3, 0], r: [0.3, 0.28, 0.3], col: "$" },
-      { c: [-0.11, 0.08, 0.05], r: [0.08, 0.06, 0.1], col: "#6b7280" },
-      { c: [0.11, 0.08, 0.05], r: [0.08, 0.06, 0.1], col: "#6b7280" },
       { c: [-0.08, 0.36, 0.26], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
       { c: [0.08, 0.36, 0.26], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
     ],
     Slug: [
       { c: [0, 0.1, -0.05], r: [0.15, 0.1, 0.38], col: "$", a: 0.75 },
       { c: [0, 0.17, 0.24], r: [0.11, 0.1, 0.12], col: "$", a: 0.8 },
-      { c: [-0.05, 0.33, 0.3], r: [0.015, 0.08, 0.015], col: "$" },
-      { c: [0.05, 0.33, 0.3], r: [0.015, 0.08, 0.015], col: "$" },
-      { c: [-0.05, 0.41, 0.3], r: [0.025, 0.025, 0.025], col: "#1c1a17" },
-      { c: [0.05, 0.41, 0.3], r: [0.025, 0.025, 0.025], col: "#1c1a17" },
     ],
     Creature: [
       { c: [0, 0.38, -0.05], r: [0.3, 0.26, 0.45], col: "$" },
       { c: [0, 0.5, 0.42], r: [0.2, 0.18, 0.2], col: "$" },
       { c: [-0.08, 0.58, 0.58], r: [0.03, 0.03, 0.02], col: "#1c1a17" },
       { c: [0.08, 0.58, 0.58], r: [0.03, 0.03, 0.02], col: "#1c1a17" },
-      { c: [-0.18, 0.12, 0.25], r: [0.07, 0.12, 0.07], col: "#57534e" },
-      { c: [0.18, 0.12, 0.25], r: [0.07, 0.12, 0.07], col: "#57534e" },
-      { c: [-0.18, 0.12, -0.3], r: [0.07, 0.12, 0.07], col: "#57534e" },
-      { c: [0.18, 0.12, -0.3], r: [0.07, 0.12, 0.07], col: "#57534e" },
-      { c: [0, 0.38, -0.58], r: [0.06, 0.06, 0.18], col: "$" },
     ],
     Plant: [
       { c: [0, 0.03, 0], r: [0.3, 0.03, 0.3], col: "#78350f" },
@@ -981,25 +1356,16 @@
     Flyer: [
       { c: [0, 1.6, 0], r: [0.16, 0.26, 0.14], col: "$" },
       { c: [0, 1.95, 0.06], r: [0.11, 0.11, 0.11], col: "$" },
-      { c: [-0.42, 1.72, -0.08], r: [0.36, 0.02, 0.18], col: "$", a: 0.8 },
-      { c: [0.42, 1.72, -0.08], r: [0.36, 0.02, 0.18], col: "$", a: 0.8 },
-      { c: [-0.07, 1.28, 0], r: [0.04, 0.14, 0.04], col: "#1c1a17" },
-      { c: [0.07, 1.28, 0], r: [0.04, 0.14, 0.04], col: "#1c1a17" },
-      { c: [0, 1.45, -0.25], r: [0.03, 0.03, 0.2], col: "$" },
       { c: [-0.04, 1.97, 0.16], r: [0.02, 0.015, 0.01], col: "#fbbf24" },
       { c: [0.04, 1.97, 0.16], r: [0.02, 0.015, 0.01], col: "#fbbf24" },
     ],
     Spider: [
       { c: [0, 0.22, -0.18], r: [0.17, 0.14, 0.2], col: "$" },
       { c: [0, 0.2, 0.1], r: [0.1, 0.08, 0.1], col: "$" },
-      ...[0, 1, 2, 3].flatMap((i) => [-1, 1].map((s) => ({ c: [s * 0.22, 0.12, 0.14 - i * 0.1], r: [0.16, 0.02, 0.02], col: "#292524" }))),
       { c: [-0.03, 0.24, 0.19], r: [0.02, 0.02, 0.01], col: "#dc2626" },
       { c: [0.03, 0.24, 0.19], r: [0.02, 0.02, 0.01], col: "#dc2626" },
     ],
     Clockwork: [
-      { c: [-0.15, 0.08, 0.05], r: [0.06, 0.08, 0.06], col: "#78350f" },
-      { c: [0.15, 0.08, 0.05], r: [0.06, 0.08, 0.06], col: "#78350f" },
-      { c: [0, 0.08, -0.15], r: [0.06, 0.08, 0.06], col: "#78350f" },
       { c: [0, 0.45, 0], r: [0.33, 0.33, 0.3], col: "$" },
       { c: [0, 0.5, 0.28], r: [0.22, 0.22, 0.04], col: "#fef3c7" },
       { c: [0, 0.55, 0.32], r: [0.015, 0.12, 0.01], col: "#1c1a17" },
@@ -1008,9 +1374,6 @@
     Whale: [
       { c: [0, 0.3, 0], r: [0.3, 0.26, 0.7], col: "$" },
       { c: [0, 0.2, 0.05], r: [0.26, 0.12, 0.55], col: "#cbd5e1" },
-      { c: [0, 0.35, -0.75], r: [0.35, 0.04, 0.12], col: "$" },
-      { c: [-0.32, 0.22, 0.1], r: [0.18, 0.03, 0.1], col: "$" },
-      { c: [0.32, 0.22, 0.1], r: [0.18, 0.03, 0.1], col: "$" },
       { c: [-0.2, 0.38, 0.45], r: [0.03, 0.03, 0.03], col: "#0ea5e9" },
       { c: [0.2, 0.38, 0.45], r: [0.03, 0.03, 0.03], col: "#0ea5e9" },
     ],
@@ -1023,17 +1386,12 @@
     ],
     Box: [
       { c: [0, 0.28, 0], r: [0.34, 0.28, 0.3], col: "$" },
-      { c: [0, 0.6, 0], r: [0.36, 0.06, 0.32], col: "#92400e" },
       { c: [0.2, 0.42, 0.3], r: [0.06, 0.08, 0.01], col: "#fef3c7" },
       { c: [-0.1, 0.42, 0.3], r: [0.03, 0.03, 0.01], col: "#dc2626" },
       { c: [0.02, 0.42, 0.3], r: [0.03, 0.03, 0.01], col: "#dc2626" },
       { c: [0, 0.53, 0.3], r: [0.25, 0.02, 0.01], col: "#f5f5f4" },
     ],
     Shears: [
-      { c: [-0.04, 1.1, 0.28], r: [0.03, 0.015, 0.42], col: "#d6d3d1" },
-      { c: [0.04, 1.1, 0.28], r: [0.03, 0.015, 0.42], col: "#d6d3d1" },
-      { c: [-0.1, 1.1, -0.28], r: [0.08, 0.02, 0.1], col: "$" },
-      { c: [0.1, 1.1, -0.28], r: [0.08, 0.02, 0.1], col: "$" },
       { c: [0, 1.1, 0], r: [0.03, 0.03, 0.03], col: "#1c1a17" },
     ],
   };
@@ -1139,8 +1497,53 @@
       const cc = toCam(toWorld(sh.c));
       items.push({ sh, pts: hull(pts), c: projC(cc), depth: cc[2] });
     }
+    // 手足（代理の関節）
+    const limbs = state.limbPose;
+    if (limbs) {
+      for (const [name, J] of Object.entries(limbs)) {
+        const st = limbStyle(E, name);
+        const W = J.map(toWorld);
+        if (st.kind === "plate") {
+          // ふた：付け根と先の線を左右に広げた板
+          const side = [st.half * scale, 0, 0];
+          const pts = [add3(W[0], mul3(side, -1)), add3(W[0], side), add3(W[1], side), add3(W[1], mul3(side, -1))].map(proj);
+          if (pts.some((q) => !q)) continue;
+          const cc = toCam(mul3(add3(W[0], W[1]), 0.5));
+          items.push({ limbPlate: pts, col: st.col, depth: cc[2] });
+          continue;
+        }
+        for (let i = 0; i < W.length - 1; i++) {
+          const a = proj(W[i]), b = proj(W[i + 1]);
+          if (!a || !b) continue;
+          items.push({ limb: [a, b], w: st.w * scale, col: st.col, alpha: st.alpha, depth: (toCam(W[i])[2] + toCam(W[i + 1])[2]) / 2 });
+        }
+        if (st.ball) {
+          const e = toCam(W[W.length - 1]);
+          if (e[2] > NEAR) items.push({ limbBall: projC(e), r: st.ball * scale, col: st.ballCol, depth: e[2] });
+        }
+      }
+    }
     items.sort((a, b) => b.depth - a.depth);
     for (const it of items) {
+      if (it.limb) {
+        const [a, b] = it.limb;
+        ctx.globalAlpha = it.alpha || 1;
+        ctx.strokeStyle = it.col === "$" ? E.color : it.col;
+        ctx.lineCap = "round";
+        ctx.lineWidth = Math.max(1, it.w * (a.s + b.s) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+        ctx.globalAlpha = 1;
+        continue;
+      }
+      if (it.limbBall) {
+        ctx.fillStyle = it.col; ctx.beginPath(); ctx.arc(it.limbBall.x, it.limbBall.y, Math.max(1, it.r * it.limbBall.s), 0, TAU); ctx.fill();
+        continue;
+      }
+      if (it.limbPlate) {
+        ctx.fillStyle = it.col; ctx.strokeStyle = css("--outline"); ctx.lineWidth = 1;
+        ctx.beginPath(); it.limbPlate.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath(); ctx.fill(); ctx.stroke();
+        continue;
+      }
       const col = it.sh.col === "$" ? E.color : it.sh.col;
       if (it.sh.glow) {
         const R = Math.max(4, Math.max(...it.pts.map((p) => Math.hypot(p.x - it.c.x, p.y - it.c.y))));
@@ -1161,6 +1564,27 @@
       ctx.strokeStyle = css("--outline"); ctx.lineWidth = 1; ctx.stroke();
       ctx.globalAlpha = 1;
     }
+  }
+
+  // 手足の描き方（確認用）
+  function limbStyle(E, name) {
+    if (name.includes("Wing")) {
+      const w = E.body === "Flyer" ? 0.2 : E.body === "Bee" ? (name.startsWith("Hind") ? 0.08 : 0.12) : 0.1;
+      return { w, col: E.body === "Flyer" ? "$" : "#bfdbfe", alpha: E.body === "Flyer" ? 0.8 : 0.5 };
+    }
+    if (name === "Lid") return { kind: "plate", half: 0.36, col: "#92400e" };
+    if (name.startsWith("Blade")) return { w: 0.035, col: "#d6d3d1" };
+    if (name.startsWith("Handle")) return { w: 0.05, col: "$" };
+    if (name.startsWith("Eye")) return { w: 0.03, col: "$", ball: 0.025, ballCol: "#1c1a17" };
+    if (name === "Tail") return { w: E.body === "Whale" ? 0.12 : 0.06, col: "$" };
+    if (name.startsWith("Fin")) return { w: 0.08, col: "$" };
+    if (E.body === "Spider" || E.body === "Bee") return { w: 0.025, col: "#292524" };
+    if (E.body === "Mushroom" && name.startsWith("Foot")) return { w: 0.07, col: "#f1e7d0" };
+    if (E.body === "Mushroom") return { w: 0.045, col: "#f1e7d0" };
+    if (E.body === "Plant") return { w: 0.07, col: "#65a30d" };
+    if (E.body === "Barrel") return { w: 0.07, col: "#57534e" };
+    if (name === "Neck") return { w: 0.14, col: "$" };
+    return { w: 0.09, col: "#57534e" };
   }
 
   // ---------- UI ----------
@@ -1243,6 +1667,7 @@
 
     setupCamera(E, offsetZ * 0.85);
     drawGround(E);
+    state.limbPose = evalLimbs(c, t);
     drawEnemy(E, evalClip(c, t), offsetZ);
     requestAnimationFrame(frame);
   }

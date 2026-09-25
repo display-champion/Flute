@@ -46,19 +46,25 @@ public class EnemyMotion : MonoBehaviour
 
     void Awake()
     {
-        EnsureMotionRoot();
+        EnsureMotionRoot(transform);
     }
 
-    void EnsureMotionRoot()
+    /// <summary>
+    /// 子「Motion」を返す。無ければ作り、今ある子（人型の代理の骨組み Proxy 以外）をその下へ移す。
+    /// LimbRetarget からも呼ばれる（先に呼ばれた方が作る）。
+    /// </summary>
+    public static Transform EnsureMotionRoot(Transform root)
     {
-        if (transform.Find("Motion") != null) return;
+        Transform found = root.Find("Motion");
+        if (found != null) return found;
         var motion = new GameObject("Motion").transform;
-        var children = new Transform[transform.childCount];
-        for (int i = 0; i < children.Length; i++) children[i] = transform.GetChild(i);
-        motion.SetParent(transform, false);
-        // 人型の代理の骨組み（Proxy。HumanoidRetarget が作る）はそのまま残す
+        var children = new Transform[root.childCount];
+        for (int i = 0; i < children.Length; i++) children[i] = root.GetChild(i);
+        motion.SetParent(root, false);
         foreach (var c in children) if (c.name != "Proxy") c.SetParent(motion, true);
-        GetComponent<Animator>().Rebind();   // 新しくできた Motion をアニメーションの対象として認識させる
+        var animator = root.GetComponent<Animator>();
+        if (animator != null) animator.Rebind();   // 新しくできた Motion をアニメーションの対象として認識させる
+        return motion;
     }
 
     void OnEnable()
