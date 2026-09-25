@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>魔術師の術発動</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --sky-top: #ebe7f3;
+    --sky-bottom: #f7f4ee;
+    --ink: #1c1a17;
+    --grid: 60, 52, 40;
+    --accent: #c2410c;
+    --magic: 124, 58, 237;
+    --magic2: 14, 165, 233;
+    --hat: #4c1d95;
+    --panel: rgba(255, 255, 255, 0.82);
+    --panel-border: rgba(0, 0, 0, 0.1);
+    --muted: #6b645a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --sky-top: #0c0a14;
+      --sky-bottom: #1b1a19;
+      --ink: #f2efe9;
+      --grid: 210, 200, 185;
+      --accent: #fb923c;
+      --magic: 167, 139, 250;
+      --magic2: 56, 189, 248;
+      --hat: #7c3aed;
+      --panel: rgba(28, 27, 26, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --muted: #a39d93;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --sky-top: #0c0a14;
+    --sky-bottom: #1b1a19;
+    --ink: #f2efe9;
+    --grid: 210, 200, 185;
+    --accent: #fb923c;
+    --magic: 167, 139, 250;
+    --magic2: 56, 189, 248;
+    --hat: #7c3aed;
+    --panel: rgba(28, 27, 26, 0.85);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --muted: #a39d93;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .panel {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 32px));
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    font-size: 13px;
+  }
+  .group { display: flex; gap: 6px; align-items: center; }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  label { color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 110px; accent-color: var(--accent); }
+  .title {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    font-size: 14px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .title b { color: var(--ink); font-weight: 600; }
+  .stage { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="title"><b>術発動</b>　両腕を掲げてゆらゆら → 胸の前へ振り下ろす　<span class="stage" id="stage"></span></div>
+<canvas id="c"></canvas>
+
+<div class="panel">
+  <div class="group">
+    <button id="play" class="on">一時停止</button>
+  </div>
+  <div class="group">
+    <button data-view="0">正面</button>
+    <button data-view="35" class="on">斜め</button>
+    <button data-view="90">側面</button>
+  </div>
+  <div class="group">
+    <button id="fx" class="on">エフェクト</button>
+  </div>
+  <div class="group">
+    <label for="speed">速度</label>
+    <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==POSE-BEGIN== （ここから POSE-END までは Unity 書き出しでも共有: motion/mage_cast/tools/export_unity.mjs）
+  // ---------- ベクトル ----------
+  const V = (x, y, z) => ({ x, y, z });
+  const add = (a, b) => V(a.x + b.x, a.y + b.y, a.z + b.z);
+  const sub = (a, b) => V(a.x - b.x, a.y - b.y, a.z - b.z);
+  const mul = (a, s) => V(a.x * s, a.y * s, a.z * s);
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const cross = (a, b) => V(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  const len = (a) => Math.hypot(a.x, a.y, a.z);
+  const norm = (a) => { const l = len(a) || 1; return mul(a, 1 / l); };
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const TAU = Math.PI * 2;
+
+  // ---------- 体の寸法 (m) と時間 ----------
+  const CYCLE_SEC = 5.0;
+  const UPPER_ARM = 0.3, FOREARM = 0.27, PALM = 0.08, FINGER = 0.07;
+  const THIGH = 0.45, SHIN = 0.44, FOOT = 0.15;
+  const HEAD_R = 0.11;
+  const HAT_R = 0.15, HAT_H = 0.34;
+
+  // ---------- 段階（t = 0〜1） ----------
+  // 0〜0.1 待機 → 0.24 両腕を掲げる → 0.64 まで頭上でゆらゆら（魔力を溜める）
+  // → 0.71 さらに振りかぶる → 0.76 胸の前へ振り下ろして発動 → 0.86 押し出したまま → 1 待機へ戻る
+  const STAGES = [[0.1, "待機"], [0.24, "両腕を掲げる"], [0.64, "ゆらゆら（魔力を溜める）"], [0.71, "振りかぶる"], [0.76, "振り下ろす"], [0.86, "術発動"], [1, "戻る"]];
+  const T_SWAY0 = 0.24, T_SWAY1 = 0.64, T_CAST = 0.76, T_ORB_END = 0.86;
+
+  // 腕の角度（右腕基準、左腕は左右反転）
+  //   E: 仰角（0 = 真正面、+ = 上、- = 下）  A: 外への開き（- で内側へ寄せる）  R: 肩から手首までの距離
+  const ARM_E = [[0, -1.45], [0.1, -1.45], [0.24, 1.3], [0.64, 1.3], [0.71, 1.8], [0.76, -0.05, "in"], [0.775, -0.14], [0.8, -0.05], [0.86, 0.02], [1, -1.45]];
+  const ARM_A = [[0, 0.15], [0.1, 0.15], [0.24, 0.5], [0.64, 0.5], [0.71, 0.3], [0.76, -0.26, "in"], [0.86, -0.24], [1, 0.15]];
+  const ARM_R = [[0, 0.55], [0.1, 0.55], [0.24, 0.55], [0.64, 0.55], [0.71, 0.56], [0.76, 0.5, "in"], [0.8, 0.555], [0.86, 0.54], [1, 0.55]];
+  const WRIST = [[0, 0.1], [0.1, 0.1], [0.24, 0.3], [0.64, 0.3], [0.71, 0.1], [0.76, 1.25, "in"], [0.86, 1.2], [1, 0.1]];   // 手首の反らし（発動時は手のひらを前へ）
+  const LEAN = [[0, 0.03], [0.1, 0.03], [0.24, -0.1], [0.64, -0.1], [0.71, -0.22], [0.76, 0.28, "in"], [0.86, 0.2], [1, 0.03]];
+  const HEAD_UP = [[0, 0], [0.1, 0], [0.24, 0.45], [0.64, 0.45], [0.71, 0.5], [0.76, -0.1], [0.86, -0.1], [1, 0]];
+  const CROUCH = [[0, 0], [0.1, 0], [0.24, -0.015], [0.64, -0.015], [0.71, -0.03], [0.76, 0.1, "in"], [0.86, 0.08], [1, 0]];
+  const STEP = [[0, 0], [0.64, 0], [0.76, 0.32], [0.86, 0.32], [1, 0]];     // 左足を踏み込む
+  const LIFT = [[0, 0], [0.64, 0], [0.7, 0.08], [0.76, 0], [0.9, 0], [0.95, 0.06], [1, 0]];
+  const ORB_R = [[0, 0], [0.16, 0], [0.3, 0.05], [0.64, 0.13], [0.71, 0.15], [0.76, 0.11], [0.855, 0.11], [0.86, 0], [1, 0]];
+  const ORB_UP = [[0, 0.14], [0.71, 0.14], [0.76, 0.02, "in"], [1, 0.14]];     // 両手の中点からのずれ
+  const ORB_FWD = [[0, 0], [0.71, 0], [0.76, 0.12, "in"], [1, 0]];
+  const T_ORB_HIDE = 0.9033;   // 消えている間に手元へ戻す時刻（キーの時刻と重ならない値）
+  const ORB_SPEED = 12 * CYCLE_SEC;   // 発射後の速さ（m / サイクル）
+
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, v0] = keys[i], [t1, v1, ease] = keys[i + 1];
+      if (t >= t0 && t <= t1) {
+        const u = (t - t0) / (t1 - t0);
+        const e = ease === "in" ? u * u * u : u * u * (3 - 2 * u);   // "in" は加速しながら振り下ろす
+        return v0 + (v1 - v0) * e;
+      }
+    }
+    return keys[keys.length - 1][1];
+  }
+
+  // 頭上でのゆらゆら（両手がそろって左右へ揺れ、上下にも波打つ）
+  function swayAt(t) {
+    if (t <= T_SWAY0 || t >= T_SWAY1) return { side: 0, env: 0, tau: 0 };
+    const tau = (t - T_SWAY0) / (T_SWAY1 - T_SWAY0);
+    const env = Math.sin(Math.PI * tau) ** 2;
+    return { side: env * Math.sin(TAU * 2 * tau), env, tau };
+  }
+
+  // 2関節の IK：肩 S から手首 W へ、肘は pole 側へ曲げる
+  function ik(S, W, l1, l2, pole) {
+    let d = sub(W, S);
+    const dl = clamp(len(d), 0.05, l1 + l2 - 1e-4);
+    const dir = norm(d);
+    W = add(S, mul(dir, dl));
+    const a = (l1 * l1 - l2 * l2 + dl * dl) / (2 * dl);
+    const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const p = norm(sub(pole, mul(dir, dot(pole, dir))));
+    return { mid: add(add(S, mul(dir, a)), mul(p, h)), end: W };
+  }
+
+  function body(t) {
+    const sw = swayAt(t);
+    const lean = track(LEAN, t);
+    const bend = 0.1 * sw.side;
+    const step = track(STEP, t);
+    const pelvis = V(-0.04 * sw.side, 0.93 - track(CROUCH, t) + 0.006 * Math.sin(TAU * 2 * t), 0.12 * step / 0.32);
+    const spineDir = (l, b) => norm(V(Math.sin(b), Math.cos(l) * Math.cos(b), Math.sin(l)));
+    const mid = add(pelvis, mul(spineDir(lean * 0.5, bend * 0.5), 0.26));
+    const chest = add(mid, mul(spineDir(lean, bend), 0.26));
+    const up = spineDir(lean, bend);
+    const right = norm(cross(up, V(0, 0, 1)));
+    return { sw, lean, bend, step, pelvis, mid, chest, up, right };
+  }
+
+  function arms(t, B) {
+    const out = [];
+    for (const s of [-1, 1]) {
+      const sw = B.sw;
+      const e = track(ARM_E, t) + 0.12 * sw.env * Math.sin(TAU * 4 * sw.tau + (s > 0 ? 0 : Math.PI));
+      const a = track(ARM_A, t) + s * 0.3 * sw.side;
+      const r = track(ARM_R, t);
+      const shoulder = add(add(B.chest, mul(B.right, s * 0.19)), mul(B.up, -0.03));
+      const dir = V(s * Math.sin(a), Math.cos(a) * Math.sin(e), Math.cos(a) * Math.cos(e));
+      const { mid: elbow, end: wrist } = ik(shoulder, add(shoulder, mul(dir, r)), UPPER_ARM, FOREARM, V(s * 0.8, -0.5, -0.5));
+      // 手：前腕の延長を、上方向へ反らす（発動時は手のひらが前を向く）
+      const fa = norm(sub(wrist, elbow));
+      let perp = sub(V(0, 1, 0), mul(fa, fa.y));
+      perp = len(perp) < 1e-3 ? V(0, 0, 1) : norm(perp);
+      const flex = track(WRIST, t) + 0.5 * sw.env * Math.sin(TAU * 2 * sw.tau + 0.8 + (s > 0 ? 0 : 1.2));
+      const hd = norm(add(mul(fa, Math.cos(flex)), mul(perp, Math.sin(flex))));
+      const palm = add(wrist, mul(hd, PALM));
+      const lat = norm(cross(hd, perp));
+      const hp = norm(sub(perp, mul(hd, dot(perp, hd))));
+      const fingers = [-1, 0, 1].map((k) => add(palm, mul(norm(add(add(hd, mul(lat, 0.38 * k)), mul(hp, -0.12))), FINGER)));
+      out.push({ s, shoulder, elbow, wrist, palm, fingers });
+    }
+    return out;   // [左, 右]
+  }
+
+  const handsMid = (A) => mul(add(A[0].palm, A[1].palm), 0.5);
+
+  // ---------- 全身ポーズ（+z が正面） ----------
+  function pose(t) {
+    const B = body(t);
+    const A = arms(t, B);
+    const headUp = track(HEAD_UP, t);
+    const neck = add(B.chest, mul(B.up, 0.08));
+    const headAxis = norm(add(B.up, V(0, 0, -0.25 * headUp + 0.1)));
+    const head = add(neck, mul(headAxis, 0.13));
+    let face = norm(V(0.3 * B.bend, Math.sin(headUp - B.lean * 0.3), Math.cos(headUp)));
+    face = norm(sub(face, mul(headAxis, dot(face, headAxis))));
+    const headRight = norm(cross(headAxis, face));
+    const eyes = [-1, 1].map((s) => add(add(add(head, mul(face, HEAD_R * 0.9)), mul(headRight, s * 0.04)), mul(headAxis, 0.02)));
+
+    // 脚：右足は固定、左足は発動に合わせて前へ踏み込む
+    const legs = [-1, 1].map((s) => {
+      const hip = add(B.pelvis, mul(B.right, s * 0.1));
+      const ankleT = s < 0 ? V(-0.14, 0.08 + track(LIFT, t), B.step) : V(0.15, 0.08, -0.04);
+      const { mid: knee, end: ankle } = ik(hip, ankleT, THIGH, SHIN, V(s * 0.12, 0, 1));
+      const toe = add(ankle, mul(norm(V(s * 0.22, -0.35, 1)), FOOT));
+      return { s, hip, knee, ankle, toe };
+    });
+
+    // 魔力の玉：溜めている間は両手の間の少し上、発動後は前へ飛んでいく
+    const orbR = track(ORB_R, t);
+    let orb;
+    if (t < T_CAST || t >= T_ORB_HIDE) {
+      orb = add(handsMid(A), V(0, track(ORB_UP, t), track(ORB_FWD, t)));
+    } else {
+      const launch = add(handsMid(arms(T_CAST, body(T_CAST))), V(0, track(ORB_UP, T_CAST), track(ORB_FWD, T_CAST)));
+      orb = add(launch, V(0, 0, (Math.min(t, T_ORB_END) - T_CAST) * ORB_SPEED));
+    }
+
+    return { pelvis: B.pelvis, mid: B.mid, chest: B.chest, neck, head, headAxis, face, eyes, arms: A, legs, orb, orbR, sway: B.sw };
+  }
+  // ==POSE-END==
+
+  // ---------- 描画 ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  const state = {
+    playing: true,
+    fx: true,
+    speed: 1,
+    time: 0,
+    yaw: 35 * Math.PI / 180, yawTarget: 35 * Math.PI / 180,
+    pitch: 0.08,
+    motes: [],
+    flash: 0,
+    shake: 0,
+  };
+
+  let cam = null;
+  function setupCamera() {
+    const target = V(0, 1.2, 0.35);
+    const dist = 4.6;
+    const cp = Math.cos(state.pitch);
+    const pos = add(target, V(Math.sin(state.yaw) * cp * dist, Math.sin(state.pitch) * dist, Math.cos(state.yaw) * cp * dist));
+    const F = norm(sub(target, pos));
+    const Rt = norm(cross(F, V(0, 1, 0)));
+    const U = cross(Rt, F);
+    const sx = state.shake * (Math.random() - 0.5) * 14, sy = state.shake * (Math.random() - 0.5) * 14;
+    cam = { pos, F, R: Rt, U, f: Math.min(W, H * 1.4) * 0.95, cx: W / 2 + sx, cy: H * 0.52 + sy };
+  }
+  const NEAR = 0.2;
+  const toCam = (p) => { const q = sub(p, cam.pos); return V(dot(q, cam.R), dot(q, cam.U), dot(q, cam.F)); };
+  const projC = (c) => ({ x: cam.cx + cam.f * c.x / c.z, y: cam.cy - cam.f * c.y / c.z, s: cam.f / c.z, z: c.z });
+  const proj = (p) => { const c = toCam(p); return c.z > NEAR ? projC(c) : null; };
+  function projSeg(a, b) {
+    let ca = toCam(a), cb = toCam(b);
+    if (ca.z < NEAR && cb.z < NEAR) return null;
+    if (ca.z < NEAR) ca = add(ca, mul(sub(cb, ca), (NEAR - ca.z) / (cb.z - ca.z)));
+    else if (cb.z < NEAR) cb = add(cb, mul(sub(ca, cb), (NEAR - cb.z) / (ca.z - cb.z)));
+    return [projC(ca), projC(cb)];
+  }
+
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css("--sky-top"));
+    g.addColorStop(1, css("--sky-bottom"));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+  function drawGround() {
+    const rgb = css("--grid");
+    ctx.lineWidth = 1;
+    for (let x = -24; x <= 24; x += 1) {
+      const s = projSeg(V(x, 0, -70), V(x, 0, 12));
+      if (!s) continue;
+      ctx.strokeStyle = `rgba(${rgb},${x === 0 ? 0.2 : 0.09})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+    for (let z = -70; z <= 12; z += 1) {
+      const s = projSeg(V(-24, 0, z), V(24, 0, z));
+      if (!s) continue;
+      ctx.strokeStyle = `rgba(${rgb},${clamp(0.15 - (12 - z) * 0.0018, 0.03, 0.15)})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+  }
+
+  // 3D の円（中心 c、面内の直交ベクトル u, v）を点列で返す
+  const circle3 = (c, u, v, r, n = 48, rot = 0) =>
+    Array.from({ length: n + 1 }, (_, i) => { const a = rot + (i / n) * TAU; return add(c, add(mul(u, Math.cos(a) * r), mul(v, Math.sin(a) * r))); });
+  function strokePath(pts3, close) {
+    let started = false;
+    ctx.beginPath();
+    for (const p3 of pts3) {
+      const p = proj(p3);
+      if (!p) { started = false; continue; }
+      if (!started) { ctx.moveTo(p.x, p.y); started = true; } else ctx.lineTo(p.x, p.y);
+    }
+    if (close) ctx.closePath();
+    ctx.stroke();
+  }
+  // 魔法陣：二重の円、回転する目盛り、六芒星
+  function drawMagicCircle(c, u, v, r, alpha, rot) {
+    if (alpha <= 0.01) return;
+    const m = css("--magic"), m2 = css("--magic2");
+    const p = proj(c);
+    if (!p) return;
+    ctx.save();
+    ctx.shadowColor = `rgba(${m},0.8)`;
+    ctx.shadowBlur = 12;
+    ctx.lineWidth = Math.max(1, 0.012 * p.s);
+    ctx.strokeStyle = `rgba(${m},${alpha})`;
+    strokePath(circle3(c, u, v, r), true);
+    strokePath(circle3(c, u, v, r * 0.84), true);
+    ctx.strokeStyle = `rgba(${m2},${alpha * 0.9})`;
+    for (const k of [0, 1]) {
+      const tri = [0, 1, 2, 0].map((i) => { const a = rot + k * Math.PI / 3 + (i / 3) * TAU; return add(c, add(mul(u, Math.cos(a) * r * 0.82), mul(v, Math.sin(a) * r * 0.82))); });
+      strokePath(tri, false);
+    }
+    ctx.lineWidth = Math.max(1, 0.008 * p.s);
+    for (let i = 0; i < 24; i++) {
+      const a = -rot * 1.5 + (i / 24) * TAU;
+      const d = add(mul(u, Math.cos(a)), mul(v, Math.sin(a)));
+      strokePath([add(c, mul(d, r * 0.86)), add(c, mul(d, r * (i % 3 ? 0.93 : 0.98)))], false);
+    }
+    ctx.restore();
+  }
+  function glow(p3, r, alpha, core) {
+    const p = proj(p3);
+    if (!p || alpha <= 0) return;
+    const m = css("--magic"), m2 = css("--magic2");
+    const R = Math.max(2, r * p.s);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, R * 2.2);
+    g.addColorStop(0, `rgba(255,255,255,${alpha})`);
+    g.addColorStop(core ? 0.25 : 0.1, `rgba(${m2},${alpha * 0.9})`);
+    g.addColorStop(0.5, `rgba(${m},${alpha * 0.45})`);
+    g.addColorStop(1, `rgba(${m},0)`);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(p.x, p.y, R * 2.2, 0, TAU); ctx.fill();
+  }
+
+  // 凸包（帽子のシルエット用）
+  function hull(pts) {
+    pts = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    const crs = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [], up = [];
+    for (const p of pts) { while (lo.length >= 2 && crs(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (const p of pts.slice().reverse()) { while (up.length >= 2 && crs(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+
+  function drawMage(P, t) {
+    const ink = css("--ink");
+    const accent = css("--accent");
+    const hatColor = css("--hat");
+    const items = [];
+    const seg = (a, b, w, color) => {
+      const pr = projSeg(a, b);
+      if (pr) items.push({ kind: "seg", pr, w, color, depth: (pr[0].z + pr[1].z) / 2 });
+    };
+
+    // 影
+    const sp = proj(V(P.pelvis.x, 0, P.pelvis.z));
+    if (sp) {
+      ctx.fillStyle = "rgba(0,0,0,0.13)";
+      ctx.beginPath();
+      ctx.ellipse(sp.x, sp.y, 0.4 * sp.s, 0.4 * sp.s * Math.max(0.12, Math.sin(state.pitch + 0.05) * 1.6), 0, 0, TAU);
+      ctx.fill();
+    }
+
+    for (const lg of P.legs) {
+      seg(P.pelvis, lg.hip, 0.05, ink);
+      seg(lg.hip, lg.knee, 0.05, ink);
+      seg(lg.knee, lg.ankle, 0.045, ink);
+      seg(lg.ankle, lg.toe, 0.04, ink);
+    }
+    seg(P.pelvis, P.mid, 0.055, ink);
+    seg(P.mid, P.chest, 0.055, ink);
+    seg(P.chest, P.neck, 0.05, ink);
+    for (const a of P.arms) {
+      seg(P.chest, a.shoulder, 0.05, ink);
+      seg(a.shoulder, a.elbow, 0.048, ink);
+      seg(a.elbow, a.wrist, 0.044, ink);
+      seg(a.wrist, a.palm, 0.04, ink);
+      for (const f of a.fingers) seg(a.palm, f, 0.018, ink);
+    }
+    const hc = toCam(P.head);
+    if (hc.z > NEAR) items.push({ kind: "head", depth: hc.z });
+
+    items.sort((a, b) => b.depth - a.depth);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const it of items) {
+      if (it.kind === "seg") {
+        const [a, b] = it.pr;
+        ctx.strokeStyle = it.color;
+        ctx.lineWidth = Math.max(1, it.w * (a.s + b.s) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      } else {
+        drawHead(P, t, ink, accent, hatColor);
+      }
+    }
+  }
+
+  function drawHead(P, t, ink, accent, hatColor) {
+    const p = proj(P.head);
+    if (!p) return;
+    ctx.fillStyle = ink;
+    ctx.beginPath(); ctx.arc(p.x, p.y, HEAD_R * p.s, 0, TAU); ctx.fill();
+    // 目（溜め〜発動で光る）
+    const lit = P.orbR > 0.02 ? 1 : 0.35;
+    if (dot(P.face, norm(sub(cam.pos, P.head))) > 0.1) {
+      for (const e of P.eyes) {
+        const ep = proj(e);
+        if (!ep) continue;
+        ctx.fillStyle = lit > 0.5 ? `rgb(${css("--magic2")})` : accent;
+        ctx.beginPath(); ctx.arc(ep.x, ep.y, Math.max(1, 0.018 * ep.s), 0, TAU); ctx.fill();
+      }
+    }
+    // とんがり帽子：つば（円板）＋ 円錐（凸包で塗る）。先端は少し後ろへ折れる
+    const ax = P.headAxis;
+    const u = norm(cross(ax, P.face)), v = norm(cross(u, ax));
+    const base = add(P.head, mul(ax, HEAD_R * 0.55));
+    const tip = add(add(base, mul(ax, HAT_H)), mul(P.face, -0.1));
+    const brim = circle3(base, u, v, HAT_R * 1.45, 28).map(proj).filter(Boolean);
+    const cone = circle3(base, u, v, HAT_R, 20).concat([tip]).map(proj).filter(Boolean);
+    const fillPoly = (pts) => { if (pts.length < 3) return; ctx.beginPath(); pts.forEach((q, i) => (i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y))); ctx.closePath(); ctx.fill(); };
+    ctx.fillStyle = hatColor;
+    fillPoly(hull(brim));
+    fillPoly(hull(cone));
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = Math.max(1, 0.02 * p.s);
+    const band = circle3(add(base, mul(ax, 0.03)), u, v, HAT_R * 0.93, 24);
+    ctx.beginPath();
+    let first = true;
+    for (const b3 of band) {
+      // 手前側の半分だけ描く
+      if (dot(sub(b3, base), norm(sub(cam.pos, base))) < 0) { first = true; continue; }
+      const q = proj(b3); if (!q) continue;
+      if (first) { ctx.moveTo(q.x, q.y); first = false; } else ctx.lineTo(q.x, q.y);
+    }
+    ctx.stroke();
+  }
+
+  function drawEffects(P, t, dt) {
+    const m = css("--magic");
+    // 足元の魔法陣：溜めで浮かび上がり、発動で最大、その後消える
+    const groundA = t < 0.12 ? 0 : t < 0.3 ? (t - 0.12) / 0.18 : t < 0.86 ? 1 : Math.max(0, 1 - (t - 0.86) / 0.08);
+    drawMagicCircle(V(0, 0.01, 0.1), V(1, 0, 0), V(0, 0, 1), 0.95 + 0.1 * (t > 0.76 && t < 0.86 ? 1 : 0), groundA * 0.75, t * TAU * 0.8);
+
+    // 手のひらの光
+    const handA = t > 0.2 && t < 0.88 ? Math.min(1, (t - 0.2) / 0.08) : 0;
+    for (const a of P.arms) glow(a.palm, 0.05, 0.55 * handA, false);
+
+    // 集まってくる光の粒
+    if (t > T_SWAY0 - 0.04 && t < 0.72 && state.playing) {
+      for (let i = 0; i < 3; i++) {
+        const d = norm(V(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5));
+        state.motes.push({ d, r: 0.7 + Math.random() * 0.5, life: 0, max: 0.5 + Math.random() * 0.4, spin: (Math.random() - 0.5) * 4 });
+      }
+    }
+    for (const mt of state.motes) {
+      mt.life += dt;
+      const k = Math.min(1, mt.life / mt.max);
+      const a = mt.spin * k;
+      const d = V(mt.d.x * Math.cos(a) - mt.d.z * Math.sin(a), mt.d.y, mt.d.x * Math.sin(a) + mt.d.z * Math.cos(a));
+      const p = add(P.orb, mul(d, mt.r * (1 - k * k)));
+      const q = proj(p);
+      if (!q) continue;
+      ctx.fillStyle = `rgba(${m},${0.8 * Math.sin(Math.PI * k)})`;
+      ctx.beginPath(); ctx.arc(q.x, q.y, Math.max(1, 0.012 * q.s), 0, TAU); ctx.fill();
+    }
+    state.motes = state.motes.filter((mt) => mt.life < mt.max && t < 0.8);
+
+    // 発動：手の前に立つ魔法陣
+    if (t > 0.745 && t < 0.9) {
+      const k = clamp((t - 0.745) / 0.03, 0, 1);
+      const fade = t < 0.84 ? 1 : 1 - (t - 0.84) / 0.06;
+      const c = add(pose(T_CAST).orb, V(0, 0, 0.18));
+      drawMagicCircle(c, V(1, 0, 0), V(0, 1, 0), 0.42 * k, fade, -t * TAU * 1.5);
+    }
+    // 魔力の玉と、飛んでいく軌跡
+    if (P.orbR > 0.001) {
+      if (t > T_CAST) {
+        for (let i = 6; i >= 1; i--) {
+          const q = pose(Math.max(T_CAST, t - i * 0.004)).orb;
+          glow(q, P.orbR * (1 - i * 0.12), 0.25, false);
+        }
+      }
+      glow(P.orb, P.orbR, 1, true);
+    }
+    if (state.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${state.flash * 0.5})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // ---------- ループ ----------
+  const stageEl = document.getElementById("stage");
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const sdt = state.playing ? dt * state.speed : 0;
+    const prev = state.time;
+    state.time += sdt / CYCLE_SEC;
+    const t = state.time % 1;
+
+    let dy = state.yawTarget - state.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    state.yaw += dy * Math.min(1, dt * 6);
+    state.flash = Math.max(0, state.flash - dt * 2.5);
+    state.shake = Math.max(0, state.shake - dt * 4);
+    if (Math.floor(prev - T_CAST) !== Math.floor(state.time - T_CAST) && state.time > prev) {
+      state.shake = 0.6;
+      if (state.fx) state.flash = 0.5;
+    }
+
+    const P = pose(t);
+    setupCamera();
+    drawSky();
+    drawGround();
+    drawMage(P, t);
+    if (state.fx) drawEffects(P, t, sdt);
+    stageEl.textContent = "― " + STAGES.find(([end]) => t < end)[1];
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- 操作 ----------
+  const playBtn = document.getElementById("play");
+  const togglePlay = () => {
+    state.playing = !state.playing;
+    playBtn.textContent = state.playing ? "一時停止" : "再生";
+    playBtn.classList.toggle("on", state.playing);
+  };
+  playBtn.addEventListener("click", togglePlay);
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+  });
+  const fxBtn = document.getElementById("fx");
+  fxBtn.addEventListener("click", () => { state.fx = !state.fx; fxBtn.classList.toggle("on", state.fx); state.motes = []; });
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.yawTarget = (+b.dataset.view * Math.PI) / 180;
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.getElementById("speed").addEventListener("input", (e) => { state.speed = +e.target.value; });
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    drag = { x: e.clientX, y: e.clientY, yaw: state.yawTarget, pitch: state.pitch };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.yawTarget = drag.yaw - (e.clientX - drag.x) * 0.008;
+    state.yaw = state.yawTarget;
+    state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.004, -0.3, 0.9);
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.remove("on"));
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+
+  window.__mage = { state, pose };
+})();
+</script>
+</body>
+</html>
