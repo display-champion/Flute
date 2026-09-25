@@ -183,6 +183,56 @@ let events = "| クリップ | 長さ | ループ | イベント |\n|---|---|---
 for (const c of CLIPS) events += `| ${c.body}_${c.name} | ${c.dur}秒 | ${c.loop ? "する" : "しない"} | ${c.events.map(([t, n]) => `${n}（${t}秒）`).join("、") || "―"} |\n`;
 let bodies = "| 体の種類 | 軸の位置（足元が原点） | モデルの置き方 |\n|---|---|---|\n";
 for (const [k, b] of Object.entries(BODIES)) bodies += `| ${k}（${b.name}） | (${b.pivot.join(", ")}) | ${b.note} |\n`;
-fs.writeFileSync(path.join(outDir, "_tables.md"), `## 敵ごとのクリップ\n\n${table}\n## クリップ一覧\n\n${events}\n## 体の種類\n\n${bodies}`);
+const readme = `# ダンジョン雑魚モーション（Unity 用）
+
+\`../dungeon_minor.html\` をブラウザで開くと、敵ごとに全クリップの動きを確認できます。
+このファイルは \`../tools/export_unity.mjs\` が自動生成します（手で編集しても作り直すと消えます）。
+
+## 仕組み
+
+- 骨を使わず、モデル全体の位置・回転・伸び縮みだけで動かす方式です。どのモデルにも付けられます。
+- 構成：\`敵の本体（Animator ＋ EnemyMotion）\` → 子 \`Motion\`（クリップが動かす） → モデル
+- 回転や伸び縮みの中心（軸）は体の種類ごとに決めてあり、クリップに織り込み済みです（下の表）。
+- 敵の大きさ（1.3倍・2倍など）は、敵の本体の Scale で変えてください。動きの幅も一緒に大きくなります。
+
+## 使い方
+
+1. \`EnemyMotion.cs\` と、使う体の種類のフォルダ（例：\`Mushroom/\`）を Assets に置く。
+2. 敵の本体の GameObject に \`EnemyMotion\` を付ける（Animator も自動で付きます）。
+   - 子に \`Motion\` が無ければ自動で作り、今ある子（モデル）をその下へ移します。
+   - モデルは \`Motion\` の下に、足元が原点・+Z が正面になるよう置く（浮く敵は下の表の高さに体の中心を合わせる）。
+3. **Clips** にその敵のクリップを入れる（下の「敵ごとのクリップ」）。
+4. ゲーム側から \`GetComponent<EnemyMotion>().Play("Attack_Lunge")\` のように名前の末尾で再生する。
+   - 1回きりのクリップが終わると自動で待機（Idle）に戻ります。名前に Death を含むクリップは最後の姿勢で止まります。
+   - 移動中は \`Play("Move")\`、止まったら \`Play("Idle")\`。
+5. **On Motion Event** に処理をつなぐと、攻撃が当たる瞬間などにイベント名（Hit / Stomp など）付きで呼ばれます。
+   **On Motion Finished** は1回きりのクリップが終わったときに呼ばれます。
+
+長い突進（ハチの Attack_Charge）と転がり（岩ダンゴの Attack_Roll）は、クリップはその場で「構え → 突進中の姿勢 → 止まる」だけを動かします。
+ChargeStart〜ChargeEnd、RollStart〜RollEnd の間に、ゲーム側で敵の本体を前へ動かしてください。
+短い飛びかかり・噛みつき・刺す動きは、クリップの中で前に出て元の位置に戻ります。
+
+## 敵ごとのクリップ
+
+${table}
+## クリップ一覧
+
+${events}
+## 体の種類
+
+${bodies}
+## 作り直し方
+
+\`../dungeon_minor.html\` の \`==POSE-BEGIN==\`〜\`==POSE-END==\` にクリップ定義があります。編集したら次を実行すると .anim とこの README が作り直されます（Node.js のみ必要）。
+
+\`\`\`
+node <dungeon_minor フォルダ>/tools/export_unity.mjs
+\`\`\`
+
+## 注意
+
+- Unity での実際の動作はまだ確認できていません。うまく動かないときはエラーの文面を教えてください。
+`;
+fs.writeFileSync(path.join(outDir, "README.md"), readme);
 
 console.log(`クリップ ${total} 本 / 合計 ${(bytes / 1024).toFixed(0)} KB → ${path.relative(process.cwd(), outDir)}`);
