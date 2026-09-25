@@ -160,7 +160,7 @@
 | 2-1 | 人型へ移す 12 体のクリップを dungeon_humanoid.html に追加 | 完了（91 クリップ・17 体。dungeon_minor.html からは Upright/Phantom/Hound を削除し 39 体・106 クリップ） |
 | 2-2 | 手足の代理関節と動きを dungeon_minor.html に追加（体の種類ごと） | 完了（14 種類・106 クリップすべてに手足の指示） |
 | 2-3 | 書き出し（export_unity.mjs に手足のカーブ、LimbRigs.cs 生成）と LimbRetarget.cs | 完了 |
-| 2-4 | 検証・zip 納品・git から作業ファイル削除 | 未着手 |
+| 2-4 | 検証・zip 納品・git から作業ファイル削除 | 完了 |
 
 - 作業ファイルをコミット `80330b7` から戻して開始
 - 2-1 完了：人型の骨組みに Knight / Heavy / Sentry / Grabber / Ghoul / Statue / Laugher / Hound / Steam / Chained / Silent を追加。四つ足用に roll（横倒し）と handWL/handWR（手を地面の位置で指定）を追加。確認画面は Idle が無い敵（笑う死者）でも動くよう修正
@@ -171,3 +171,14 @@
   - `EnemyMotion.EnsureMotionRoot` を static にして LimbRetarget からも使う
   - 人型へ移した Hound / Phantom / Upright の古いクリップのフォルダは削除
 - 検証：人型以外 106 本（体全体のずれ最大 1.1mm、手足の鎖の先まで最大 0.6mm）、人型 91 本（関節位置のずれ最大 2.5mm）。長さ・ループ・イベント・編集用カーブ・手足の鎖のそろいも一致
+- **第2段階 完了・納品**：`HELLEDEN_DungeonMinor_Limbs.zip`（展開先 `D:\\HELLEDEN\\Assets\\HELLEDEN\\Animation`）
+  - 人型以外 39 体・106 クリップ（体全体＋手足）、人型 17 体・91 クリップ ＝ 56 体・197 クリップ
+  - 前回の納品から Hound / Phantom / Upright のフォルダが無くなったので、展開前に古い dungeon_minor フォルダを消してもらう
+  - 作業ファイル一式はコミット `564aabd` にある（git からは削除済み）。取り出し方：`git checkout 564aabd -- motion/dungeon_minor`
+
+## 次に再開するとき（第2段階以降）
+
+1. 作業ファイルを戻す：`git checkout 564aabd -- motion/dungeon_minor`（または展開先の `dungeon_minor` フォルダを持ってくる）
+2. 人型以外：`dungeon_minor.html` の POSE 部分（BODIES・clip(...)・LIMBS・ENEMIES）を編集 → `node motion/dungeon_minor/tools/export_unity.mjs`
+3. 人型：`dungeon_humanoid.html` の POSE 部分（姿勢の基本形・clip(...)・RIGS・ENEMIES）を編集 → `node motion/dungeon_minor/tools/export_humanoid.mjs`
+4. このファイルを更新してコミット。納品したら作業ファイルを git から消し、このファイルだけ残す
