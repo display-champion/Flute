@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>蜂の針攻撃</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --sky-top: #e6eef2;
+    --sky-bottom: #f7f4ee;
+    --ink: #1c1a17;
+    --grid: 60, 52, 40;
+    --accent: #c2410c;
+    --panel: rgba(255, 255, 255, 0.82);
+    --panel-border: rgba(0, 0, 0, 0.1);
+    --muted: #6b645a;
+    --outline: rgba(28, 26, 23, 0.55);
+    --wing: 150, 190, 215;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --sky-top: #0a0c0e;
+      --sky-bottom: #1b1a19;
+      --ink: #f2efe9;
+      --grid: 210, 200, 185;
+      --accent: #fb923c;
+      --panel: rgba(28, 27, 26, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --muted: #a39d93;
+      --outline: rgba(242, 239, 233, 0.35);
+      --wing: 190, 220, 240;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --sky-top: #0a0c0e;
+    --sky-bottom: #1b1a19;
+    --ink: #f2efe9;
+    --grid: 210, 200, 185;
+    --accent: #fb923c;
+    --panel: rgba(28, 27, 26, 0.85);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --muted: #a39d93;
+    --outline: rgba(242, 239, 233, 0.35);
+    --wing: 190, 220, 240;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .panel {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 32px));
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    font-size: 13px;
+  }
+  .group { display: flex; gap: 6px; align-items: center; }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  label { color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 110px; accent-color: var(--accent); }
+  .title {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    right: 16px;
+    font-size: 14px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .title b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="title"><b>蜂の針攻撃</b>　飛びながらしっぽの針で刺しにくる　ドラッグで視点回転</div>
+<canvas id="c"></canvas>
+
+<div class="panel">
+  <div class="group">
+    <button id="play" class="on">一時停止</button>
+  </div>
+  <div class="group">
+    <button data-mode="approach" class="on">迫ってくる</button>
+    <button data-mode="inplace">その場</button>
+  </div>
+  <div class="group">
+    <button data-view="0">正面</button>
+    <button data-view="35">斜め</button>
+    <button data-view="90">側面</button>
+  </div>
+  <div class="group">
+    <label for="speed">速度</label>
+    <input id="speed" type="range" min="0.05" max="2" step="0.05" value="1">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==POSE-BEGIN== （ここから POSE-END までは Unity 書き出しでも共有: motion/bee_sting/tools/export_unity.mjs）
+  // ---------- ベクトル ----------
+  const V = (x, y, z) => ({ x, y, z });
+  const add = (a, b) => V(a.x + b.x, a.y + b.y, a.z + b.z);
+  const sub = (a, b) => V(a.x - b.x, a.y - b.y, a.z - b.z);
+  const mul = (a, s) => V(a.x * s, a.y * s, a.z * s);
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const cross = (a, b) => V(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  const norm = (a) => { const l = Math.hypot(a.x, a.y, a.z) || 1; return mul(a, 1 / l); };
+  const rotX = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x, v.y * c + v.z * s, -v.y * s + v.z * c); };
+  const rotY = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); };
+  const rotZ = (v, a) => { const c = Math.cos(a), s = Math.sin(a); return V(v.x * c - v.y * s, v.x * s + v.y * c, v.z); };
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const TAU = Math.PI * 2;
+
+  // ---------- 体の寸法 (m) と時間 ----------
+  const CYCLE_SEC = 3.0;        // 1回の攻撃サイクル（速度1）
+  const FLAPS = 36;             // 1サイクルの羽ばたき回数（= 12回/秒）
+  const HOVER_Y = 1.35;         // ホバリングの高さ
+  const THORAX_R = 0.13, HEAD_R = 0.095, EYE_R = 0.035;
+  const ABD_LEN = [0.1, 0.11, 0.11, 0.1, 0.08];      // 腹の節の長さ
+  const ABD_R = [0.08, 0.14, 0.15, 0.13, 0.085];     // 腹の節の太さ
+  const ABD_COL = ["black", "yellow", "black", "yellow", "black"];
+  const LEG1 = 0.13, LEG2 = 0.15;
+  const WINGS = [
+    { name: "Wing_FL", s: -1, root: V(-0.05, 0.11, 0.03), L: 0.42, W: 0.15, sweep: 0.35, lag: 0 },
+    { name: "Wing_FR", s: 1, root: V(0.05, 0.11, 0.03), L: 0.42, W: 0.15, sweep: 0.35, lag: 0 },
+    { name: "Wing_HL", s: -1, root: V(-0.05, 0.1, -0.04), L: 0.28, W: 0.1, sweep: 0.75, lag: 0.35 },
+    { name: "Wing_HR", s: 1, root: V(0.05, 0.1, -0.04), L: 0.28, W: 0.1, sweep: 0.75, lag: 0.35 },
+  ];
+
+  // ---------- 攻撃サイクルのキー（t = 0〜1） ----------
+  // 0〜0.4 ホバリング → 0.58 構え（後ろに引いて腹を前へ丸める） → 0.66 突き刺し → 0.74 刺したまま → 戻る
+  const LUNGE = [[0, 0], [0.4, 0], [0.58, -0.55], [0.66, 1.5], [0.74, 1.4], [0.9, 0.1], [1, 0]];
+  const RISE = [[0, 0], [0.4, 0], [0.58, 0.3], [0.66, -0.12], [0.74, -0.1], [0.9, 0], [1, 0]];
+  const PITCH = [[0, 0.12], [0.4, 0.12], [0.58, 0.75], [0.66, 0.4], [0.74, 0.35], [0.92, 0.12], [1, 0.12]];
+  const CURL = [[0, 0.55], [0.4, 0.55], [0.58, 2.2], [0.66, 2.55], [0.74, 2.5], [0.95, 0.55], [1, 0.55]];
+  const STING = [[0, 0], [0.6, 0], [0.66, 1], [0.74, 1], [0.82, 0], [1, 0]];
+  const CALM = [[0, 1], [0.4, 1], [0.5, 0.25], [0.8, 0.25], [1, 1]];
+  const GRAB = [[0, 0], [0.4, 0], [0.58, 0.6], [0.66, 1], [0.76, 1], [0.92, 0], [1, 0]];
+  const FLAP_AMP = [[0, 1], [0.4, 1], [0.55, 1.25], [0.66, 1.3], [0.8, 1], [1, 1]];
+  const SHAKE = [[0, 0], [0.66, 0], [0.67, 1], [0.76, 0], [1, 0]];
+  const HIT_T = 0.66;
+
+  function track(keys, t) {
+    for (let i = 0; i < keys.length - 1; i++) {
+      const [t0, v0] = keys[i], [t1, v1] = keys[i + 1];
+      if (t >= t0 && t <= t1) {
+        const u = (t - t0) / (t1 - t0);
+        return v0 + (v1 - v0) * u * u * (3 - 2 * u);
+      }
+    }
+    return keys[keys.length - 1][1];
+  }
+
+  // 羽の向き（胴体座標）。span = 付け根から先端、chord = 前縁から後縁
+  function wingFrame(wg, t, flapOffset) {
+    const amp = track(FLAP_AMP, t);
+    const w = TAU * (FLAPS * t + flapOffset) - wg.lag;
+    const phi = 0.25 + 0.85 * amp * Math.sin(w);
+    const span = norm(V(wg.s * Math.cos(phi), Math.sin(phi), -wg.sweep));
+    const back = V(0, 0, -1);
+    let chord = norm(sub(back, mul(span, dot(back, span))));
+    const feather = 0.45 * Math.cos(w);
+    chord = norm(add(mul(chord, Math.cos(feather)), mul(cross(span, chord), Math.sin(feather) * wg.s)));
+    return { span, chord };
+  }
+
+  // ---------- 全身ポーズ（+z が進行方向。root は胸の中心） ----------
+  function pose(t) {
+    const calm = track(CALM, t);
+    const shake = 0.025 * Math.sin(TAU * 40 * t) * track(SHAKE, t);
+    const root = V(
+      0.12 * Math.sin(TAU * t) * calm + shake,
+      HOVER_Y + 0.07 * Math.sin(TAU * 3 * t) * calm + track(RISE, t),
+      track(LUNGE, t),
+    );
+    const yaw = 0.12 * Math.sin(TAU * t + 0.5) * calm;
+    const pitch = track(PITCH, t) + 0.05 * Math.sin(TAU * 3 * t + 1) * calm;
+    const roll = -0.18 * Math.cos(TAU * t) * calm;
+    const D = (v) => rotY(rotX(rotZ(v, roll), pitch), yaw);
+    const T = (v) => add(root, D(v));
+
+    const head = T(V(0, 0.02, 0.21));
+    const eyes = [-1, 1].map((s) => T(V(s * 0.065, 0.04, 0.26)));
+    const antennae = [-1, 1].map((s) => {
+      const tw = 0.04 * Math.sin(TAU * 6 * t + s);
+      const a = V(s * 0.035, 0.08, 0.27);
+      const b = add(a, V(s * 0.03, 0.12 + tw, 0.05));
+      const c = add(b, V(s * 0.06, 0.03 - tw, 0.13));
+      return [T(a), T(b), T(c)];
+    });
+
+    // 腹：節ごとに下へ曲がり、攻撃時は体の下をくぐって前へ丸まる
+    const curl = track(CURL, t) + 0.08 * Math.sin(TAU * 2 * t) * calm;
+    const abdDir = (a) => V(0, -Math.sin(a), -Math.cos(a));
+    const abd = [V(0, -0.02, -0.12)];
+    for (let k = 0; k < 5; k++) abd.push(add(abd[k], mul(abdDir(0.3 + curl * (k + 0.5) / 5), ABD_LEN[k])));
+    const sting = track(STING, t);
+    const stingTip = add(abd[5], mul(abdDir(0.3 + curl * 1.05), 0.15 + 0.14 * sting));
+
+    // 脚：普段はぶら下げ、攻撃時は前へ伸ばしてつかみかかる
+    const grab = track(GRAB, t);
+    const legs = [];
+    for (const s of [-1, 1]) {
+      for (let i = 0; i < 3; i++) {
+        const dangle = 0.12 * Math.sin(TAU * 3 * t + i * 0.8) * calm;
+        const a = V(s * 0.06, -0.09, 0.07 - 0.07 * i);
+        const b = add(a, mul(norm(V(s * 0.55, -0.5, 0.2 - 0.3 * i + grab * (0.9 - 0.15 * i))), LEG1));
+        const c = add(b, mul(norm(V(s * 0.15, -0.9 + 0.5 * grab, -0.35 + dangle + grab * 1.1)), LEG2));
+        legs.push({ name: `${s < 0 ? "L" : "R"}${i + 1}`, pts: [T(a), T(b), T(c)] });
+      }
+    }
+
+    const wingAt = (wg, flapOffset) => {
+      const f = wingFrame(wg, t, flapOffset);
+      return { name: wg.name, root: T(wg.root), span: D(f.span), chord: D(f.chord), L: wg.L, W: wg.W };
+    };
+    const wings = WINGS.map((wg) => wingAt(wg, 0));
+
+    return {
+      root, fwd: D(V(0, 0, 1)), up: D(V(0, 1, 0)),
+      head, eyes, antennae, abd: abd.map(T), stingTip: T(stingTip), sting, legs, wings,
+      wingGhost: (i, off) => wingAt(WINGS[i], off),
+    };
+  }
+  // ==POSE-END==
+
+  // ---------- 描画 ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const COLORS = { yellow: "#f2b705", amber: "#d98e04", black: "#221f1b" };
+
+  const APPROACH_START = -16, APPROACH_LAPS = 3, APPROACH_STEP = 6.95;
+  const state = {
+    playing: true,
+    mode: "approach",
+    speed: 1,
+    time: 0,              // 経過サイクル数
+    yaw: 0, yawTarget: 0,
+    pitch: 0.03,
+    bursts: [],
+    flash: 0,
+    shake: 0,
+  };
+
+  let cam = null;
+  function setupCamera() {
+    const approach = state.mode === "approach";
+    const target = approach ? V(0, 1.3, 0) : V(0, 1.3, 0.3);
+    const dist = approach ? 6.5 : 4.2;
+    const cp = Math.cos(state.pitch);
+    const pos = add(target, V(Math.sin(state.yaw) * cp * dist, Math.sin(state.pitch) * dist, Math.cos(state.yaw) * cp * dist));
+    const F = norm(sub(target, pos));
+    const Rt = norm(cross(F, V(0, 1, 0)));
+    const U = cross(Rt, F);
+    const sx = state.shake * (Math.random() - 0.5) * 16, sy = state.shake * (Math.random() - 0.5) * 16;
+    cam = { pos, F, R: Rt, U, f: Math.min(W, H * 1.4) * 0.95, cx: W / 2 + sx, cy: H * 0.45 + sy };
+  }
+  const NEAR = 0.25;
+  const toCam = (p) => { const q = sub(p, cam.pos); return V(dot(q, cam.R), dot(q, cam.U), dot(q, cam.F)); };
+  const projC = (c) => ({ x: cam.cx + cam.f * c.x / c.z, y: cam.cy - cam.f * c.y / c.z, s: cam.f / c.z, z: c.z });
+  function projSeg(a, b) {
+    let ca = toCam(a), cb = toCam(b);
+    if (ca.z < NEAR && cb.z < NEAR) return null;
+    if (ca.z < NEAR) ca = add(ca, mul(sub(cb, ca), (NEAR - ca.z) / (cb.z - ca.z)));
+    else if (cb.z < NEAR) cb = add(cb, mul(sub(ca, cb), (NEAR - cb.z) / (ca.z - cb.z)));
+    return [projC(ca), projC(cb)];
+  }
+
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css("--sky-top"));
+    g.addColorStop(1, css("--sky-bottom"));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawGround() {
+    const rgb = css("--grid");
+    ctx.lineWidth = 1;
+    const zMin = -70, zMax = 12;
+    for (let x = -24; x <= 24; x += 1) {
+      const s = projSeg(V(x, 0, zMin), V(x, 0, zMax));
+      if (!s) continue;
+      ctx.strokeStyle = `rgba(${rgb},${x === 0 ? 0.2 : 0.09})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+    for (let z = zMin; z <= zMax; z += 1) {
+      const s = projSeg(V(-24, 0, z), V(24, 0, z));
+      if (!s) continue;
+      ctx.strokeStyle = `rgba(${rgb},${clamp(0.15 - (zMax - z) * 0.0018, 0.03, 0.15)})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+  }
+
+  function wingPoly(wf, off) {
+    const pts = [];
+    const c = add(wf.root, mul(wf.span, wf.L / 2));
+    for (let i = 0; i < 18; i++) {
+      const a = (i / 18) * TAU;
+      // 付け根側を細く、先端側を丸くした羽の形
+      const along = Math.cos(a) * wf.L / 2;
+      const across = Math.sin(a) * wf.W / 2 * (0.75 + 0.25 * Math.cos(a)) + wf.W * 0.12;
+      pts.push(add(add(c, mul(wf.span, along)), mul(wf.chord, across)));
+    }
+    return pts;
+  }
+
+  function drawBee(P, origin, alpha) {
+    const w = (p) => add(origin, p);
+    const ink = css("--ink");
+    const accent = css("--accent");
+    const outline = css("--outline");
+    const wingRgb = css("--wing");
+    const items = [];
+
+    // 影
+    const sc = toCam(w(V(P.root.x, 0, P.root.z)));
+    if (sc.z > NEAR) {
+      const pp = projC(sc);
+      const k = clamp(1.4 - P.root.y * 0.45, 0.3, 1);
+      ctx.fillStyle = `rgba(0,0,0,${0.13 * alpha * k})`;
+      ctx.beginPath();
+      ctx.ellipse(pp.x, pp.y, 0.4 * pp.s * k, 0.4 * pp.s * k * Math.max(0.12, Math.sin(state.pitch + 0.06) * 1.6), 0, 0, TAU);
+      ctx.fill();
+    }
+
+    const sphere = (c, r, fill, glow) => {
+      const cc = toCam(w(c));
+      if (cc.z > NEAR) items.push({ kind: "sphere", c: cc, r, fill, glow, depth: cc.z });
+    };
+    const seg = (a, b, width, color) => {
+      const pr = projSeg(w(a), w(b));
+      if (pr) items.push({ kind: "seg", pr, width, color, depth: (pr[0].z + pr[1].z) / 2 });
+    };
+    const poly = (pts, fillA, strokeA) => {
+      const cs = pts.map((p) => toCam(w(p)));
+      if (cs.some((c) => c.z <= NEAR)) return;
+      const depth = cs.reduce((s, c) => s + c.z, 0) / cs.length;
+      items.push({ kind: "poly", pts: cs.map(projC), fillA, strokeA, depth });
+    };
+
+    sphere(P.root, THORAX_R, COLORS.amber);
+    sphere(P.head, HEAD_R, COLORS.black);
+    for (const e of P.eyes) sphere(e, EYE_R, accent, true);
+    for (const [a, b, c] of P.antennae) { seg(a, b, 0.012, COLORS.black); seg(b, c, 0.01, COLORS.black); }
+    for (let k = 0; k < 5; k++) {
+      sphere(mul(add(P.abd[k], P.abd[k + 1]), 0.5), ABD_R[k], COLORS[ABD_COL[k]]);
+    }
+    // 針：根元は黒、先端はアクセント色
+    const mid = add(P.abd[5], mul(sub(P.stingTip, P.abd[5]), 0.6));
+    seg(P.abd[5], mid, 0.038, COLORS.black);
+    seg(mid, P.stingTip, 0.022, accent);
+    for (const lg of P.legs) { seg(lg.pts[0], lg.pts[1], 0.018, COLORS.black); seg(lg.pts[1], lg.pts[2], 0.014, COLORS.black); }
+    // 羽：残像で羽ばたきのブレを出す
+    for (let i = 0; i < P.wings.length; i++) {
+      for (let g = 1; g <= 4; g++) poly(wingPoly(P.wingGhost(i, -g * 0.11)), 0.05, 0);
+      poly(wingPoly(P.wings[i]), 0.3, 0.6);
+    }
+
+    items.sort((a, b) => b.depth - a.depth);
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const it of items) {
+      if (it.kind === "seg") {
+        const [a, b] = it.pr;
+        ctx.strokeStyle = it.color;
+        ctx.lineWidth = Math.max(1, it.width * (a.s + b.s) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      } else if (it.kind === "sphere") {
+        const p = projC(it.c);
+        const r = Math.max(1, it.r * p.s);
+        if (it.glow) {
+          ctx.fillStyle = it.fill;
+          ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+          continue;
+        }
+        const g = ctx.createRadialGradient(p.x - r * 0.35, p.y - r * 0.4, r * 0.1, p.x, p.y, r);
+        g.addColorStop(0, "rgba(255,255,255,0.35)");
+        g.addColorStop(0.45, "rgba(255,255,255,0)");
+        g.addColorStop(1, "rgba(0,0,0,0.25)");
+        ctx.fillStyle = it.fill;
+        ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+        ctx.fillStyle = g;
+        ctx.fill();
+        ctx.strokeStyle = outline;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        it.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${wingRgb},${it.fillA})`;
+        ctx.fill();
+        if (it.strokeA) {
+          ctx.strokeStyle = `rgba(${wingRgb},${it.strokeA})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+    return w(P.stingTip);
+  }
+
+  // 刺した瞬間の衝撃エフェクト
+  function drawBursts(dt) {
+    const accent = css("--accent");
+    for (const b of state.bursts) {
+      b.life += dt;
+      const c = toCam(b.p);
+      if (c.z <= NEAR) continue;
+      const p = projC(c);
+      const k = b.life / 0.4;
+      ctx.strokeStyle = accent;
+      ctx.globalAlpha = Math.max(0, 1 - k);
+      ctx.lineWidth = Math.max(1, 0.012 * p.s);
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * TAU + b.seed;
+        const r0 = (0.05 + 0.25 * k) * p.s, r1 = (0.12 + 0.45 * k) * p.s;
+        ctx.beginPath();
+        ctx.moveTo(p.x + Math.cos(a) * r0, p.y + Math.sin(a) * r0);
+        ctx.lineTo(p.x + Math.cos(a) * r1, p.y + Math.sin(a) * r1);
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, (0.04 + 0.3 * k) * p.s, 0, TAU); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    state.bursts = state.bursts.filter((b) => b.life < 0.4);
+    if (state.flash > 0) {
+      ctx.fillStyle = `rgba(255,255,255,${state.flash * 0.45})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // ---------- ループ ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const sdt = state.playing ? dt * state.speed : 0;
+    const prevTime = state.time;
+    state.time += sdt / CYCLE_SEC;
+    const phase = state.time % 1;
+
+    let dy = state.yawTarget - state.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    state.yaw += dy * Math.min(1, dt * 6);
+    state.flash = Math.max(0, state.flash - dt * 3);
+    state.shake = Math.max(0, state.shake - dt * 4);
+
+    let originZ = 0, alpha = 1, lap = 0;
+    if (state.mode === "approach") {
+      lap = Math.floor(state.time) % APPROACH_LAPS;
+      // 最終周回は刺した位置で前進を止め、刺したあとは後ろへ離れていく
+      const adv = lap === APPROACH_LAPS - 1 ? Math.min(phase, HIT_T) : phase;
+      originZ = APPROACH_START + APPROACH_STEP * (lap + adv);
+      alpha = clamp((originZ - APPROACH_START) / 2.5, 0, 1);
+      if (lap === APPROACH_LAPS - 1) alpha *= clamp((1 - phase) / 0.08, 0, 1);
+    }
+    const origin = V(0, 0, originZ);
+    const P = pose(phase);
+
+    setupCamera();
+    drawSky();
+    drawGround();
+    const tip = drawBee(P, origin, alpha);
+
+    // 針が突き出た瞬間
+    const crossed = Math.floor(prevTime - HIT_T) !== Math.floor(state.time - HIT_T) && state.time > prevTime;
+    if (crossed) {
+      state.bursts.push({ p: tip, life: 0, seed: Math.random() * TAU });
+      const near = toCam(tip).z;
+      if (near < 3) { state.flash = 1; state.shake = 1; }
+      else if (state.mode === "inplace" || lap === APPROACH_LAPS - 1) state.shake = 0.35;
+    }
+    drawBursts(sdt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- 操作 ----------
+  const playBtn = document.getElementById("play");
+  const togglePlay = () => {
+    state.playing = !state.playing;
+    playBtn.textContent = state.playing ? "一時停止" : "再生";
+    playBtn.classList.toggle("on", state.playing);
+  };
+  playBtn.addEventListener("click", togglePlay);
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+  });
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    state.mode = b.dataset.mode;
+    state.time = 0;
+    state.bursts = [];
+    document.querySelectorAll("[data-mode]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.yawTarget = (+b.dataset.view * Math.PI) / 180;
+  }));
+  document.getElementById("speed").addEventListener("input", (e) => { state.speed = +e.target.value; });
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    drag = { x: e.clientX, y: e.clientY, yaw: state.yawTarget, pitch: state.pitch };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.yawTarget = drag.yaw - (e.clientX - drag.x) * 0.008;
+    state.yaw = state.yawTarget;
+    state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.004, -0.3, 0.9);
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+
+  window.__bee = { state, pose };
+})();
+</script>
+</body>
+</html>
