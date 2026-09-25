@@ -1,9 +1,9 @@
 // 獣走りモーションを Unity 用アセットに書き出す。
 //
-//   node motion/tools/export_unity.mjs
+//   node motion/beast_run/tools/export_unity.mjs
 //
-// motion/beast_run.html の ==POSE-BEGIN== 〜 ==POSE-END== にある姿勢計算をそのまま使い、
-// 以下を motion/unity/ に出力する（追加パッケージ不要）。
+// motion/beast_run/beast_run.html の ==POSE-BEGIN== 〜 ==POSE-END== にある姿勢計算をそのまま使い、
+// 以下を motion/beast_run/unity/ に出力する（追加パッケージ不要）。
 //   BeastRun.anim      … Generic リグ用のループ AnimationClip（各関節の localPosition / localRotation）
 //   BeastRigBones.cs   … クリップと対応する関節階層（BeastRig.cs が参照）
 
@@ -256,7 +256,7 @@ ${editorCurves}  m_EulerEditorCurves: []
 `;
 
 // ---------- 関節表（C#） ----------
-const cs = `// このファイルは motion/tools/export_unity.mjs が自動生成します。手で編集しないでください。
+const cs = `// このファイルは motion/beast_run/tools/export_unity.mjs が自動生成します。手で編集しないでください。
 // BeastRun.anim のカーブはこの階層（Animator を付けた GameObject からの相対パス）に対応します。
 public static class BeastRigBones
 {

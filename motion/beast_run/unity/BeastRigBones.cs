@@ -1,4 +1,4 @@
-// このファイルは motion/tools/export_unity.mjs が自動生成します。手で編集しないでください。
+// このファイルは motion/beast_run/tools/export_unity.mjs が自動生成します。手で編集しないでください。
 // BeastRun.anim のカーブはこの階層（Animator を付けた GameObject からの相対パス）に対応します。
 public static class BeastRigBones
 {

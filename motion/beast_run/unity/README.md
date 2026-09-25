@@ -46,7 +46,7 @@ Humanoid ではなく Generic なので、別の人型モデルへそのまま�
 そこを編集したら、リポジトリのルートで次を実行すると `BeastRun.anim` と `BeastRigBones.cs` が作り直されます（Node.js のみ必要）。
 
 ```
-node motion/tools/export_unity.mjs
+node motion/beast_run/tools/export_unity.mjs
 ```
 
 ## 注意
