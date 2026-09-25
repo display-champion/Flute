@@ -51,49 +51,49 @@
 
 | ID | 名前 | 体の種類 | 作るクリップ | 状態 |
 |---|---|---|---|---|
-| EN-05 | 沼の魔物 | Creature | Idle / Move / Burrow（泥に潜る）/ Emerge_Bite（飛び出して噛む）/ Hit / Death | 未着手 |
-| EN-06 | 毒吐き草 | Plant | Idle / Attack_Spit / Hit / Death（動かない） | 未着手 |
-| EN-07 | 毒羽のバチ | Bee | Idle / Move / Attack_Sting / Hit / Death | 未着手 |
-| EN-08 | 大蛍 | Bee | Idle / Move / Attack_Ram（体当たり）/ Hit / Death | 未着手 |
-| EN-10 | 根喰い虫の幼虫 | Creature | Idle / Move / Emerge_Bite / Attack_Bite / Hit / Death | 未着手 |
-| EN-11 | 世界樹の瘤 | Plant | Dormant（擬態）/ WakeUp / Idle / Attack_Slam / Hit / Death | 未着手 |
-| EN-14 | 翼の悪魔（小） | Flyer | Idle / Move / Attack_Dive（急降下→着地1秒→飛び立つ）/ Hit / Death | 未着手 |
-| EN-15 | 岩の魔物 | RockBall（1.67倍） | Idle / Move / Attack_Roll_Long（起き上がり2秒）/ Hit / Death | 未着手 |
-| EN-18 | 石くれ人形 | Upright | Idle / Move / Attack_HeavySlam（予備動作0.8秒）/ Hit / Death | 未着手 |
-| EN-19 | 洞の小蜘蛛 | Spider | Idle / Move / Descend（天井から降りる）/ Attack_Web / Hit / Death | 未着手 |
-| EN-20 | 骨の小竜 | Flyer | Idle / Move / Attack_GlideBite / Hit / Death_Collapse / Reassemble | 未着手 |
-| EN-21 | 炎の魔物 | Creature | Idle / Move / Attack_Tackle / Hit / Death | 未着手 |
-| EN-22 | 火蜥蜴 | Creature | Idle / Move / Attack_Breath（1秒）/ Hit / Death | 未着手 |
-| EN-23 | 鉄殻虫 | Creature | Idle / Move / Attack_Bite / Flipped（ひっくり返る）/ Hit / Death | 未着手 |
-| EN-24 | 湯煙の精 | Phantom | Idle / Move / Appear / Attack_Blow / Vanish / Hit / Death | 未着手 |
-| EN-25 | 湯あたりガエル | Creature | Idle / Move / Attack_Pounce（大跳躍）/ Hit / Death | 未着手 |
-| EN-26 | 巡回の検品機 | Clockwork | Idle / Move / Alert（見つけた） | 未着手 |
-| EN-27 | 天の番兵 | Upright | Idle / Move / Attack_Swing（警棒）/ Hit / Death | 未着手 |
-| EN-28 | 仕分けの手 | Upright | Idle / Move / Attack_GrabThrow（予備動作0.8秒）/ Hit / Death | 未着手 |
-| EN-29 | 水路の清掃機 | Whale | Idle / Move / Attack_LeapTackle / Hit / Death | 未着手 |
-| EN-30 | 歯車の子 | Clockwork | Idle / Move / Attack_SpinJump / Hit / Death | 未着手 |
-| EN-31 | 迷い羽根 | Bee | Idle / Move_Flutter / Attack_Slash / Hit / Death | 未着手 |
-| EN-32 | 監督の魔物 | Creature | Idle / Move / Attack_Whip（前方120°の横なぎ）/ Hit / Death | 未着手 |
-| EN-34 | 炎喰いの子 | Creature | Idle / Move / Attack_Bite / Grow（大きくなる）/ Hit / Death | 未着手 |
-| EN-35 | 冷えた溶岩の殻 | RockBall（1.67倍） | Idle / Move / Attack_Roll_Long / Hit / Death_Shatter（割れる） | 未着手 |
-| EN-36 | 看守の犬 | Hound | Idle / Move / Sniff / Bark / Attack_Bite / Hit / Death | 未着手 |
-| EN-37 | 鎖の魂 | Phantom | Dormant / WakeUp / Idle / Move / Attack_ChainLash / Hit / Death | 未着手 |
-| EN-38 | 無音の影 | Phantom | Idle / Move / Attack_Strike / Hit / Death | 未着手 |
-| EN-39 | 聖堂騎士 | Upright | Idle / Move / Attack_Combo2（剣の2連撃）/ Hit / Death | 未着手 |
-| EN-40 | 動く鎧 | Upright | Idle / Move / Attack_HeavySlam / Hit / Death | 未着手 |
-| EN-41 | 書架の魔物 | Clockwork | Idle / Move / Attack_Throw（本を3冊扇形）/ Hit / Death | 未着手 |
-| EN-44 | 酔いバチ | Bee | Idle / Move_Drunk / Attack_DoubleSting / Hit / Death | 未着手 |
-| EN-45 | 樽の子 | Barrel | Disguise / Reveal / Idle / Move / Attack_Roll / Hit / Death | 未着手 |
-| EN-46 | 箱入りの忘れ物 | Box | Disguise / Attack_Bite / Idle / Move / Hit / Death | 未着手 |
-| EN-47 | 名を失くした亡者 | Upright | Idle / Move / Attack_Punch / Hit / Death | 未着手 |
-| EN-48 | 苔の石像 | Upright | Disguise / Ambush_Punch / Idle / Move / Hit / Death | 未着手 |
-| EN-49 | 墓守の鬼火 | Fairy | Idle / Move / Attack_Touch / Hit / Death | 未着手 |
-| EN-50 | 墓荒らしの魔物 | Creature | Idle / Move / Attack_Bite / Dig_Escape（穴を掘って逃げる）/ Hit / Death | 未着手 |
-| EN-51 | 笑う死者 | Upright | Idle_Laugh / Move / Attack_Grab / Hit / Death_Crumble（花になって崩れる） | 未着手 |
-| EN-52 | 侵食の蔦 | Plant | Submerged（地中）/ Attack_Erupt（突き上げ）/ Idle / Hit / Death | 未着手 |
-| EN-53 | 庭の番 | Plant | Idle / Move / Attack_Lunge / Hit / Death | 未着手 |
-| EN-55 | 刈り込み鋏 | Shears | Idle / Move / Attack_Snip2（はさみ込み2連）/ Hit / Death | 未着手 |
-| EN-56 | 受粉の蜂 | Bee | Idle / Move / Attack_Sting / Hit / Death | 未着手 |
+| EN-05 | 沼の魔物 | Creature | Idle / Move / Burrow（泥に潜る）/ Emerge_Bite（飛び出して噛む）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-06 | 毒吐き草 | Plant | Idle / Attack_Spit / Hit / Death（動かない） | 作成・書き出し済み（納品前） |
+| EN-07 | 毒羽のバチ | Bee | Idle / Move / Attack_Sting / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-08 | 大蛍 | Bee | Idle / Move / Attack_Ram（体当たり）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-10 | 根喰い虫の幼虫 | Creature | Idle / Move / Emerge_Bite / Attack_Bite / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-11 | 世界樹の瘤 | Plant | Dormant（擬態）/ WakeUp / Idle / Attack_Slam / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-14 | 翼の悪魔（小） | Flyer | Idle / Move / Attack_Dive（急降下→着地1秒→飛び立つ）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-15 | 岩の魔物 | RockBall（1.67倍） | Idle / Move / Attack_Roll_Long（起き上がり2秒）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-18 | 石くれ人形 | Upright | Idle / Move / Attack_HeavySlam（予備動作0.8秒）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-19 | 洞の小蜘蛛 | Spider | Idle / Move / Descend（天井から降りる）/ Attack_Web / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-20 | 骨の小竜 | Flyer | Idle / Move / Attack_GlideBite / Hit / Death_Collapse / Reassemble | 作成・書き出し済み（納品前） |
+| EN-21 | 炎の魔物 | Creature | Idle / Move / Attack_Tackle / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-22 | 火蜥蜴 | Creature | Idle / Move / Attack_Breath（1秒）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-23 | 鉄殻虫 | Creature | Idle / Move / Attack_Bite / Flipped（ひっくり返る）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-24 | 湯煙の精 | Phantom | Idle / Move / Appear / Attack_Blow / Vanish / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-25 | 湯あたりガエル | Creature | Idle / Move / Attack_Pounce（大跳躍）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-26 | 巡回の検品機 | Clockwork | Idle / Move / Alert（見つけた） | 作成・書き出し済み（納品前） |
+| EN-27 | 天の番兵 | Upright | Idle / Move / Attack_Swing（警棒）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-28 | 仕分けの手 | Upright | Idle / Move / Attack_GrabThrow（予備動作0.8秒）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-29 | 水路の清掃機 | Whale | Idle / Move / Attack_LeapTackle / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-30 | 歯車の子 | Clockwork | Idle / Move / Attack_SpinJump / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-31 | 迷い羽根 | Bee | Idle / Move_Flutter / Attack_Slash / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-32 | 監督の魔物 | Creature | Idle / Move / Attack_Whip（前方120°の横なぎ）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-34 | 炎喰いの子 | Creature | Idle / Move / Attack_Bite / Grow（大きくなる）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-35 | 冷えた溶岩の殻 | RockBall（1.67倍） | Idle / Move / Attack_Roll_Long / Hit / Death_Shatter（割れる） | 作成・書き出し済み（納品前） |
+| EN-36 | 看守の犬 | Hound | Idle / Move / Sniff / Bark / Attack_Bite / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-37 | 鎖の魂 | Phantom | Dormant / WakeUp / Idle / Move / Attack_ChainLash / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-38 | 無音の影 | Phantom | Idle / Move / Attack_Strike / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-39 | 聖堂騎士 | Upright | Idle / Move / Attack_Combo2（剣の2連撃）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-40 | 動く鎧 | Upright | Idle / Move / Attack_HeavySlam / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-41 | 書架の魔物 | Clockwork | Idle / Move / Attack_Throw（本を3冊扇形）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-44 | 酔いバチ | Bee | Idle / Move_Drunk / Attack_DoubleSting / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-45 | 樽の子 | Barrel | Disguise / Reveal / Idle / Move / Attack_Roll / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-46 | 箱入りの忘れ物 | Box | Disguise / Attack_Bite / Idle / Move / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-47 | 名を失くした亡者 | Upright | Idle / Move / Attack_Punch / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-48 | 苔の石像 | Upright | Disguise / Ambush_Punch / Idle / Move / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-49 | 墓守の鬼火 | Fairy | Idle / Move / Attack_Touch / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-50 | 墓荒らしの魔物 | Creature | Idle / Move / Attack_Bite / Dig_Escape（穴を掘って逃げる）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-51 | 笑う死者 | Upright | Idle_Laugh / Move / Attack_Grab / Hit / Death_Crumble（花になって崩れる） | 作成・書き出し済み（納品前） |
+| EN-52 | 侵食の蔦 | Plant | Submerged（地中）/ Attack_Erupt（突き上げ）/ Idle / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-53 | 庭の番 | Plant | Idle / Move / Attack_Lunge / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-55 | 刈り込み鋏 | Shears | Idle / Move / Attack_Snip2（はさみ込み2連）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-56 | 受粉の蜂 | Bee | Idle / Move / Attack_Sting / Hit / Death | 作成・書き出し済み（納品前） |
 
 名前に「人」を含まないので、聖堂騎士・動く鎧・亡者・死者なども「体全体を動かす」方式（Upright）で作る（ユーザーの決めた振り分けどおり）。
 
@@ -133,3 +133,7 @@
 5. このファイルの表を更新してコミット
 - ユーザー指示「途中で止めずに全てのモンスターの必要モーションを作成」。コミット `4592ecf` から作業ファイルを戻し、残り 48 体の割り当て計画を上の表に書いた
   - 進め方：①人型以外の新しい体の種類とクリップを追加 → ②書き出し・検証 → ③人型の仕組みと5体 → ④まとめて zip 納品
+- 人型以外の残り 43 体を追加（新しい体の種類 12：Creature / Plant / Flyer / Upright / Spider / Phantom / Clockwork / Whale / Hound / Barrel / Box / Shears、既存の Bee / RockBall / Fairy にもクリップ追加）。合計 51 体・138 クリップ
+  - 書き出しを改良：キー数/秒は 30 から始め、補間のずれが 1mm を超えるクリップだけ自動で細かくする。動かない項目も2キーで必ず書く（クリップ切り替え時に前の値が残らないように）
+  - 検証：別スクリプトで全 138 本を読み直し、ずれ最大 1.05mm。長さ・ループ・イベント・編集用カーブも一致
+  - 次：人型5体（`dungeon_humanoid.html`・`tools/export_humanoid.mjs`・`unity/HumanoidRetarget.cs`）

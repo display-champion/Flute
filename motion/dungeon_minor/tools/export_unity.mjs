@@ -20,9 +20,9 @@ const m = html.match(/\/\/ ==POSE-BEGIN==[^\n]*\n([\s\S]*?)\/\/ ==POSE-END==/);
 if (!m) throw new Error("dungeon_minor.html に POSE-BEGIN / POSE-END の目印が見つかりません");
 const { CLIPS, ENEMIES, BODIES, evalClip } = new Function(`${m[1]}\nreturn { CLIPS, ENEMIES, BODIES, evalClip };`)();
 
-const RATE = 60;          // キー数/秒
-// 小刻みな震え（毎秒14〜25回）を含むクリップはキーを細かくする
-const RATE_OVERRIDE = { Bee_Attack_Sting: 180, Bee_Attack_Charge: 120, RockBall_Death: 120, RockBall_Attack_Roll: 120 };
+// キー数/秒は 30 から始め、補間のずれが TOLERANCE を超えるクリップだけ細かくする（震えを含むクリップなど）
+const RATES = [30, 60, 120, 180, 240];
+const TOLERANCE = 0.001;  // 1mm（軸から 1m 前後の点で測る）
 const EPS = 1e-4;         // 傾きを求める微小時間（秒）
 const PATH = "Motion";
 
@@ -30,18 +30,18 @@ const f = (v) => (Math.abs(v) < 1e-7 ? "0" : Number(v.toPrecision(7)).toString()
 const vec = (a, names) => `{${names.map((n, i) => `${n}: ${f(a[i])}`).join(", ")}}`;
 const qDot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3];
 
-function keyTimes(c) {
+function keyTimes(c, rate) {
   const ts = new Set(c.times.map((t) => t.toFixed(6)));
-  const n = Math.max(2, Math.round((RATE_OVERRIDE[`${c.body}_${c.name}`] || RATE) * c.dur));
+  const n = Math.max(2, Math.round(rate * c.dur));
   for (let i = 0; i <= n; i++) ts.add((c.dur * i / n).toFixed(6));
   return [...ts].map(Number).filter((t) => t >= 0 && t <= c.dur).sort((a, b) => a - b);
 }
 
 // 入りと出の傾きを別々に（片側差分）とる。折れ目（急停止・着地）もそのまま再現できる
-function buildKeys(c) {
+function buildKeys(c, rate) {
   const rot = [], pos = [], scl = [];
   let prevQ = null;
-  for (const t of keyTimes(c)) {
+  for (const t of keyTimes(c, rate)) {
     const cur = evalClip(c, t);
     // ループするクリップは端の外側を反対側から取る（つなぎ目をなめらかに）
     const at = (u) => {
@@ -67,13 +67,45 @@ function buildKeys(c) {
   return { rot, pos, scl };
 }
 
+// Unity と同じエルミート補間でキーから値を戻し、元の動きとのずれ（m）を測る
+function hermite(keys, t) {
+  let i = keys.findIndex((k) => k.time >= t);
+  if (i <= 0) return keys[i < 0 ? keys.length - 1 : 0].value;
+  const a = keys[i - 1], b = keys[i], h = b.time - a.time, s = (t - a.time) / h;
+  const h00 = 2 * s ** 3 - 3 * s ** 2 + 1, h10 = s ** 3 - 2 * s ** 2 + s, h01 = -2 * s ** 3 + 3 * s ** 2, h11 = s ** 3 - s ** 2;
+  return a.value.map((_, j) => h00 * a.value[j] + h10 * h * a.outSlope[j] + h01 * b.value[j] + h11 * h * b.inSlope[j]);
+}
+const qRotate = (q, v) => {
+  const n = Math.hypot(...q); q = q.map((x) => x / n);
+  const [x, y, z, w] = q, [vx, vy, vz] = v;
+  const tx = 2 * (y * vz - z * vy), ty = 2 * (z * vx - x * vz), tz = 2 * (x * vy - y * vx);
+  return [vx + w * tx + (y * tz - z * ty), vy + w * ty + (z * tx - x * tz), vz + w * tz + (x * ty - y * tx)];
+};
+function maxError(c, keys) {
+  const pv = BODIES[c.body].pivot;
+  const probes = [[0.8, 0, 0], [-0.5, 0.7, 0.5], [0, -0.6, -0.8]].map((d) => [pv[0] + d[0], pv[1] + d[1], pv[2] + d[2]]);
+  const apply = (T, p) => { const r = qRotate(T.rot, [p[0] * T.scl[0], p[1] * T.scl[1], p[2] * T.scl[2]]); return [r[0] + T.pos[0], r[1] + T.pos[1], r[2] + T.pos[2]]; };
+  let worst = 0;
+  const n = Math.max(200, Math.round(c.dur * 400));
+  for (let i = 0; i <= n; i++) {
+    const t = c.dur * i / n;
+    const want = evalClip(c, t);
+    const got = { rot: hermite(keys.rot, t), pos: hermite(keys.pos, t), scl: hermite(keys.scl, t) };
+    for (const p of probes) { const a = apply(want, p), g = apply(got, p); worst = Math.max(worst, Math.hypot(a[0] - g[0], a[1] - g[1], a[2] - g[2])); }
+  }
+  return worst;
+}
+
 const spread = (keys) => {
   let d = 0;
   for (const k of keys) for (let i = 0; i < k.value.length; i++) d = Math.max(d, Math.abs(k.value[i] - keys[0].value[i]));
   return d;
 };
-// 動かない項目でも初期値（回転なし・位置 0・大きさ 1）と違えばカーブを残す
-const needed = (keys, rest) => spread(keys) > 1e-6 || keys[0].value.some((v, i) => Math.abs(v - rest[i]) > 1e-6);
+// 動かない項目は最初と最後の2キーだけにする（省略はしない：クリップを切り替えたとき前の値が残らないように）
+const compact = (keys) => (spread(keys) > 1e-6 ? keys : [
+  { ...keys[0], inSlope: keys[0].value.map(() => 0), outSlope: keys[0].value.map(() => 0) },
+  { ...keys[keys.length - 1], value: keys[0].value, inSlope: keys[0].value.map(() => 0), outSlope: keys[0].value.map(() => 0) },
+]);
 
 function vectorCurve(keys, names) {
   const w = vec(names.map(() => 1 / 3), names);
@@ -97,22 +129,24 @@ function floatCurve(keys, idx, attribute) {
 }
 const list = (s) => (s ? `\n${s}` : " []\n");
 
+const report = [];
 function animYaml(c) {
   const name = `${c.body}_${c.name}`;
-  const { rot, pos, scl } = buildKeys(c);
-  let rotC = "", posC = "", sclC = "", edC = "";
-  if (needed(rot, [0, 0, 0, 1])) {
-    rotC = vectorCurve(rot, ["x", "y", "z", "w"]);
-    ["x", "y", "z", "w"].forEach((a, i) => { edC += floatCurve(rot, i, `m_LocalRotation.${a}`); });
+  let keys = null, err = 0, rate = 0;
+  for (rate of RATES) {
+    keys = buildKeys(c, rate);
+    err = maxError(c, keys);
+    if (err <= TOLERANCE) break;
   }
-  if (needed(pos, [0, 0, 0])) {
-    posC = vectorCurve(pos, ["x", "y", "z"]);
-    ["x", "y", "z"].forEach((a, i) => { edC += floatCurve(pos, i, `m_LocalPosition.${a}`); });
-  }
-  if (needed(scl, [1, 1, 1])) {
-    sclC = vectorCurve(scl, ["x", "y", "z"]);
-    ["x", "y", "z"].forEach((a, i) => { edC += floatCurve(scl, i, `m_LocalScale.${a}`); });
-  }
+  report.push({ name, rate, err });
+  const rot = compact(keys.rot), pos = compact(keys.pos), scl = compact(keys.scl);
+  let edC = "";
+  const rotC = vectorCurve(rot, ["x", "y", "z", "w"]);
+  ["x", "y", "z", "w"].forEach((a, i) => { edC += floatCurve(rot, i, `m_LocalRotation.${a}`); });
+  const posC = vectorCurve(pos, ["x", "y", "z"]);
+  ["x", "y", "z"].forEach((a, i) => { edC += floatCurve(pos, i, `m_LocalPosition.${a}`); });
+  const sclC = vectorCurve(scl, ["x", "y", "z"]);
+  ["x", "y", "z"].forEach((a, i) => { edC += floatCurve(scl, i, `m_LocalScale.${a}`); });
   const events = c.events.map(([t, n]) =>
     `  - time: ${f(t)}\n    functionName: OnMotionEvent\n    data: ${n}\n    objectReferenceParameter: {fileID: 0}\n    floatParameter: 0\n    intParameter: 0\n    messageOptions: 0\n`).join("");
   return `%YAML 1.1
@@ -236,4 +270,9 @@ node <dungeon_minor フォルダ>/tools/export_unity.mjs
 `;
 fs.writeFileSync(path.join(outDir, "README.md"), readme);
 
+const worst = report.reduce((a, b) => (b.err > a.err ? b : a));
+const fine = report.filter((r) => r.rate > RATES[0]).map((r) => `${r.name}(${r.rate})`);
 console.log(`クリップ ${total} 本 / 合計 ${(bytes / 1024).toFixed(0)} KB → ${path.relative(process.cwd(), outDir)}`);
+console.log(`補間のずれ 最大 ${(worst.err * 1000).toFixed(3)} mm（${worst.name}）`);
+console.log(`キーを細かくしたクリップ: ${fine.join(", ") || "なし"}`);
+if (report.some((r) => r.err > TOLERANCE)) console.warn("注意: 許容値を超えたクリップがあります");
