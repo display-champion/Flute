@@ -6,7 +6,8 @@ using UnityEngine.Playables;
 /// <summary>
 /// ダンジョン雑魚の「体全体を動かす」モーションを再生する。
 /// 構成：この GameObject（Animator ＋ EnemyMotion）→ 子「Motion」（クリップが動かす）→ モデル
-/// 子「Motion」が無ければ自動で作り、今ある子を全部その下へ移す。
+/// 子「Motion」が無ければ自動で作り、今ある子（Proxy 以外）をその下へ移す。
+/// 人型（HumanoidRetarget と併用）のクリップは子「Proxy」を動かす。
 /// AnimatorController は不要（Playables API で直接再生する）。
 /// </summary>
 [RequireComponent(typeof(Animator))]
@@ -55,7 +56,8 @@ public class EnemyMotion : MonoBehaviour
         var children = new Transform[transform.childCount];
         for (int i = 0; i < children.Length; i++) children[i] = transform.GetChild(i);
         motion.SetParent(transform, false);
-        foreach (var c in children) c.SetParent(motion, true);
+        // 人型の代理の骨組み（Proxy。HumanoidRetarget が作る）はそのまま残す
+        foreach (var c in children) if (c.name != "Proxy") c.SetParent(motion, true);
         GetComponent<Animator>().Rebind();   // 新しくできた Motion をアニメーションの対象として認識させる
     }
 

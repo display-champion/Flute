@@ -106,11 +106,11 @@
 
 | ID | 名前 | 作るクリップ | 状態 |
 |---|---|---|---|
-| EN-09 | 溺れた村人 | Idle / Move（ゆっくり歩く）/ Attack_Grab（掴んで1.5秒離さない）/ Hit / Death | 未着手 |
-| EN-12 | 狼の獣人 | Idle / Move（走る）/ Attack_Punch / Attack_Kick / Howl（吠える）/ Hit / Death | 未着手 |
-| EN-13 | 狼の獣人（弓） | Idle / Move_Back（下がる）/ Attack_Bow（矢を撃つ）/ Hit / Death | 未着手 |
-| EN-33 | 罪人の影 | Idle / Move / Sink（影に潜る）/ Rise（出てくる）/ Attack_Claw / Hit / Death | 未着手 |
-| EN-54 | 光の番人 | Idle / Appear（現れる）/ Attack_Shoot（光の矢）/ Hit / Death | 未着手 |
+| EN-09 | 溺れた村人 | Idle / Move（ゆっくり歩く）/ Attack_Grab（掴んで1.5秒離さない）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-12 | 狼の獣人 | Idle / Move（走る）/ Attack_Punch / Attack_Kick / Howl（吠える）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-13 | 狼の獣人（弓） | Idle / Move_Back（下がる）/ Attack_Bow（矢を撃つ）/ Hit / Death | 作成・書き出し済み（納品前） |
+| EN-33 | 罪人の影 | Idle / Move / Sink（影に潜る）/ Rise（出てくる）/ Attack_Claw / Hit / Death | 作成・書き出し済み（納品前） |
+| EN-54 | 光の番人 | Idle / Appear（現れる）/ Attack_Shoot（光の矢）/ Hit / Death | 作成・書き出し済み（納品前） |
 
 ## 作業ログ
 
@@ -137,3 +137,9 @@
   - 書き出しを改良：キー数/秒は 30 から始め、補間のずれが 1mm を超えるクリップだけ自動で細かくする。動かない項目も2キーで必ず書く（クリップ切り替え時に前の値が残らないように）
   - 検証：別スクリプトで全 138 本を読み直し、ずれ最大 1.05mm。長さ・ループ・イベント・編集用カーブも一致
   - 次：人型5体（`dungeon_humanoid.html`・`tools/export_humanoid.mjs`・`unity/HumanoidRetarget.cs`）
+- 人型5体を作成：`dungeon_humanoid.html`（確認用・定義）、`tools/export_humanoid.mjs`、`unity/Humanoid/`（29 クリップ・`HumanoidRetarget.cs`・`HumanoidProxyBones.cs`・README）
+  - 代理の骨組み（Proxy）は関節の位置だけを動かす（回転なし）。`HumanoidRetarget` が位置から骨の向きを求め、モデルの Humanoid ボーンを同じ向きに回す
+  - 肘・膝の IK は伸び切る手前でなめらかに頭打ち、弓を引く腕は肘を後ろへ張る向きを指定（肘の反転を防ぐ）
+  - 検証：全 29 本を読み直して関節位置のずれ最大 1.9mm（許容 2mm）。関節・ループ・イベントも一致
+  - `EnemyMotion` は子の Proxy を Motion の下へ移さないよう修正
+  - 次：まとめて zip 納品 → git から作業ファイルを消して PROGRESS.md だけ残す
