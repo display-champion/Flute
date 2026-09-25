@@ -159,7 +159,7 @@
 |---|---|---|
 | 2-1 | 人型へ移す 12 体のクリップを dungeon_humanoid.html に追加 | 完了（91 クリップ・17 体。dungeon_minor.html からは Upright/Phantom/Hound を削除し 39 体・106 クリップ） |
 | 2-2 | 手足の代理関節と動きを dungeon_minor.html に追加（体の種類ごと） | 完了（14 種類・106 クリップすべてに手足の指示） |
-| 2-3 | 書き出し（export_unity.mjs に手足のカーブ、LimbRigs.cs 生成）と LimbRetarget.cs | 完了（検証中） |
+| 2-3 | 書き出し（export_unity.mjs に手足のカーブ、LimbRigs.cs 生成）と LimbRetarget.cs | 完了 |
 | 2-4 | 検証・zip 納品・git から作業ファイル削除 | 未着手 |
 
 - 作業ファイルをコミット `80330b7` から戻して開始
@@ -170,3 +170,4 @@
   - 不連続だった式を修正（樽の足をしまう量、時計仕掛けの待機のカチカチ）
   - `EnemyMotion.EnsureMotionRoot` を static にして LimbRetarget からも使う
   - 人型へ移した Hound / Phantom / Upright の古いクリップのフォルダは削除
+- 検証：人型以外 106 本（体全体のずれ最大 1.1mm、手足の鎖の先まで最大 0.6mm）、人型 91 本（関節位置のずれ最大 2.5mm）。長さ・ループ・イベント・編集用カーブ・手足の鎖のそろいも一致
