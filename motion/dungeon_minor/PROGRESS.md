@@ -145,3 +145,21 @@
 - **全 56 体 完了・納品**：`HELLEDEN_DungeonMinor_All.zip`（展開先 `D:\\HELLEDEN\\Assets\\HELLEDEN\\Animation`、案A の内容も含む完全版）
   - 人型以外 51 体・138 クリップ ＋ 人型 5 体・29 クリップ ＝ 167 クリップ
   - 作業ファイル一式はコミット `80330b7` にある（git からは削除済み）。取り出し方：`git checkout 80330b7 -- motion/dungeon_minor`
+
+## 第2段階：手足も動かす（ユーザー指示「人の形をしていないものでも手足を動かせる場合は、動かすモーションに変えて」）
+
+方針：
+- 人の形の骨で動かせる敵は、人型の仕組み（Proxy ＋ HumanoidRetarget）へ移す
+  - Upright の8体（EN-18 / 27 / 28 / 39 / 40 / 47 / 48 / 51）、EN-36 看守の犬（狼の獣人 CHR-025 を四つ足の姿勢で）、Phantom の3体（EN-24 / 37 / 38：人影）
+- それ以外は、体全体の動き（Motion）に加えて、手足・羽・しっぽ・刃・ふたの「代理の関節」（Motion/Limbs/...）もクリップで動かす
+  - 新しい `LimbRetarget.cs` が、Inspector で割り当てたモデルの骨を、代理の関節の「初期からの向きの変化」と同じだけ回す（モデルの骨の軸や初期の曲がり方が違っても使える）
+  - 体の種類ごとの手足：Creature/RockBall 四つ足＋しっぽ＋首、Bee 羽＋脚、Flyer 翼＋脚＋しっぽ、Plant 葉の腕、Spider 8本脚、Clockwork 腕＋脚、Whale しっぽ＋ひれ、Mushroom 腕＋足、Fairy 羽、Slug 目の触角、Barrel 足、Box ふた、Shears 刃
+
+| 段階 | 内容 | 状態 |
+|---|---|---|
+| 2-1 | 人型へ移す 12 体のクリップを dungeon_humanoid.html に追加 | 未着手 |
+| 2-2 | 手足の代理関節と動きを dungeon_minor.html に追加（体の種類ごと） | 未着手 |
+| 2-3 | 書き出し（export_unity.mjs に手足のカーブ、LimbRigs.cs 生成）と LimbRetarget.cs | 未着手 |
+| 2-4 | 検証・zip 納品・git から作業ファイル削除 | 未着手 |
+
+- 作業ファイルをコミット `80330b7` から戻して開始

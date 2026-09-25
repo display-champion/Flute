@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ダンジョン雑魚モーション</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --sky-top: #e9e6de;
+    --sky-bottom: #f7f4ee;
+    --ink: #1c1a17;
+    --grid: 60, 52, 40;
+    --accent: #c2410c;
+    --panel: rgba(255, 255, 255, 0.86);
+    --panel-border: rgba(0, 0, 0, 0.1);
+    --muted: #6b645a;
+    --outline: rgba(28, 26, 23, 0.45);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --sky-top: #0c0c0e;
+      --sky-bottom: #1b1a19;
+      --ink: #f2efe9;
+      --grid: 210, 200, 185;
+      --accent: #fb923c;
+      --panel: rgba(28, 27, 26, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --muted: #a39d93;
+      --outline: rgba(242, 239, 233, 0.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --sky-top: #0c0c0e;
+    --sky-bottom: #1b1a19;
+    --ink: #f2efe9;
+    --grid: 210, 200, 185;
+    --accent: #fb923c;
+    --panel: rgba(28, 27, 26, 0.88);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --muted: #a39d93;
+    --outline: rgba(242, 239, 233, 0.3);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .side {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: min(300px, calc(100vw - 24px));
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 13px;
+    backdrop-filter: blur(8px);
+  }
+  .side h1 { font-size: 15px; margin: 0 0 8px; }
+  .side h2 { font-size: 12px; color: var(--muted); font-weight: 600; margin: 12px 0 6px; }
+  .side p { margin: 6px 0; line-height: 1.5; }
+  .muted { color: var(--muted); }
+  select { font: inherit; width: 100%; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--panel-border); background: transparent; color: var(--ink); }
+  select option { color: #1c1a17; }
+  .clips { display: flex; flex-wrap: wrap; gap: 6px; }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .panel {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 32px));
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    font-size: 13px;
+  }
+  .group { display: flex; gap: 6px; align-items: center; }
+  label { color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 110px; accent-color: var(--accent); }
+  .event {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    opacity: 0;
+    transition: opacity 0.4s;
+    pointer-events: none;
+  }
+  .event.show { opacity: 1; transition: none; }
+  .timeline { position: fixed; right: 16px; top: 44px; font-size: 12px; color: var(--muted); text-align: right; pointer-events: none; }
+  @media (max-width: 640px) {
+    .side { max-height: 38vh; }
+  }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="side">
+  <h1>ダンジョン雑魚モーション</h1>
+  <select id="enemy"></select>
+  <p id="desc" class="muted"></p>
+  <h2>クリップ</h2>
+  <div class="clips" id="clips"></div>
+  <p class="muted" id="clipInfo"></p>
+</div>
+<div class="event" id="event"></div>
+<div class="timeline" id="timeline"></div>
+
+<div class="panel">
+  <div class="group">
+    <button id="play" class="on">一時停止</button>
+    <button id="all">全クリップ連続</button>
+  </div>
+  <div class="group">
+    <button data-view="0">正面</button>
+    <button data-view="35" class="on">斜め</button>
+    <button data-view="90">側面</button>
+  </div>
+  <div class="group">
+    <label for="speed">速度</label>
+    <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==POSE-BEGIN== （ここから POSE-END までは Unity 書き出しでも共有: tools/export_unity.mjs）
+  // 座標は Unity と同じ：+X 右、+Y 上、+Z 正面。回転はオイラー角（度、Unity と同じ Z→X→Y の順）
+  const TAU = Math.PI * 2, DEG = Math.PI / 180;
+  const sin = Math.sin, cos = Math.cos;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // キー補間。keys = [[時刻(秒), 値, 補間], ...]。補間は "s" なめらか（既定）/ "l" 直線 / "in" 加速 / "out" 減速
+  let registerTimes = null;
+  function K(keys) {
+    if (registerTimes) for (const k of keys) registerTimes.push(k[0]);
+    return (t) => {
+      if (t <= keys[0][0]) return keys[0][1];
+      for (let i = 0; i < keys.length - 1; i++) {
+        const [t0, v0] = keys[i], [t1, v1, ease] = keys[i + 1];
+        if (t <= t1) {
+          const u = (t - t0) / (t1 - t0);
+          const e = ease === "l" ? u : ease === "in" ? u * u * u : ease === "out" ? 1 - (1 - u) ** 3 : u * u * (3 - 2 * u);
+          return v0 + (v1 - v0) * e;
+        }
+      }
+      return keys[keys.length - 1][1];
+    };
+  }
+  // 区間 [a, b] で 0→1→0 と立ち上がって消える重み（揺れや震えを一部の区間だけにかける）
+  const env = (t, a, b) => (t <= a || t >= b ? 0 : sin(Math.PI * (t - a) / (b - a)) ** 2);
+  const volume = (sy) => 1 / Math.sqrt(sy);   // 縦に縮んだら横に膨らむ（体積をだいたい保つ）
+
+  // 体の種類。pivot = 回転・伸び縮みの中心（モデルの足元を原点とした位置）
+  const BODIES = {
+    Mushroom: { name: "キノコ", pivot: [0, 0, 0], note: "足元が原点。キノコ CHR-013 をそのまま Motion の子に置く" },
+    Bee: { name: "ハチ", pivot: [0, 1.0, 0], note: "胴体の中心が高さ 1.0m に来るよう置く（その高さでホバリング）" },
+    Fairy: { name: "光の妖精", pivot: [0, 1.2, 0], note: "光の玉の中心が高さ 1.2m に来るよう置く" },
+    RockBall: { name: "岩ダンゴ", pivot: [0, 0.3, 0], note: "足元が原点。丸まったときの球の中心が高さ 0.3m（0.6倍のクリーチャーを想定）" },
+    Slug: { name: "ナメクジ", pivot: [0, 0.06, -0.3], note: "足元が原点、頭が +Z。しっぽの付け根（後ろ 0.3m）を軸に伸び縮みする" },
+    Creature: { name: "四つ足の獣", pivot: [0, 0.35, 0], note: "足元が原点。ファンタジークリーチャー CHR-011（体の中心が高さ 0.35m 前後）" },
+    Plant: { name: "植物", pivot: [0, 0, 0], note: "根元が原点。植物クリーチャー CHR-016" },
+    Flyer: { name: "翼の悪魔", pivot: [0, 1.6, 0], note: "胴体の中心が高さ 1.6m に来るよう置く（翼の悪魔 CHR-023）" },
+    Upright: { name: "人の形（体全体）", pivot: [0, 0, 0], note: "足元が原点。鎧戦士・ロボット・亡者など（人型の骨は使わず体全体で動かす）" },
+    Spider: { name: "蜘蛛", pivot: [0, 0.2, 0], note: "足元が原点。体の中心が高さ 0.2m" },
+    Phantom: { name: "浮かぶ人影", pivot: [0, 1.0, 0], note: "体の中心が高さ 1.0m に来るよう置く（湯気・鎖・影でできた人影）" },
+    Clockwork: { name: "時計仕掛け", pivot: [0, 0.45, 0], note: "足元が原点。スチームパンク時計クリーチャー CHR-015（体の中心が高さ 0.45m）" },
+    Whale: { name: "小型のクジラ", pivot: [0, 0.3, 0], note: "水面（または底）が原点。サイバークジラ CHR-009 を 0.5 倍で" },
+    Hound: { name: "四つ足の犬", pivot: [0, 0.6, 0], note: "足元が原点。狼の獣人 CHR-025 を四つ足にしたもの（体の中心が高さ 0.6m）" },
+    Barrel: { name: "樽", pivot: [0, 0.4, 0], note: "足元が原点。高さ 0.8m・半径 0.3m の樽" },
+    Box: { name: "木箱", pivot: [0, 0, -0.3], note: "足元が原点。箱の後ろ下の角（後ろ 0.3m）を軸に傾く" },
+    Shears: { name: "浮かぶ鋏", pivot: [0, 1.1, 0], note: "鋏の留め具が高さ 1.1m に来るよう置く。刃先が +Z" },
+  };
+
+  const CLIPS = [];
+  // clip(体, 名前, 長さ秒, ループ, イベント[[秒, 名前]], 作る関数, 確認用の移動)
+  function clip(body, name, dur, loop, events, build, travel) {
+    registerTimes = [0, dur];
+    const sample = build();
+    for (const [t] of events) registerTimes.push(t);
+    const times = [...new Set(registerTimes)].filter((t) => t >= 0 && t <= dur).sort((a, b) => a - b);
+    registerTimes = null;
+    CLIPS.push({ body, name, dur, loop, events, times, sample, travel: travel || null });
+  }
+  // 各サンプラーは { pos:[x,y,z], rot:[x,y,z](度), scl:[x,y,z] } を返す（省略した項目は動かない）
+
+  // ---------- キノコ（EN-01 胞子キノコ / EN-04 輪の茸番 / EN-16 洞窟茸 / EN-43 苔キノコ） ----------
+  clip("Mushroom", "Idle", 2.0, true, [], () => (t) => {
+    const w = sin(TAU * t / 2);
+    return { rot: [0, 0, 3 * sin(TAU * t / 2 + 0.5)], scl: [1 - 0.02 * w, 1 + 0.04 * w, 1 - 0.02 * w] };
+  });
+  clip("Mushroom", "Move", 0.6, true, [], () => (t) => {
+    // ぴょこぴょこ跳ねて進む（1歩 0.6 秒）
+    const u = t / 0.6, air = sin(Math.PI * u), squash = 0.18 * ((cos(TAU * u) + 1) / 2) ** 6;
+    const sy = 1 - squash + 0.1 * air * air;
+    return { pos: [0, 0.14 * air, 0], rot: [6 * sin(TAU * u), 0, 0], scl: [volume(sy), sy, volume(sy)] };
+  });
+  clip("Mushroom", "Attack_Lunge", 1.4, false, [[0.68, "Hit"]], () => {
+    // 縮んで溜める → 0.9m 飛びかかる → 着地 → 跳ねて元の位置へ
+    const z = K([[0, 0], [0.45, 0], [0.7, 0.9, "out"], [1.0, 0.9], [1.4, 0]]);
+    const y = K([[0, 0], [0.45, 0], [0.57, 0.35, "out"], [0.7, 0, "in"], [1.0, 0], [1.2, 0.15, "out"], [1.4, 0, "in"]]);
+    const rx = K([[0, 0], [0.45, -14], [0.6, 22], [0.72, 28], [1.0, 10], [1.4, 0]]);
+    const sy = K([[0, 1], [0.4, 0.72], [0.45, 0.72], [0.55, 1.22], [0.68, 1.1], [0.72, 0.8], [0.85, 1.02], [1.0, 1], [1.25, 1.05], [1.4, 1]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 0], scl: [volume(sy(t)), sy(t), volume(sy(t))] });
+  });
+  clip("Mushroom", "Attack_Stomp", 2.2, false, [[1.0, "Stomp"], [1.9, "Recover"]], () => {
+    // 跳び上がって踏みつけ（半径1.6m）→ 0.9 秒つぶれたまま動けない → 起き上がる
+    const y = K([[0, 0], [0.35, 0], [0.75, 0.6, "out"], [1.0, 0, "in"], [2.2, 0]]);
+    const sy = K([[0, 1], [0.3, 0.75], [0.4, 0.75], [0.55, 1.25], [0.75, 1.1], [0.95, 1.15], [1.02, 0.6], [1.15, 0.72], [1.9, 0.72], [2.05, 1.08], [2.2, 1]]);
+    const rx = K([[0, 0], [0.35, -6], [0.75, 4], [1.0, 8], [1.9, 8], [2.2, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 1.5 * sin(TAU * 9 * t) * env(t, 1.1, 1.9)], scl: [volume(sy(t)), sy(t), volume(sy(t))] });
+  });
+  clip("Mushroom", "Hit", 0.45, false, [], () => {
+    const rx = K([[0, 0], [0.08, -18, "out"], [0.45, 0]]);
+    const z = K([[0, 0], [0.08, -0.08, "out"], [0.45, 0]]);
+    const sy = K([[0, 1], [0.06, 0.82], [0.2, 1.06], [0.45, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, 0], scl: [volume(sy(t)), sy(t), volume(sy(t))] });
+  });
+  const mushroomFall = () => {
+    // 横へばったり倒れる（傘の分だけ持ち上げて地面にめり込まないようにする）
+    const rz = K([[0, 0], [0.15, -8], [0.6, 88, "in"], [0.72, 80, "out"], [0.85, 88], [9, 88]]);
+    const x = K([[0, 0], [0.6, 0.12], [9, 0.12]]);
+    return { rz, x };
+  };
+  clip("Mushroom", "Death", 1.6, false, [[0.6, "Down"]], () => {
+    const { rz, x } = mushroomFall();
+    const sy = K([[0, 1], [0.1, 0.85], [0.3, 1.05], [0.6, 1], [0.66, 0.85], [0.8, 1], [1.6, 1]]);
+    return (t) => ({ pos: [x(t), 0.3 * sin(rz(t) * DEG), 0], rot: [0, 0, rz(t)], scl: [volume(sy(t)), sy(t), volume(sy(t))] });
+  });
+  clip("Mushroom", "Death_SporeBurst", 2.3, false, [[0.6, "Down"], [1.6, "SporeBurst"]], () => {
+    // 倒れて 1 秒後に膨らんで胞子が弾ける（EN-01）
+    const { rz, x } = mushroomFall();
+    const swell = K([[0, 1], [0.6, 1], [1.45, 1.12], [1.6, 1.38, "in"], [1.75, 0.5, "out"], [2.3, 0.5]]);
+    return (t) => {
+      const pulse = t > 0.6 && t < 1.6 ? 0.06 * ((t - 0.6) / 1.0) * Math.abs(sin(TAU * 3 * (t - 0.6))) : 0;
+      const s = swell(t) + pulse;
+      return { pos: [x(t), 0.3 * sin(rz(t) * DEG) * clamp(s, 0.5, 1.4), 0], rot: [0, 0, rz(t)], scl: [s, s, s] };
+    };
+  });
+
+  // ---------- ハチ（EN-02 巣守りのバチ） ----------
+  clip("Bee", "Idle", 1.2, true, [], () => (t) => ({
+    pos: [0, 0.05 * sin(TAU * 2 * t / 1.2), 0],
+    rot: [3 * sin(TAU * 2 * t / 1.2 + 1), 0, 4 * sin(TAU * t / 1.2)],
+  }));
+  clip("Bee", "Move", 1.0, true, [], () => (t) => ({
+    pos: [0, 0.04 * sin(TAU * 2 * t), 0],
+    rot: [14 + 3 * sin(TAU * 2 * t), 0, 5 * sin(TAU * t)],
+  }));
+  clip("Bee", "Attack_Sting", 1.2, false, [[0.55, "Hit"]], () => {
+    // 引いて機首を上げる（腹が前へ来る）→ 突き刺す → 震えて戻る
+    const z = K([[0, 0], [0.4, -0.25], [0.55, 0.9, "in"], [0.7, 0.85], [1.2, 0]]);
+    const y = K([[0, 0], [0.4, 0.12], [0.55, -0.1, "in"], [0.7, -0.08], [1.2, 0]]);
+    const rx = K([[0, 0], [0.4, -35], [0.55, -50, "in"], [0.7, -45], [1.2, 0]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 6 * sin(TAU * 25 * t) * env(t, 0.55, 0.72)] });
+  });
+  clip("Bee", "Attack_Charge", 1.9, false, [[0.6, "ChargeStart"], [1.5, "ChargeEnd"]], () => {
+    // 後ろへ引いて羽音で震える → 前のめりで一直線（移動はゲーム側：秒速9m）→ 急ブレーキ
+    const z = K([[0, 0], [0.6, -0.35], [0.7, 0, "in"], [1.9, 0]]);
+    const y = K([[0, 0], [0.6, 0.08], [0.7, 0], [1.9, 0]]);
+    const rx = K([[0, 0], [0.6, -12], [0.7, 22, "in"], [1.5, 22], [1.65, -22, "out"], [1.9, 0]]);
+    const sz = K([[0, 1], [0.6, 0.94], [0.7, 1.15], [1.5, 1.15], [1.65, 0.95], [1.9, 1]]);
+    return (t) => ({
+      pos: [0, y(t), z(t)],
+      rot: [rx(t), 5 * sin(TAU * 18 * t) * env(t, 0, 0.62), 2 * sin(TAU * 20 * t) * env(t, 0.7, 1.5)],
+      scl: [1 / Math.sqrt(sz(t)), 1 / Math.sqrt(sz(t)), sz(t)],
+    });
+  }, { from: 0.7, to: 1.5, dist: 7.2 });
+  clip("Bee", "Hit", 0.4, false, [], () => {
+    const z = K([[0, 0], [0.07, -0.15, "out"], [0.4, 0]]);
+    const rz = K([[0, 0], [0.07, 25, "out"], [0.4, 0]]);
+    const rx = K([[0, 0], [0.07, -15], [0.4, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, rz(t)] });
+  });
+  clip("Bee", "Death", 1.4, false, [[0.9, "Down"]], () => {
+    // きりもみで落ちて、地面で横倒しに
+    const y = K([[0, 0], [0.9, -0.88, "in"], [1.0, -0.8, "out"], [1.1, -0.88, "in"], [1.4, -0.88]]);
+    const ry = K([[0, 0], [0.9, 540], [1.4, 560]]);
+    const rz = K([[0, 0], [0.9, 70], [1.4, 90]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), rz(t)] });
+  });
+
+  // ---------- 光の妖精（EN-03 妖精の灯・未作成モデル） ----------
+  clip("Fairy", "Idle", 2.4, true, [], () => (t) => ({
+    pos: [0.05 * sin(TAU * t / 2.4), 0.08 * sin(TAU * t / 1.2), 0],
+    rot: [0, 10 * sin(TAU * t / 2.4), 6 * sin(TAU * t / 2.4 + 0.3)],
+  }));
+  clip("Fairy", "Move_Flee", 0.8, true, [], () => (t) => ({
+    // ジグザグに逃げる
+    pos: [0.15 * sin(TAU * t / 0.8), 0.06 * sin(TAU * 2 * t / 0.8), 0],
+    rot: [-10, 0, -15 * cos(TAU * t / 0.8)],
+  }));
+  clip("Fairy", "Attack_Powder", 1.6, false, [[0.7, "Powder"]], () => {
+    // 舞い上がってくるくる回り、頂点で眠り粉を撒く
+    const y = K([[0, 0], [0.5, 0.3, "out"], [0.9, 0.35], [1.6, 0]]);
+    const ry = K([[0, 0], [0.5, 270, "in"], [0.9, 630, "l"], [1.6, 720, "out"]]);
+    const s = K([[0, 1], [0.6, 1], [0.7, 1.3, "out"], [0.9, 1.05], [1.6, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 0], scl: [s(t), s(t), s(t)] });
+  });
+  clip("Fairy", "Hit", 0.4, false, [], () => {
+    const z = K([[0, 0], [0.08, -0.2, "out"], [0.4, 0]]);
+    const s = K([[0, 1], [0.05, 0.75], [0.15, 1.1], [0.4, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], scl: [s(t), s(t), s(t)] });
+  });
+  clip("Fairy", "Death", 1.2, false, [[1.15, "Vanish"]], () => {
+    // らせんを描いて昇りながら消える
+    const y = K([[0, 0], [1.2, 0.6, "out"]]);
+    const ry = K([[0, 0], [1.2, 720, "in"]]);
+    const s = K([[0, 1], [0.2, 1.2], [1.2, 0, "in"]]);
+    return (t) => ({ pos: [0.1 * sin(TAU * t / 0.6), y(t), 0.1 * cos(TAU * t / 0.6) - 0.1], rot: [0, ry(t), 0], scl: [s(t), s(t), s(t)] });
+  });
+
+  // ---------- 岩ダンゴ（EN-17） ----------
+  clip("RockBall", "Idle", 1.6, true, [], () => (t) => {
+    const w = sin(TAU * t / 0.8);
+    return { rot: [0, 0, 4 * sin(TAU * t / 1.6)], scl: [1 - 0.015 * w, 1 + 0.03 * w, 1 - 0.015 * w] };
+  });
+  clip("RockBall", "Move", 0.7, true, [], () => (t) => ({
+    // よちよち歩き
+    pos: [0, 0.04 * (1 - cos(TAU * 2 * t / 0.7)) / 2, 0],
+    rot: [5, 0, 8 * sin(TAU * t / 0.7)],
+  }));
+  clip("RockBall", "Attack_Roll", 2.6, false, [[0.5, "RollStart"], [1.8, "RollEnd"]], () => {
+    // 丸まる → 転がる（移動はゲーム側：6m）→ 止まって目を回す → 起き上がる
+    const rx = K([[0, 0], [0.4, 20], [0.5, 20], [0.8, 120, "in"], [1.6, 660, "l"], [1.8, 720, "out"], [2.6, 720]]);
+    const sy = K([[0, 1], [0.5, 0.85], [1.8, 0.85], [2.2, 1.05], [2.6, 1]]);
+    const sxz = K([[0, 1], [0.5, 1.06], [1.8, 1.06], [2.2, 0.98], [2.6, 1]]);
+    return (t) => {
+      const dizzy = t > 1.8 ? 10 * sin(TAU * (t - 1.8) / 0.4) * Math.max(0, 1 - (t - 1.8) / 0.8) : 0;
+      return { rot: [rx(t), 0, 3 * sin(TAU * 15 * t) * env(t, 0.05, 0.5) + dizzy], scl: [sxz(t), sy(t), sxz(t)] };
+    };
+  }, { from: 0.5, to: 1.8, dist: 6 });
+  clip("RockBall", "Hit", 0.4, false, [], () => {
+    const rx = K([[0, 0], [0.07, -12, "out"], [0.4, 0]]);
+    const sy = K([[0, 1], [0.05, 0.85], [0.18, 1.05], [0.4, 1]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: [volume(sy(t)), sy(t), volume(sy(t))] });
+  });
+  clip("RockBall", "Death", 1.4, false, [[0.6, "Crumble"]], () => {
+    // 震えてから崩れて平たくなる
+    const sy = K([[0, 1], [0.6, 1], [0.9, 0.35, "in"], [1.4, 0.3]]);
+    const sxz = K([[0, 1], [0.6, 1], [0.9, 1.3], [1.4, 1.32]]);
+    const y = K([[0, 0], [0.6, 0], [0.9, -0.2, "in"], [1.4, -0.2]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 5 * sin(TAU * 14 * t) * env(t, 0, 0.62)], scl: [sxz(t), sy(t), sxz(t)] });
+  });
+
+  // ---------- ナメクジ（EN-42 水路ナメクジ・未作成モデル） ----------
+  clip("Slug", "Idle", 2.0, true, [], () => (t) => ({
+    rot: [0, 3 * sin(TAU * t / 2 + 0.4), 0],
+    scl: [1, 1, 1 + 0.03 * sin(TAU * t / 2)],
+  }));
+  clip("Slug", "Move", 1.2, true, [], () => (t) => {
+    // 尺取り虫のように伸び縮みして這う（しっぽが軸なので前へ伸びる）
+    const u = t / 1.2;
+    return { scl: [1, 1 - 0.08 * sin(TAU * u), 1 + 0.15 * sin(TAU * u)] };
+  });
+  clip("Slug", "Attack_Bite", 1.3, false, [[0.62, "Hit"]], () => {
+    // 頭を持ち上げて溜め → 前へ倒れ込んで噛みつく
+    const rx = K([[0, 0], [0.5, -35], [0.62, 8, "in"], [0.8, 6], [1.3, 0]]);
+    const sz = K([[0, 1], [0.5, 1.1], [0.62, 1.3, "in"], [0.8, 1.25], [1.3, 1]]);
+    const z = K([[0, 0], [0.5, -0.05], [0.62, 0.25, "in"], [0.8, 0.25], [1.3, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, 0], scl: [1, 1, sz(t)] });
+  });
+  clip("Slug", "Hit", 0.4, false, [], () => {
+    const sz = K([[0, 1], [0.06, 0.8, "out"], [0.2, 1.08], [0.4, 1]]);
+    const sy = K([[0, 1], [0.06, 1.12], [0.2, 0.96], [0.4, 1]]);
+    return (t) => ({ scl: [1, sy(t), sz(t)] });
+  });
+  clip("Slug", "Death", 1.6, false, [[0.3, "Melt"]], () => {
+    // 溶けるように平たく広がる
+    const sy = K([[0, 1], [1.2, 0.25], [1.6, 0.22]]);
+    const sxz = K([[0, 1], [1.2, 1.35], [1.6, 1.38]]);
+    return (t) => ({ rot: [0, 6 * sin(TAU * 5 * t) * (1 - t / 1.6), 0], scl: [sxz(t), sy(t), sxz(t)] });
+  });
+
+  // ======================================================================
+  // ここから残りの敵（第2章〜第11章）。共通の作り方をまとめておく
+  // ======================================================================
+  const sclY = (sy) => [volume(sy), sy, volume(sy)];
+  function breathIdle(body, o = {}) {
+    const { name = "Idle", dur = 2.0, amp = 0.03, sway = 2, nod = 0 } = o;
+    clip(body, name, dur, true, [], () => (t) => {
+      const w = sin(TAU * t / dur);
+      return { rot: [nod * sin(TAU * t / dur + 1), 0, sway * sin(TAU * t / dur + 0.5)], scl: [1 - amp * 0.5 * w, 1 + amp * w, 1 - amp * 0.5 * w] };
+    });
+  }
+  function hoverIdle(body, o = {}) {
+    const { name = "Idle", dur = 2.0, bob = 0.06, roll = 4, pitch = 3 } = o;
+    clip(body, name, dur, true, [], () => (t) => ({
+      pos: [0, bob * sin(TAU * 2 * t / dur), 0],
+      rot: [pitch * sin(TAU * 2 * t / dur + 1), 0, roll * sin(TAU * t / dur)],
+    }));
+  }
+  function staticClip(body, name, dur = 2.0, p = {}) {
+    clip(body, name, dur, true, [], () => () => p);
+  }
+  function walkMove(body, o = {}) {
+    const { name = "Move", dur = 0.8, bob = 0.04, sway = 5, lean = 4, yaw = 0 } = o;
+    clip(body, name, dur, true, [], () => (t) => ({
+      pos: [0, bob * (1 - cos(TAU * 2 * t / dur)) / 2, 0],
+      rot: [lean, yaw * sin(TAU * t / dur), sway * sin(TAU * t / dur)],
+    }));
+  }
+  function hopMove(body, o = {}) {
+    const { name = "Move", dur = 0.5, h = 0.1 } = o;
+    clip(body, name, dur, true, [], () => (t) => {
+      const u = t / dur, air = sin(Math.PI * u), sq = 0.15 * ((cos(TAU * u) + 1) / 2) ** 6;
+      return { pos: [0, h * air, 0], rot: [4 * sin(TAU * u), 0, 0], scl: sclY(1 - sq + 0.08 * air * air) };
+    });
+  }
+  function floatMove(body, o = {}) {
+    const { name = "Move", dur = 1.6, lean = 10, wob = 6, bob = 0.05 } = o;
+    clip(body, name, dur, true, [], () => (t) => ({ pos: [0, bob * sin(TAU * 2 * t / dur), 0], rot: [lean, 0, wob * sin(TAU * t / dur)] }));
+  }
+  // 短い飛びかかり・噛みつき（クリップ内で前に出て戻る）
+  function lungeAttack(body, o = {}) {
+    const { name = "Attack_Bite", dur = 1.2, wind = 0.35, hit = 0.55, dist = 0.8, up = 0.15, rxw = -12, rxh = 15, hold = 0.8, ev = "Hit" } = o;
+    clip(body, name, dur, false, [[hit, ev]], () => {
+      const z = K([[0, 0], [wind, -0.15], [hit, dist, "out"], [hold, dist], [dur, 0]]);
+      const y = K([[0, 0], [wind, -0.03], [(wind + hit) / 2, up, "out"], [hit + 0.02, 0, "in"], [dur, 0]]);
+      const rx = K([[0, 0], [wind, rxw], [hit, rxh], [hold, rxh * 0.6], [dur, 0]]);
+      const sy = K([[0, 1], [wind, 0.85], [hit, 1.12], [hit + 0.08, 0.92], [hold, 1], [dur, 1]]);
+      return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+    });
+  }
+  // 横なぎ（体をひねって溜め → 反対へ振り抜く）
+  function swingAttack(body, o = {}) {
+    const { name = "Attack_Swing", dur = 1.3, wind = 0.35, hit = 0.52, from = -35, to = 35, z = 0.2, lean = -5, ev = "Hit" } = o;
+    clip(body, name, dur, false, [[hit, ev]], () => {
+      const ry = K([[0, 0], [wind, from], [hit + 0.05, to, "in"], [hit + 0.3, to * 0.8], [dur, 0]]);
+      const pz = K([[0, 0], [wind, -0.05], [hit + 0.05, z, "in"], [hit + 0.3, z], [dur, 0]]);
+      const rx = K([[0, 0], [wind, lean], [hit + 0.05, 8], [dur, 0]]);
+      return (t) => ({ pos: [0, 0, pz(t)], rot: [rx(t), ry(t), 0] });
+    });
+  }
+  function hitClip(body, o = {}) {
+    const { dur = 0.4, z = -0.12, rx = -12, rz = 0, sy = 0.86 } = o;
+    clip(body, "Hit", dur, false, [], () => {
+      const fz = K([[0, 0], [0.07, z, "out"], [dur, 0]]);
+      const fx = K([[0, 0], [0.07, rx, "out"], [dur, 0]]);
+      const fr = K([[0, 0], [0.07, rz, "out"], [dur, 0]]);
+      const fs = K([[0, 1], [0.05, sy], [0.18, 1 + (1 - sy) * 0.4], [dur, 1]]);
+      return (t) => ({ pos: [0, 0, fz(t)], rot: [fx(t), 0, fr(t)], scl: sclY(fs(t)) });
+    });
+  }
+  // 倒れる。axis "z" は横倒し、"x" は前後。lift は倒れ切ったときの上下のずれ（体の厚みの分）
+  function toppleDeath(body, o = {}) {
+    const { name = "Death", axis = "z", angle = 85, lift = 0.3, dur = 1.6, fallT = 0.6 } = o;
+    clip(body, name, dur, false, [[fallT, "Down"]], () => {
+      const a = K([[0, 0], [0.15, -angle * 0.08], [fallT, angle, "in"], [fallT + 0.12, angle * 0.9, "out"], [fallT + 0.25, angle], [dur, angle]]);
+      return (t) => {
+        const r = a(t), y = lift * Math.abs(sin(r * DEG));
+        return { pos: [0, y, 0], rot: axis === "z" ? [0, 0, r] : [r, 0, 0] };
+      };
+    });
+  }
+  // 空から落ちて横たわる
+  function dropDeath(body, o = {}) {
+    const { name = "Death", dur = 1.5, drop = 1.4, lie = 90, fallT = 0.8 } = o;
+    clip(body, name, dur, false, [[fallT, "Down"]], () => {
+      const y = K([[0, 0], [fallT, -drop, "in"], [fallT + 0.1, -drop + 0.08, "out"], [fallT + 0.2, -drop, "in"], [dur, -drop]]);
+      const rz = K([[0, 0], [fallT, lie * 0.75], [dur, lie]]);
+      const ry = K([[0, 0], [fallT, 200], [dur, 215]]);
+      return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), rz(t)] });
+    });
+  }
+  // 縮みながら昇って消える
+  function vanishDeath(body, o = {}) {
+    const { name = "Death", dur = 1.4, rise = 0.5, spin = 180, ev = "Vanish" } = o;
+    clip(body, name, dur, false, [[dur - 0.05, ev]], () => {
+      const y = K([[0, 0], [dur, rise, "out"]]), ry = K([[0, 0], [dur, spin, "in"]]), s = K([[0, 1], [0.2, 1.15], [dur, 0, "in"]]);
+      return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 0], scl: [s(t), s(t), s(t)] });
+    });
+  }
+  // 崩れて平たくなる
+  function crumbleDeath(body, o = {}) {
+    const { name = "Death", dur = 1.4, sink = -0.2, ev = "Crumble", at = 0.6 } = o;
+    clip(body, name, dur, false, [[at, ev]], () => {
+      const sy = K([[0, 1], [at, 1], [at + 0.3, 0.3, "in"], [dur, 0.25]]);
+      const sxz = K([[0, 1], [at, 1], [at + 0.3, 1.3], [dur, 1.35]]);
+      const y = K([[0, 0], [at, 0], [at + 0.3, sink, "in"], [dur, sink]]);
+      return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 5 * sin(TAU * 14 * t) * env(t, 0, at)], scl: [sxz(t), sy(t), sxz(t)] });
+    });
+  }
+
+  // ---------- ハチの追加（EN-07 / 08 / 31 / 44 / 56） ----------
+  clip("Bee", "Attack_Ram", 1.1, false, [[0.5, "Hit"]], () => {
+    // 光りながら体当たり（大蛍）
+    const z = K([[0, 0], [0.3, -0.2], [0.5, 0.9, "in"], [0.6, 0.7, "out"], [1.1, 0]]);
+    const rx = K([[0, 0], [0.3, -10], [0.5, 20], [0.7, -10], [1.1, 0]]);
+    return (t) => ({ pos: [0, 0.05 * sin(TAU * t / 1.1), z(t)], rot: [rx(t), 0, 0] });
+  });
+  clip("Bee", "Move_Flutter", 2.0, true, [], () => (t) => ({
+    // 木の葉のようにひらひら漂う（迷い羽根）
+    pos: [0.15 * sin(TAU * t / 2), 0.1 * sin(TAU * t / 1), 0],
+    rot: [10 * sin(TAU * t / 1), 0, 20 * sin(TAU * t / 2)],
+  }));
+  clip("Bee", "Attack_Slash", 1.0, false, [[0.45, "Hit"]], () => {
+    // 身をひねって鋭く切りつける
+    const rz = K([[0, 0], [0.3, -60], [0.45, 40, "in"], [0.6, 30], [1.0, 0]]);
+    const z = K([[0, 0], [0.3, -0.1], [0.45, 0.6, "in"], [0.6, 0.55], [1.0, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [10, 0, rz(t)] });
+  });
+  clip("Bee", "Move_Drunk", 1.6, true, [], () => (t) => ({
+    // 酔って千鳥足（酔いバチ）
+    pos: [0.12 * sin(TAU * t / 1.6), 0.08 * sin(TAU * t / 0.8 + 1), 0],
+    rot: [8, 15 * sin(TAU * t / 0.8), 18 * sin(TAU * t / 1.6 + 0.4)],
+  }));
+  clip("Bee", "Attack_DoubleSting", 1.8, false, [[0.5, "Hit"], [1.1, "Hit"]], () => {
+    const z = K([[0, 0], [0.3, -0.2], [0.5, 0.8, "in"], [0.8, 0.3], [0.95, 0.2], [1.1, 0.85, "in"], [1.3, 0.8], [1.8, 0]]);
+    const rx = K([[0, 0], [0.3, -30], [0.5, -45, "in"], [0.8, -20], [0.95, -30], [1.1, -45, "in"], [1.3, -40], [1.8, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, 12 * sin(TAU * t / 0.9)] });
+  });
+
+  // ---------- 岩ダンゴの追加（EN-15 岩の魔物 / EN-35 冷えた溶岩の殻） ----------
+  clip("RockBall", "Attack_Roll_Long", 3.8, false, [[0.5, "RollStart"], [1.8, "RollEnd"], [3.5, "GetUp"]], () => {
+    // 転がって止まると、起き上がるまで2秒
+    const rx = K([[0, 0], [0.4, 20], [0.5, 20], [0.8, 120, "in"], [1.6, 660, "l"], [1.8, 720, "out"], [3.8, 720]]);
+    const sy = K([[0, 1], [0.5, 0.85], [1.8, 0.85], [3.3, 0.85], [3.6, 1.05], [3.8, 1]]);
+    const sxz = K([[0, 1], [0.5, 1.06], [1.8, 1.06], [3.3, 1.06], [3.6, 0.98], [3.8, 1]]);
+    return (t) => {
+      const dizzy = t > 1.8 && t < 3.3 ? 8 * sin(TAU * (t - 1.8) / 0.5) * (1 - (t - 1.8) / 1.5) : 0;
+      return { rot: [rx(t), 0, 3 * sin(TAU * 15 * t) * env(t, 0.05, 0.5) + dizzy], scl: [sxz(t), sy(t), sxz(t)] };
+    };
+  }, { from: 0.5, to: 1.8, dist: 8 });
+  clip("RockBall", "Death_Shatter", 1.2, false, [[0.5, "Shatter"]], () => {
+    // ひびが入って膨らみ、割れて中の溶岩が飛び散る
+    const s = K([[0, 1], [0.45, 1.15, "in"], [0.55, 0.3, "out"], [1.2, 0.25]]);
+    const sxz = K([[0, 1], [0.45, 1.15, "in"], [0.55, 1.45, "out"], [1.2, 1.5]]);
+    const y = K([[0, 0], [0.45, 0], [0.55, -0.22, "out"], [1.2, -0.24]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 4 * sin(TAU * 18 * t) * env(t, 0, 0.45)], scl: [sxz(t), s(t), sxz(t)] });
+  });
+
+  // ---------- 光の妖精の追加（EN-49 墓守の鬼火） ----------
+  floatMove("Fairy", { dur: 2.0, lean: 8, wob: 8, bob: 0.08 });
+  lungeAttack("Fairy", { name: "Attack_Touch", dur: 1.0, wind: 0.3, hit: 0.45, dist: 0.6, up: 0.05, rxw: -8, rxh: 10, hold: 0.6 });
+
+  // ---------- Creature：ファンタジークリーチャー CHR-011（四つ足の獣） ----------
+  breathIdle("Creature", { dur: 2.0, amp: 0.03, sway: 2, nod: 2 });
+  walkMove("Creature", { dur: 0.6, bob: 0.05, sway: 4, lean: 4 });
+  lungeAttack("Creature", { name: "Attack_Bite" });
+  hitClip("Creature", { z: -0.12, rx: -12, sy: 0.85 });
+  toppleDeath("Creature", { angle: 85, lift: -0.05 });
+  clip("Creature", "Attack_Tackle", 1.3, false, [[0.6, "Hit"]], () => {
+    // 肩からぶつかる体当たり（炎の魔物）
+    const z = K([[0, 0], [0.4, -0.2], [0.6, 1.0, "in"], [0.85, 0.9], [1.3, 0]]);
+    const ry = K([[0, 0], [0.4, -20], [0.6, 12, "in"], [0.85, 8], [1.3, 0]]);
+    const rx = K([[0, 0], [0.4, -8], [0.6, 12], [1.3, 0]]);
+    const sy = K([[0, 1], [0.4, 0.86], [0.6, 1.05], [0.7, 0.92], [1.3, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), ry(t), 0], scl: sclY(sy(t)) });
+  });
+  clip("Creature", "Attack_Breath", 2.0, false, [[0.4, "BreathStart"], [1.4, "BreathEnd"]], () => {
+    // 頭を上げて吸い込み → 1秒間火炎を吐く（火蜥蜴）
+    const rx = K([[0, 0], [0.4, -20], [0.5, 8, "in"], [1.4, 8], [2.0, 0]]);
+    const sy = K([[0, 1], [0.4, 1.08], [0.5, 0.95], [1.4, 0.95], [2.0, 1]]);
+    return (t) => ({ rot: [rx(t), 6 * sin(TAU * 1.5 * t) * env(t, 0.45, 1.45), 2 * sin(TAU * 12 * t) * env(t, 0.45, 1.45)], scl: sclY(sy(t)) });
+  });
+  clip("Creature", "Attack_Pounce", 1.8, false, [[0.5, "JumpStart"], [1.1, "Land"]], () => {
+    // 大きく跳びかかる（湯あたりガエル）。前への移動 4m はゲーム側
+    const y = K([[0, 0], [0.5, 0], [0.8, 1.2, "out"], [1.1, 0, "in"], [1.8, 0]]);
+    const sy = K([[0, 1], [0.45, 0.7], [0.5, 0.7], [0.62, 1.25], [1.0, 1.1], [1.12, 0.72], [1.35, 1.05], [1.8, 1]]);
+    const rx = K([[0, 0], [0.5, -10], [0.8, -15], [1.05, 20], [1.3, 0], [1.8, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  }, { from: 0.5, to: 1.1, dist: 4 });
+  clip("Creature", "Attack_Whip", 1.5, false, [[0.65, "Hit"]], () => {
+    // 体をひねって溜め、前方120°を鞭で横なぎ（監督の魔物）
+    const ry = K([[0, 0], [0.5, -55], [0.75, 60, "in"], [0.95, 50], [1.5, 0]]);
+    const rx = K([[0, 0], [0.5, -10], [0.75, 8], [1.5, 0]]);
+    return (t) => ({ rot: [rx(t), ry(t), 0] });
+  });
+  clip("Creature", "Burrow", 1.2, false, [[1.1, "Hidden"]], () => {
+    // 泥に潜る（沼の魔物）。潜っている間は当たり判定を消す
+    const y = K([[0, 0], [0.2, 0.05], [1.1, -0.8, "in"], [1.2, -0.8]]);
+    const sy = K([[0, 1], [0.2, 1.08], [0.5, 0.9], [1.2, 0.9]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [25 * env(t, 0.1, 1.1), 0, 8 * sin(TAU * 6 * t)], scl: sclY(sy(t)) });
+  });
+  clip("Creature", "Emerge_Bite", 1.4, false, [[0.0, "Warn"], [0.4, "Emerge"], [0.7, "Hit"]], () => {
+    // 地中で泡立ち（予告）→ 足元から飛び出して噛みつく
+    const y = K([[0, -0.8], [0.4, -0.8], [0.6, 0.35, "out"], [0.85, 0, "in"], [1.4, 0]]);
+    const rx = K([[0, 0], [0.4, 0], [0.6, -30], [0.72, 20, "in"], [0.9, 5], [1.4, 0]]);
+    const sy = K([[0, 0.9], [0.4, 0.9], [0.55, 1.3], [0.72, 1.05], [0.88, 0.85], [1.1, 1.03], [1.4, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 4 * sin(TAU * 10 * t) * env(t, 0, 0.4)], scl: sclY(sy(t)) });
+  });
+  clip("Creature", "Flipped", 2.6, false, [[0.3, "Flipped"], [2.1, "Recover"]], () => {
+    // 地面割りでひっくり返り、脚をばたつかせてから起き上がる（鉄殻虫）
+    const rz = K([[0, 0], [0.3, 180, "out"], [2.1, 180], [2.5, 0, "in"], [2.6, 0]]);
+    const y = K([[0, 0], [0.15, 0.3, "out"], [0.3, 0, "in"], [2.1, 0], [2.3, 0.25, "out"], [2.5, 0, "in"], [2.6, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [5 * sin(TAU * 6 * t) * env(t, 0.35, 2.05), 0, rz(t)] });
+  });
+  clip("Creature", "Grow", 1.2, false, [[0.6, "Grow"]], () => {
+    // 灯りを食べて膨らむ反応（大きさそのものはゲーム側で1.5倍にする）
+    const s = K([[0, 1], [0.3, 0.9], [0.6, 1.25, "out"], [0.8, 1.1], [1.2, 1]]);
+    return (t) => ({ rot: [-10 * env(t, 0.2, 1.0), 0, 3 * sin(TAU * 12 * t) * env(t, 0, 0.35)], scl: [s(t), s(t), s(t)] });
+  });
+  clip("Creature", "Dig_Escape", 1.6, false, [[1.5, "Escaped"]], () => {
+    // 前足で穴を掘って潜り、逃げる（墓荒らしの魔物）
+    const y = K([[0, 0], [0.4, 0], [1.4, -0.9, "in"], [1.6, -0.9]]);
+    const rx = K([[0, 0], [0.3, 35], [1.4, 45], [1.6, 45]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 10 * sin(TAU * 7 * t) * env(t, 0.2, 1.4)] });
+  });
+
+  // ---------- Plant：植物クリーチャー CHR-016（根の生えた植物） ----------
+  breathIdle("Plant", { dur: 2.4, amp: 0.025, sway: 4, nod: 2 });
+  hopMove("Plant", { dur: 0.8, h: 0.05 });
+  hitClip("Plant", { z: -0.05, rx: -15, sy: 0.88 });
+  clip("Plant", "Death", 1.8, false, [[1.0, "Down"]], () => {
+    // しおれて前へ倒れ込む
+    const rx = K([[0, 0], [0.2, -8], [1.0, 70, "in"], [1.15, 64, "out"], [1.3, 70], [1.8, 70]]);
+    const sy = K([[0, 1], [1.0, 0.7], [1.8, 0.6]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  });
+  clip("Plant", "Attack_Spit", 1.4, false, [[0.6, "Spit"]], () => {
+    // 膨らんで反り、前へ毒の玉を吐く（毒吐き草）
+    const rx = K([[0, 0], [0.5, -18], [0.62, 20, "in"], [0.8, 12], [1.4, 0]]);
+    const s = K([[0, 1], [0.5, 1.12], [0.62, 0.9, "in"], [0.8, 1.02], [1.4, 1]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: [s(t), 2 - s(t) * 0.9, s(t)] });
+  });
+  staticClip("Plant", "Dormant", 2.0, { rot: [10, 0, 6], scl: [1.05, 0.85, 1.05] });
+  clip("Plant", "WakeUp", 1.2, false, [[0.7, "Awake"]], () => {
+    // 根のふり（うずくまり）から起きる（世界樹の瘤）
+    const sy = K([[0, 0.85], [0.3, 0.82], [0.7, 1.2, "out"], [1.0, 0.97], [1.2, 1]]);
+    const rx = K([[0, 10], [0.3, 12], [0.7, -10], [1.2, 0]]);
+    const rz = K([[0, 6], [0.3, 6], [0.7, 0], [1.2, 0]]);
+    return (t) => ({ rot: [rx(t), 0, rz(t) + 4 * sin(TAU * 12 * t) * env(t, 0, 0.35)], scl: [volume(sy(t)) * 1.0, sy(t), volume(sy(t))] });
+  });
+  clip("Plant", "Attack_Slam", 1.6, false, [[0.68, "Hit"]], () => {
+    // 大きく反ってから前へ叩きつける
+    const rx = K([[0, 0], [0.55, -25], [0.7, 40, "in"], [1.0, 36], [1.6, 0]]);
+    const sy = K([[0, 1], [0.55, 1.15], [0.7, 0.85, "in"], [1.0, 0.9], [1.6, 1]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  });
+  staticClip("Plant", "Submerged", 2.0, { pos: [0, -1.3, 0], scl: [0.8, 0.8, 0.8] });
+  clip("Plant", "Attack_Erupt", 2.0, false, [[0.0, "Warn"], [1.1, "Hit"]], () => {
+    // 足元に花が咲いて1秒後、地面を割って下から突き上げる（侵食の蔦）
+    const y = K([[0, -1.3], [1.0, -1.3], [1.15, 0.2, "out"], [1.3, 0, "in"], [2.0, 0]]);
+    const sy = K([[0, 0.8], [1.0, 0.8], [1.12, 1.3], [1.3, 0.9], [1.5, 1.03], [2.0, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 5 * sin(TAU * 3 * t) * env(t, 1.2, 2.0)], scl: sclY(sy(t)) });
+  });
+  lungeAttack("Plant", { name: "Attack_Lunge", dur: 1.3, wind: 0.4, hit: 0.58, dist: 0.5, up: 0.05, rxw: -15, rxh: 30, hold: 0.85 });
+
+  // ---------- Flyer：翼の悪魔 CHR-023（飛ぶ） ----------
+  hoverIdle("Flyer", { dur: 1.0, bob: 0.08, roll: 3, pitch: 3 });
+  clip("Flyer", "Move", 2.0, true, [], () => (t) => ({ pos: [0, 0.05 * sin(TAU * 2 * t / 2), 0], rot: [12, 0, 10 * sin(TAU * t / 2)] }));
+  hitClip("Flyer", { z: -0.15, rx: -10, rz: 20, sy: 0.9 });
+  dropDeath("Flyer", { drop: 1.42, lie: 90 });
+  clip("Flyer", "Attack_Dive", 2.8, false, [[0.88, "Hit"], [0.9, "Land"], [1.9, "TakeOff"]], () => {
+    // 上昇 → 急降下して爪 → 地面に降りて1秒無防備 → 飛び立つ
+    const y = K([[0, 0], [0.5, 0.5, "out"], [0.9, -1.0, "in"], [1.0, -1.05], [1.9, -1.0], [2.4, 0.2, "out"], [2.8, 0]]);
+    const z = K([[0, 0], [0.5, -0.2], [0.9, 1.0, "in"], [1.9, 1.0], [2.8, 0]]);
+    const rx = K([[0, 0], [0.5, -20], [0.8, 40, "in"], [0.95, 0], [1.9, 0], [2.2, -15], [2.8, 0]]);
+    const sy = K([[0, 1], [0.9, 1], [0.98, 0.85], [1.15, 1.02], [1.9, 1], [2.8, 1]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  });
+  clip("Flyer", "Attack_GlideBite", 1.8, false, [[0.85, "Hit"]], () => {
+    // 高いところから滑空して噛みつく（骨の小竜）
+    const y = K([[0, 0], [0.4, 0.3], [0.85, -0.6, "in"], [1.1, -0.5], [1.8, 0]]);
+    const z = K([[0, 0], [0.4, -0.3], [0.85, 1.2, "in"], [1.1, 1.1], [1.8, 0]]);
+    const rx = K([[0, 0], [0.4, -10], [0.8, 25], [0.9, -10, "in"], [1.1, 5], [1.8, 0]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 0] });
+  });
+  clip("Flyer", "Death_Collapse", 1.2, false, [[0.5, "Collapse"]], () => {
+    // 落ちて骨がばらける（5秒後に Reassemble）
+    const y = K([[0, 0], [0.5, -1.3, "in"], [1.2, -1.45]]);
+    const sy = K([[0, 1], [0.5, 1], [0.7, 0.25, "out"], [1.2, 0.22]]);
+    const sxz = K([[0, 1], [0.5, 1], [0.7, 1.5, "out"], [1.2, 1.55]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 6 * sin(TAU * 10 * t) * env(t, 0.5, 0.9)], scl: [sxz(t), sy(t), sxz(t)] });
+  });
+  clip("Flyer", "Reassemble", 1.6, false, [[1.2, "Reformed"]], () => {
+    // 骨の山が震えて組み直り、飛び上がる
+    const y = K([[0, -1.45], [0.6, -1.45], [1.2, 0, "out"], [1.6, 0]]);
+    const sy = K([[0, 0.22], [0.6, 0.3], [1.2, 1.05], [1.6, 1]]);
+    const sxz = K([[0, 1.55], [0.6, 1.45], [1.2, 0.98], [1.6, 1]]);
+    const ry = K([[0, -180], [0.6, -180], [1.2, 0, "out"], [1.6, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 5 * sin(TAU * 12 * t) * env(t, 0, 0.6)], scl: [sxz(t), sy(t), sxz(t)] });
+  });
+
+  // ---------- Upright：人の形をした敵（鎧・石像・ロボット・亡者。名前に「人」が無いので体全体で動かす） ----------
+  breathIdle("Upright", { dur: 2.4, amp: 0.012, sway: 1.5 });
+  walkMove("Upright", { dur: 0.9, bob: 0.03, sway: 3, lean: 3, yaw: 4 });
+  hitClip("Upright", { z: -0.12, rx: -10, sy: 0.95 });
+  toppleDeath("Upright", { axis: "x", angle: -85, lift: 0.15, dur: 1.6, fallT: 0.8 });
+  clip("Upright", "Attack_HeavySlam", 2.4, false, [[0.98, "Hit"], [1.6, "Recover"]], () => {
+    // 予備動作 0.8 秒（反って溜める）→ 振り下ろし → 硬直 → 戻る（石くれ人形・動く鎧）
+    const rx = K([[0, 0], [0.8, -15], [1.0, 25, "in"], [1.6, 22], [2.4, 0]]);
+    const ry = K([[0, 0], [0.8, -15], [1.0, 0, "in"], [2.4, 0]]);
+    const z = K([[0, 0], [0.8, -0.05], [1.0, 0.3, "in"], [1.6, 0.3], [2.4, 0]]);
+    const sy = K([[0, 1], [0.8, 1.05], [1.0, 0.92], [1.6, 0.94], [2.4, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), ry(t), 1.5 * sin(TAU * 8 * t) * env(t, 0.1, 0.8)], scl: sclY(sy(t)) });
+  });
+  swingAttack("Upright", { name: "Attack_Swing", dur: 1.3, wind: 0.35, hit: 0.5, from: -35, to: 35, z: 0.2 });
+  clip("Upright", "Attack_Combo2", 1.9, false, [[0.43, "Hit"], [0.83, "Hit"]], () => {
+    // 剣の2連撃：右から左、左から右（聖堂騎士）
+    const ry = K([[0, 0], [0.3, -30], [0.45, 30, "in"], [0.7, 35], [0.85, -30, "in"], [1.1, -25], [1.9, 0]]);
+    const z = K([[0, 0], [0.3, -0.05], [0.45, 0.35, "in"], [0.7, 0.35], [0.85, 0.6, "in"], [1.1, 0.6], [1.9, 0]]);
+    const rx = K([[0, 0], [0.3, -5], [0.45, 8], [0.7, -3], [0.85, 10], [1.9, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), ry(t), 0] });
+  });
+  clip("Upright", "Attack_GrabThrow", 2.6, false, [[1.0, "Grab"], [1.5, "Throw"]], () => {
+    // 予備動作 0.8 秒 → 掴む → 振り回して後ろへ放り投げる（仕分けの手）
+    const z = K([[0, 0], [0.8, -0.15], [1.0, 0.5, "in"], [1.5, 0.3], [2.6, 0]]);
+    const ry = K([[0, 0], [1.0, 0], [1.5, 160, "in"], [1.7, 170], [2.6, 0]]);
+    const rx = K([[0, 0], [0.8, -10], [1.0, 20, "in"], [1.5, 5], [2.6, 0]]);
+    const sy = K([[0, 1], [0.8, 1.08], [1.0, 0.95], [2.6, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), ry(t), 2 * sin(TAU * 10 * t) * env(t, 0.1, 0.8)], scl: sclY(sy(t)) });
+  });
+  swingAttack("Upright", { name: "Attack_Punch", dur: 1.1, wind: 0.3, hit: 0.45, from: -20, to: 15, z: 0.3, lean: -3 });
+  clip("Upright", "Attack_Grab", 1.8, false, [[0.5, "Grab"], [1.4, "Release"]], () => {
+    // 前のめりに掴みかかり、笑いながら揺さぶる（笑う死者）
+    const z = K([[0, 0], [0.3, -0.05], [0.5, 0.4, "in"], [1.4, 0.4], [1.8, 0]]);
+    const rx = K([[0, 0], [0.3, -8], [0.5, 20, "in"], [1.4, 18], [1.8, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, 4 * sin(TAU * 8 * t) * env(t, 0.5, 1.4)] });
+  });
+  staticClip("Upright", "Disguise", 2.0, {});
+  clip("Upright", "Ambush_Punch", 1.4, false, [[0.15, "Awake"], [0.58, "Hit"]], () => {
+    // 動かない像のふり → ぴくりと動いて殴る（苔の石像）
+    const ry = K([[0, 0], [0.15, 0], [0.45, -40], [0.6, 20, "in"], [0.85, 15], [1.4, 0]]);
+    const z = K([[0, 0], [0.45, -0.05], [0.6, 0.35, "in"], [0.85, 0.3], [1.4, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [0, ry(t), 3 * sin(TAU * 16 * t) * env(t, 0, 0.18)] });
+  });
+  clip("Upright", "Idle_Laugh", 1.2, true, [], () => (t) => ({
+    // 肩を揺らして笑う（笑う死者）
+    pos: [0, 0.02 * Math.abs(sin(TAU * 3 * t / 1.2)), 0],
+    rot: [5 * sin(TAU * t / 1.2), 5 * sin(TAU * t / 1.2 + 1), 3 * sin(TAU * 2 * t / 1.2)],
+  }));
+  clip("Upright", "Death_Crumble", 2.0, false, [[0.6, "Crumble"]], () => {
+    // 膝をついて、花になって崩れる（笑う死者）
+    const sy = K([[0, 1], [0.6, 0.6, "in"], [1.6, 0.1], [2.0, 0.08]]);
+    const sxz = K([[0, 1], [0.6, 1.05], [1.6, 1.4], [2.0, 1.45]]);
+    const rx = K([[0, 0], [0.6, 15], [2.0, 10]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: [sxz(t), sy(t), sxz(t)] });
+  });
+
+  // ---------- Spider：小さな蜘蛛（EN-19 洞の小蜘蛛・未作成モデル） ----------
+  breathIdle("Spider", { dur: 1.6, amp: 0.02, sway: 0 });
+  clip("Spider", "Move", 0.3, true, [], () => (t) => ({ pos: [0, 0.02 * Math.abs(sin(TAU * t / 0.3)), 0], rot: [0, 0, 3 * sin(TAU * t / 0.3)] }));
+  hitClip("Spider", { z: -0.1, rx: -12, sy: 0.85 });
+  clip("Spider", "Death", 1.2, false, [[0.5, "Down"]], () => {
+    // ひっくり返って脚を縮める
+    const rz = K([[0, 0], [0.5, 180, "out"], [1.2, 180]]);
+    const sy = K([[0, 1], [0.5, 0.8], [1.2, 0.7]]);
+    return (t) => ({ rot: [0, 0, rz(t)], scl: sclY(sy(t)) });
+  });
+  clip("Spider", "Descend", 1.6, false, [[1.35, "Land"]], () => {
+    // 天井（高さ3m）から糸で降りてくる
+    const y = K([[0, 3.0], [1.2, 0.15, "out"], [1.35, 0, "in"], [1.6, 0]]);
+    const ry = K([[0, 90], [1.2, 0], [1.6, 0]]);
+    const sy = K([[0, 1], [1.35, 1], [1.42, 0.8], [1.6, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 0], scl: sclY(sy(t)) });
+  });
+  clip("Spider", "Attack_Web", 1.3, false, [[0.52, "Web"]], () => {
+    // 体を起こして糸を吐く（当たると1.5秒動けない）
+    const rx = K([[0, 0], [0.45, -30], [0.55, 10, "in"], [0.7, 5], [1.3, 0]]);
+    const sy = K([[0, 1], [0.45, 1.1], [0.55, 0.92], [1.3, 1]]);
+    return (t) => ({ rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  });
+
+  // ---------- Phantom：人影のような浮遊体（湯煙の精・鎖の魂・無音の影） ----------
+  hoverIdle("Phantom", { dur: 2.4, bob: 0.06, roll: 4, pitch: 2 });
+  floatMove("Phantom", { dur: 1.6, lean: 12, wob: 6, bob: 0.04 });
+  hitClip("Phantom", { z: -0.15, rx: -10, rz: 10, sy: 0.85 });
+  vanishDeath("Phantom", { dur: 1.4, rise: 0.5, spin: 180 });
+  clip("Phantom", "Appear", 1.0, false, [[0.5, "Visible"]], () => {
+    const s = K([[0, 0], [0.6, 1.1, "out"], [1.0, 1]]);
+    const y = K([[0, -0.4], [0.6, 0.05, "out"], [1.0, 0]]);
+    const ry = K([[0, -90], [0.6, 0, "out"], [1.0, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 0], scl: [s(t), s(t), s(t)] });
+  });
+  clip("Phantom", "Vanish", 0.8, false, [[0.75, "Hidden"]], () => {
+    const s = K([[0, 1], [0.8, 0, "in"]]);
+    const y = K([[0, 0], [0.8, 0.2]]);
+    const ry = K([[0, 0], [0.8, 90, "in"]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, ry(t), 0], scl: [s(t), s(t), s(t)] });
+  });
+  clip("Phantom", "Attack_Blow", 2.2, false, [[0.4, "BlowStart"], [1.8, "BlowEnd"]], () => {
+    // 吸い込んで膨らみ、熱い湯気を吹きかける（湯煙の精）
+    const rx = K([[0, 0], [0.4, -12], [0.5, 12, "in"], [1.8, 12], [2.2, 0]]);
+    const s = K([[0, 1], [0.4, 1.1], [0.5, 0.95], [1.8, 0.95], [2.2, 1]]);
+    const z = K([[0, 0], [0.5, 0.1], [1.8, 0.1], [2.2, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 8 * sin(TAU * 1.5 * t) * env(t, 0.45, 1.85), 0], scl: [s(t), 2 - s(t), s(t)] });
+  });
+  staticClip("Phantom", "Dormant", 3.0, { pos: [0, -0.15, 0], rot: [15, 0, 0], scl: [1.05, 0.88, 1.05] });
+  clip("Phantom", "WakeUp", 1.2, false, [[0.8, "Awake"]], () => {
+    // 眠る魂が起きる（鎖の魂）
+    const y = K([[0, -0.15], [0.8, 0.05, "out"], [1.2, 0]]);
+    const sy = K([[0, 0.88], [0.8, 1.15, "out"], [1.2, 1]]);
+    const rx = K([[0, 15], [0.8, -15], [1.2, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 3 * sin(TAU * 10 * t) * env(t, 0, 0.5)], scl: sclY(sy(t)) });
+  });
+  swingAttack("Phantom", { name: "Attack_ChainLash", dur: 1.4, wind: 0.45, hit: 0.6, from: -40, to: 45, z: 0.25, lean: -8 });
+  clip("Phantom", "Attack_Strike", 1.0, false, [[0.38, "Hit"]], () => {
+    // 予備動作の小さい、音のない一撃（無音の影）
+    const z = K([[0, 0], [0.25, -0.05], [0.4, 0.6, "in"], [0.55, 0.55], [1.0, 0]]);
+    const rx = K([[0, 0], [0.25, -5], [0.4, 15], [1.0, 0]]);
+    const sy = K([[0, 1], [0.25, 0.9], [0.4, 1.08], [1.0, 1]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  });
+
+  // ---------- Clockwork：スチームパンク時計クリーチャー CHR-015 ----------
+  clip("Clockwork", "Idle", 1.0, true, [], () => (t) => ({ pos: [0, 0.01 * sin(TAU * 2 * t), 0], rot: [0, 4 * sin(TAU * t), 0] }));
+  walkMove("Clockwork", { dur: 0.8, bob: 0.04, sway: 7, lean: 3 });
+  hitClip("Clockwork", { z: -0.1, rx: -12, sy: 0.88 });
+  toppleDeath("Clockwork", { angle: 85, lift: -0.12 });
+  clip("Clockwork", "Alert", 1.2, false, [[0.2, "Spotted"]], () => {
+    // 見つけた！と跳ね上がって震える（巡回の検品機）
+    const y = K([[0, 0], [0.2, 0.25, "out"], [0.4, 0, "in"], [1.2, 0]]);
+    const sy = K([[0, 1], [0.1, 0.85], [0.25, 1.15], [0.42, 0.9], [0.6, 1], [1.2, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 8 * sin(TAU * 10 * t) * env(t, 0.3, 0.9)], scl: sclY(sy(t)) });
+  });
+  clip("Clockwork", "Attack_SpinJump", 1.4, false, [[0.8, "Hit"]], () => {
+    // 回転しながら跳びかかる（歯車の子）
+    const y = K([[0, 0], [0.35, 0], [0.58, 0.5, "out"], [0.8, 0, "in"], [1.1, 0], [1.25, 0.12, "out"], [1.4, 0, "in"]]);
+    const z = K([[0, 0], [0.35, 0], [0.8, 1.0, "out"], [1.1, 1.0], [1.4, 0]]);
+    const ry = K([[0, 0], [0.35, 0], [0.8, 720, "l"], [1.4, 720]]);
+    const sy = K([[0, 1], [0.3, 0.8], [0.35, 0.8], [0.45, 1.15], [0.82, 0.85], [0.95, 1], [1.4, 1]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [0, ry(t), 0], scl: sclY(sy(t)) });
+  });
+  clip("Clockwork", "Attack_Throw", 1.4, false, [[0.52, "Throw"]], () => {
+    // 身をひねって本を扇形に3冊飛ばす（書架の魔物）
+    const ry = K([[0, 0], [0.4, -20], [0.55, 20, "in"], [0.75, 15], [1.4, 0]]);
+    const rx = K([[0, 0], [0.4, -15], [0.55, 10, "in"], [1.4, 0]]);
+    return (t) => ({ rot: [rx(t), ry(t), 0] });
+  });
+
+  // ---------- Whale：サイバークジラ CHR-009（水路を泳ぐ） ----------
+  clip("Whale", "Idle", 2.0, true, [], () => (t) => ({ pos: [0, 0.05 * sin(TAU * t / 2), 0], rot: [3 * sin(TAU * t / 2 + 1), 0, 2 * sin(TAU * t / 2)] }));
+  clip("Whale", "Move", 2.0, true, [], () => (t) => ({ pos: [0, 0.04 * sin(TAU * 2 * t / 2), 0], rot: [6 * sin(TAU * 2 * t / 2), 4 * sin(TAU * t / 2), 0] }));
+  hitClip("Whale", { z: -0.15, rx: -8, rz: 12, sy: 0.9 });
+  clip("Whale", "Death", 2.0, false, [[1.2, "Down"]], () => {
+    // ゆっくり腹を上にして浮く
+    const rz = K([[0, 0], [1.2, 180, "out"], [2.0, 180]]);
+    const y = K([[0, 0], [1.2, 0.05], [2.0, 0.02]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, rz(t)] });
+  });
+  clip("Whale", "Attack_LeapTackle", 2.0, false, [[0.5, "LeapStart"], [1.05, "Hit"]], () => {
+    // 潜って勢いをつけ、岸へ跳ねて体当たり（前への移動はゲーム側）
+    const y = K([[0, 0], [0.5, -0.3], [0.8, 1.2, "out"], [1.1, 0, "in"], [1.4, 0], [2.0, 0]]);
+    const rx = K([[0, 0], [0.5, 15], [0.6, -30], [0.95, 30], [1.15, 0], [2.0, 0]]);
+    const sy = K([[0, 1], [1.08, 1], [1.15, 0.85], [1.4, 1.02], [2.0, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, 0], scl: sclY(sy(t)) });
+  }, { from: 0.5, to: 1.1, dist: 5 });
+
+  // ---------- Hound：四つ足で走る獣人（EN-36 看守の犬） ----------
+  clip("Hound", "Idle", 1.0, true, [], () => (t) => {
+    const w = sin(TAU * 3 * t);   // はっはっと息をする
+    return { rot: [0, 0, 2 * sin(TAU * t)], scl: [1 - 0.01 * w, 1 + 0.02 * w, 1 - 0.01 * w] };
+  });
+  clip("Hound", "Move", 0.4, true, [], () => (t) => ({ pos: [0, 0.08 * Math.abs(sin(TAU * t / 0.4)), 0], rot: [6 * sin(TAU * t / 0.4), 0, 0] }));
+  clip("Hound", "Sniff", 1.6, true, [], () => (t) => ({ pos: [0, -0.02, 0], rot: [6, 15 * sin(TAU * t / 1.6), 0], scl: [1, 1 + 0.02 * sin(TAU * 4 * t / 1.6), 1] }));
+  clip("Hound", "Bark", 1.2, false, [[0.35, "Bark"], [0.75, "Bark"]], () => {
+    // 頭を上げて2回吠える（看守を呼ぶ）
+    const rx = K([[0, 0], [0.25, -15], [0.35, -25, "out"], [0.55, -15], [0.75, -25, "out"], [1.2, 0]]);
+    return (t) => ({ pos: [0, 0.03 * env(t, 0.3, 0.45) + 0.03 * env(t, 0.7, 0.85), 0], rot: [rx(t), 0, 0] });
+  });
+  lungeAttack("Hound", { name: "Attack_Bite", dur: 1.0, wind: 0.3, hit: 0.45, dist: 0.8, up: 0.2, rxw: -10, rxh: 12, hold: 0.65 });
+  hitClip("Hound", { z: -0.15, rx: -10, sy: 0.9 });
+  toppleDeath("Hound", { angle: 85, lift: -0.4 });
+
+  // ---------- Barrel：小さな樽（EN-45 樽の子・未作成モデル） ----------
+  staticClip("Barrel", "Disguise", 2.0, {});
+  clip("Barrel", "Reveal", 0.9, false, [[0.2, "Reveal"]], () => {
+    const y = K([[0, 0], [0.2, 0.25, "out"], [0.4, 0, "in"], [0.9, 0]]);
+    const sy = K([[0, 1], [0.1, 0.85], [0.2, 1.15], [0.45, 0.85], [0.6, 1.03], [0.9, 1]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [0, 0, 6 * sin(TAU * 8 * t) * env(t, 0.4, 0.9)], scl: sclY(sy(t)) });
+  });
+  breathIdle("Barrel", { dur: 1.6, amp: 0.02, sway: 2 });
+  hopMove("Barrel", { dur: 0.5, h: 0.1 });
+  clip("Barrel", "Attack_Roll", 2.2, false, [[0.3, "RollStart"], [1.6, "RollEnd"]], () => {
+    // 横倒しになって転がってくる → 起き上がる（移動はゲーム側）
+    const rz = K([[0, 0], [0.3, 90, "in"], [1.6, 90], [2.0, 0, "out"], [2.2, 0]]);
+    const rx = K([[0, 0], [0.3, 0], [0.5, 60, "in"], [1.45, 690, "l"], [1.6, 720, "out"], [2.2, 720]]);
+    const y = K([[0, 0], [0.3, -0.1], [1.6, -0.1], [2.0, 0], [2.2, 0]]);
+    return (t) => ({ pos: [0, y(t), 0], rot: [rx(t), 0, rz(t)] });
+  }, { from: 0.3, to: 1.6, dist: 8 });
+  hitClip("Barrel", { z: -0.1, rx: -12, sy: 0.85 });
+  crumbleDeath("Barrel", { ev: "Break", at: 0.3, sink: -0.28 });
+
+  // ---------- Box：札の付いた木箱（EN-46 箱入りの忘れ物・未作成モデル） ----------
+  staticClip("Box", "Disguise", 2.0, {});
+  clip("Box", "Attack_Bite", 1.2, false, [[0.45, "Hit"]], () => {
+    // 後ろへ傾いて口を開け、跳びかかって噛みつく（軸は箱の後ろの下の角）
+    const rx = K([[0, 0], [0.3, -25], [0.45, 15, "in"], [0.6, 0], [1.2, 0]]);
+    const z = K([[0, 0], [0.3, 0], [0.45, 0.5, "in"], [0.7, 0.5], [1.2, 0]]);
+    const y = K([[0, 0], [0.3, 0], [0.38, 0.2, "out"], [0.6, 0, "in"], [0.95, 0.08, "out"], [1.2, 0, "in"]]);
+    return (t) => ({ pos: [0, y(t), z(t)], rot: [rx(t), 0, 0] });
+  });
+  clip("Box", "Idle", 1.6, true, [], () => (t) => ({ rot: [-3 * Math.max(0, sin(TAU * 2 * t / 1.6)), 0, 1.5 * sin(TAU * t / 1.6)] }));
+  hopMove("Box", { dur: 0.5, h: 0.12 });
+  hitClip("Box", { z: -0.1, rx: -10, sy: 0.88 });
+  toppleDeath("Box", { axis: "x", angle: -88, lift: 0.0, dur: 1.4, fallT: 0.5 });
+
+  // ---------- Shears：宙に浮く大きな剪定鋏（EN-55 刈り込み鋏・未作成モデル） ----------
+  hoverIdle("Shears", { dur: 2.0, bob: 0.05, roll: 5, pitch: 2 });
+  floatMove("Shears", { dur: 1.6, lean: 10, wob: 4, bob: 0.03 });
+  clip("Shears", "Attack_Snip2", 1.6, false, [[0.4, "Hit"], [0.7, "Hit"]], () => {
+    // 正面へ2回突き出してはさみ込む。閉じた直後が隙
+    const z = K([[0, 0], [0.3, -0.2], [0.42, 0.5, "in"], [0.6, 0.1], [0.72, 0.6, "in"], [1.0, 0.55], [1.6, 0]]);
+    const rz = K([[0, 0], [0.3, -20], [0.42, 15], [0.6, -15], [0.72, 20], [1.6, 0]]);
+    return (t) => ({ pos: [0, 0, z(t)], rot: [0, 0, rz(t)] });
+  });
+  hitClip("Shears", { z: -0.15, rx: 0, rz: 25, sy: 1 });
+  dropDeath("Shears", { drop: 1.08, lie: 90, fallT: 0.6, dur: 1.3 });
+
+  // ---------- 敵ごとの割り当て ----------
+  const ENEMIES = [
+    { id: "EN-01", name: "胞子キノコ", body: "Mushroom", scale: 1, color: "#8b5cf6", clips: ["Idle", "Move", "Attack_Lunge", "Hit", "Death_SporeBurst"],
+      desc: "飛びかかり（0.9m）。倒れると1秒後に胞子が弾ける（SporeBurst イベント）" },
+    { id: "EN-02", name: "巣守りのバチ", body: "Bee", scale: 1.3, color: "#e0a800", clips: ["Idle", "Move", "Attack_Sting", "Attack_Charge", "Hit", "Death"],
+      desc: "巣の周りを回り、離れた相手には一直線に突進（ChargeStart〜ChargeEnd の間にゲーム側で秒速9m 移動）" },
+    { id: "EN-03", name: "妖精の灯", body: "Fairy", scale: 1, color: "#fde68a", clips: ["Idle", "Move_Flee", "Attack_Powder", "Hit", "Death"],
+      desc: "近づくと逃げ、眠り粉を撒く（Powder イベント）。未作成モデルのため光の玉の妖精を想定" },
+    { id: "EN-04", name: "輪の茸番", body: "Mushroom", scale: 2, color: "#f5f5f4", clips: ["Idle", "Move", "Attack_Stomp", "Hit", "Death"],
+      desc: "踏みつけ（Stomp イベントで半径1.6m）。その後 0.9 秒つぶれて動けない（Recover まで）" },
+    { id: "EN-16", name: "洞窟茸", body: "Mushroom", scale: 1, color: "#93c5fd", clips: ["Idle", "Move", "Attack_Lunge", "Hit", "Death"],
+      desc: "森のキノコより弱い。キノコ共通の動き" },
+    { id: "EN-17", name: "岩ダンゴ", body: "RockBall", scale: 1, color: "#9ca3af", clips: ["Idle", "Move", "Attack_Roll", "Hit", "Death"],
+      desc: "丸まって短く転がる（RollStart〜RollEnd の間にゲーム側で 6m 移動）" },
+    { id: "EN-42", name: "水路ナメクジ", body: "Slug", scale: 1, color: "#5eead4", clips: ["Idle", "Move", "Attack_Bite", "Hit", "Death"],
+      desc: "のろのろ這う。未作成モデルのため半透明のナメクジを想定" },
+    { id: "EN-43", name: "苔キノコ", body: "Mushroom", scale: 1, color: "#65a30d", clips: ["Idle", "Move", "Attack_Lunge", "Hit", "Death"],
+      desc: "森のキノコより弱い。キノコ共通の動き" },
+    { id: "EN-05", name: "沼の魔物", body: "Creature", scale: 1, color: "#4d7c0f", clips: ["Idle", "Move", "Burrow", "Emerge_Bite", "Hit", "Death"],
+      desc: "泥に潜って近づき（Burrow → Hidden）、泡立ち（Warn）の後に足元から飛び出して噛む" },
+    { id: "EN-06", name: "毒吐き草", body: "Plant", scale: 1, color: "#7e22ce", clips: ["Idle", "Attack_Spit", "Hit", "Death"],
+      desc: "動かない。膨らんで毒の玉を吐く（Spit）" },
+    { id: "EN-07", name: "毒羽のバチ", body: "Bee", scale: 1, color: "#7e22ce", clips: ["Idle", "Move", "Attack_Sting", "Hit", "Death"],
+      desc: "2〜3匹で来る。針に毒" },
+    { id: "EN-08", name: "大蛍", body: "Bee", scale: 0.6, color: "#facc15", clips: ["Idle", "Move", "Attack_Ram", "Hit", "Death"],
+      desc: "光りながら群れで体当たり" },
+    { id: "EN-10", name: "根喰い虫の幼虫", body: "Creature", scale: 0.6, color: "#92400e", clips: ["Idle", "Move", "Emerge_Bite", "Attack_Bite", "Hit", "Death"],
+      desc: "根の中から出てきて噛む（Emerge_Bite）" },
+    { id: "EN-11", name: "世界樹の瘤", body: "Plant", scale: 1, color: "#78350f", clips: ["Dormant", "WakeUp", "Idle", "Attack_Slam", "Hit", "Death"],
+      desc: "根に擬態して寝ている（Dormant）→ 起きて（WakeUp）殴る" },
+    { id: "EN-14", name: "翼の悪魔（小）", body: "Flyer", scale: 0.8, color: "#7f1d1d", clips: ["Idle", "Move", "Attack_Dive", "Hit", "Death"],
+      desc: "旋回 → 急降下して爪 → 地面で1秒無防備（Land〜TakeOff）" },
+    { id: "EN-15", name: "岩の魔物", body: "RockBall", scale: 1.67, color: "#6b7280", clips: ["Idle", "Move", "Attack_Roll_Long", "Hit", "Death"],
+      desc: "丸まって転がる（秒速8m・移動はゲーム側）。止まると起き上がるまで2秒" },
+    { id: "EN-18", name: "石くれ人形", body: "Upright", scale: 1, color: "#a8a29e", clips: ["Idle", "Move", "Attack_HeavySlam", "Hit", "Death"],
+      desc: "遅いが一撃が大きい振り下ろし（予備動作0.8秒）" },
+    { id: "EN-19", name: "洞の小蜘蛛", body: "Spider", scale: 1, color: "#44403c", clips: ["Idle", "Move", "Descend", "Attack_Web", "Hit", "Death"],
+      desc: "天井から降りてきて（Descend）糸を吐く（Web）。未作成モデルのため小さな蜘蛛を想定" },
+    { id: "EN-20", name: "骨の小竜", body: "Flyer", scale: 0.8, color: "#e7e5e4", clips: ["Idle", "Move", "Attack_GlideBite", "Hit", "Death_Collapse", "Reassemble"],
+      desc: "滑空して噛む。倒すと骨がばらけ（Death_Collapse）、5秒後に組み直る（Reassemble）" },
+    { id: "EN-21", name: "炎の魔物", body: "Creature", scale: 1, color: "#dc2626", clips: ["Idle", "Move", "Attack_Tackle", "Hit", "Death"],
+      desc: "炎をまとった体当たり" },
+    { id: "EN-22", name: "火蜥蜴", body: "Creature", scale: 0.7, color: "#f97316", clips: ["Idle", "Move", "Attack_Breath", "Hit", "Death"],
+      desc: "短い火炎を吐く（BreathStart〜BreathEnd の1秒）" },
+    { id: "EN-23", name: "鉄殻虫", body: "Creature", scale: 1, color: "#1f2937", clips: ["Idle", "Move", "Attack_Bite", "Flipped", "Hit", "Death"],
+      desc: "正面は怯まない。地面割りでひっくり返る（Flipped）" },
+    { id: "EN-24", name: "湯煙の精", body: "Phantom", scale: 1, color: "#e5e7eb", clips: ["Idle", "Move", "Appear", "Attack_Blow", "Vanish", "Hit", "Death"],
+      desc: "攻撃中しか見えない：Appear → Attack_Blow（熱い湯気）→ Vanish" },
+    { id: "EN-25", name: "湯あたりガエル", body: "Creature", scale: 1, color: "#f9a8d4", clips: ["Idle", "Move", "Attack_Pounce", "Hit", "Death"],
+      desc: "大きく跳びかかる（JumpStart〜Land の間にゲーム側で 4m 移動）。着地で湯が跳ねる" },
+    { id: "EN-26", name: "巡回の検品機", body: "Clockwork", scale: 1, color: "#b45309", clips: ["Idle", "Move", "Alert"],
+      desc: "戦闘なし。巡回して、見つけると跳ねる（Alert → Spotted）" },
+    { id: "EN-27", name: "天の番兵", body: "Upright", scale: 1, color: "#f8fafc", clips: ["Idle", "Move", "Attack_Swing", "Hit", "Death"],
+      desc: "事務的に警棒を振る" },
+    { id: "EN-28", name: "仕分けの手", body: "Upright", scale: 1.2, color: "#e2e8f0", clips: ["Idle", "Move", "Attack_GrabThrow", "Hit", "Death"],
+      desc: "予備動作0.8秒 → 掴む（Grab）→ 後ろへ放り投げる（Throw）" },
+    { id: "EN-29", name: "水路の清掃機", body: "Whale", scale: 1, color: "#f1f5f9", clips: ["Idle", "Move", "Attack_LeapTackle", "Hit", "Death"],
+      desc: "水路を泳ぎ、岸の相手へ跳ねて体当たり（前への移動はゲーム側）" },
+    { id: "EN-30", name: "歯車の子", body: "Clockwork", scale: 0.5, color: "#ca8a04", clips: ["Idle", "Move", "Attack_SpinJump", "Hit", "Death"],
+      desc: "回転しながら跳びかかる" },
+    { id: "EN-31", name: "迷い羽根", body: "Bee", scale: 1, color: "#f8fafc", clips: ["Idle", "Move_Flutter", "Attack_Slash", "Hit", "Death"],
+      desc: "ひらひら漂い（Move_Flutter）、鋭い羽根で切る" },
+    { id: "EN-32", name: "監督の魔物", body: "Creature", scale: 1, color: "#27272a", clips: ["Idle", "Move", "Attack_Whip", "Hit", "Death"],
+      desc: "鞭の横なぎ（前方120°）" },
+    { id: "EN-34", name: "炎喰いの子", body: "Creature", scale: 0.6, color: "#312e81", clips: ["Idle", "Move", "Attack_Bite", "Grow", "Hit", "Death"],
+      desc: "灯りを食べて大きくなる（Grow の反応。大きさはゲーム側で1.5倍）" },
+    { id: "EN-35", name: "冷えた溶岩の殻", body: "RockBall", scale: 1.67, color: "#3f3f46", clips: ["Idle", "Move", "Attack_Roll_Long", "Hit", "Death_Shatter"],
+      desc: "転がってきて、割れると中の溶岩が飛び散る（Shatter）" },
+    { id: "EN-36", name: "看守の犬", body: "Hound", scale: 1, color: "#57534e", clips: ["Idle", "Move", "Sniff", "Bark", "Attack_Bite", "Hit", "Death"],
+      desc: "迷路を嗅ぎ回り（Sniff）、見つけると吠える（Bark）。足が速い" },
+    { id: "EN-37", name: "鎖の魂", body: "Phantom", scale: 1, color: "#fde68a", clips: ["Dormant", "WakeUp", "Idle", "Move", "Attack_ChainLash", "Hit", "Death"],
+      desc: "眠る魂（Dormant）。近づく・走ると起きて（WakeUp）鎖で打つ" },
+    { id: "EN-38", name: "無音の影", body: "Phantom", scale: 1, color: "#f5f5f4", clips: ["Idle", "Move", "Attack_Strike", "Hit", "Death"],
+      desc: "音もなく近づき、予備動作の小さい一撃" },
+    { id: "EN-39", name: "聖堂騎士", body: "Upright", scale: 1, color: "#94a3b8", clips: ["Idle", "Move", "Attack_Combo2", "Hit", "Death"],
+      desc: "剣の2連撃（Hit が2回）" },
+    { id: "EN-40", name: "動く鎧", body: "Upright", scale: 1.1, color: "#6b7280", clips: ["Idle", "Move", "Attack_HeavySlam", "Hit", "Death"],
+      desc: "遅いが怯まない。大振りの一撃の後に硬直（Recover まで）" },
+    { id: "EN-41", name: "書架の魔物", body: "Clockwork", scale: 1, color: "#7c2d12", clips: ["Idle", "Move", "Attack_Throw", "Hit", "Death"],
+      desc: "本棚の上から本を3冊扇形に飛ばす（Throw）" },
+    { id: "EN-44", name: "酔いバチ", body: "Bee", scale: 1, color: "#9d174d", clips: ["Idle", "Move_Drunk", "Attack_DoubleSting", "Hit", "Death"],
+      desc: "千鳥足（Move_Drunk）。たまに2連続で刺す" },
+    { id: "EN-45", name: "樽の子", body: "Barrel", scale: 0.8, color: "#a16207", clips: ["Disguise", "Reveal", "Idle", "Move", "Attack_Roll", "Hit", "Death"],
+      desc: "樽に紛れて待ち（Disguise）、正体を現して（Reveal）転がってくる" },
+    { id: "EN-46", name: "箱入りの忘れ物", body: "Box", scale: 1, color: "#b45309", clips: ["Disguise", "Attack_Bite", "Idle", "Move", "Hit", "Death"],
+      desc: "箱のふり（Disguise）。開けようとすると噛みつく" },
+    { id: "EN-47", name: "名を失くした亡者", body: "Upright", scale: 1, color: "#9ca3af", clips: ["Idle", "Move", "Attack_Punch", "Hit", "Death"],
+      desc: "名前を探して暴れる" },
+    { id: "EN-48", name: "苔の石像", body: "Upright", scale: 1, color: "#6b8f5e", clips: ["Disguise", "Ambush_Punch", "Idle", "Move", "Hit", "Death"],
+      desc: "動かない像のふり（Disguise）→ 横を通ると殴る（Ambush_Punch）" },
+    { id: "EN-49", name: "墓守の鬼火", body: "Fairy", scale: 1, color: "#60a5fa", clips: ["Idle", "Move", "Attack_Touch", "Hit", "Death"],
+      desc: "墓所を漂う青い火。触れると燃える" },
+    { id: "EN-50", name: "墓荒らしの魔物", body: "Creature", scale: 1, color: "#a16207", clips: ["Idle", "Move", "Attack_Bite", "Dig_Escape", "Hit", "Death"],
+      desc: "穴を掘って逃げる（Dig_Escape → Escaped）" },
+    { id: "EN-51", name: "笑う死者", body: "Upright", scale: 1, color: "#d6d3d1", clips: ["Idle_Laugh", "Move", "Attack_Grab", "Hit", "Death_Crumble"],
+      desc: "笑いながら掴みかかる。倒すと花になって崩れる" },
+    { id: "EN-52", name: "侵食の蔦", body: "Plant", scale: 1, color: "#f5f5f4", clips: ["Submerged", "Attack_Erupt", "Idle", "Hit", "Death"],
+      desc: "地中（Submerged）→ 足元に花が咲いて1秒後に突き上げる（Attack_Erupt）" },
+    { id: "EN-53", name: "庭の番", body: "Plant", scale: 1, color: "#fafaf9", clips: ["Idle", "Move", "Attack_Lunge", "Hit", "Death"],
+      desc: "庭を守る白い植物" },
+    { id: "EN-55", name: "刈り込み鋏", body: "Shears", scale: 1, color: "#57534e", clips: ["Idle", "Move", "Attack_Snip2", "Hit", "Death"],
+      desc: "はさみ込み（正面2連）。未作成モデルのため宙に浮く剪定鋏を想定" },
+    { id: "EN-56", name: "受粉の蜂", body: "Bee", scale: 1, color: "#fef3c7", clips: ["Idle", "Move", "Attack_Sting", "Hit", "Death"],
+      desc: "花に近づくと群れで守りに来る" },
+  ];
+
+  const findClip = (body, name) => CLIPS.find((c) => c.body === body && c.name === name);
+
+  // ---------- 変換 ----------
+  // Unity の Quaternion.Euler(x, y, z) と同じ（Z → X → Y の順に回す）
+  const qMul = (a, b) => [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2],
+  ];
+  const qAxis = (ax, deg) => { const h = deg * DEG / 2, s = sin(h); return [ax[0] * s, ax[1] * s, ax[2] * s, cos(h)]; };
+  const qEuler = (r) => qMul(qMul(qAxis([0, 1, 0], r[1]), qAxis([1, 0, 0], r[0])), qAxis([0, 0, 1], r[2]));
+  const qRot = (q, v) => { const r = qMul(qMul(q, [v[0], v[1], v[2], 0]), [-q[0], -q[1], -q[2], q[3]]); return [r[0], r[1], r[2]]; };
+
+  // クリップの時刻 t における Motion の localPosition / localRotation / localScale（軸 pivot まわりに動かした結果）
+  function evalClip(c, t) {
+    const s = c.sample(clamp(t, 0, c.dur));
+    const pos = s.pos || [0, 0, 0], rot = s.rot || [0, 0, 0], scl = s.scl || [1, 1, 1];
+    const q = qEuler(rot);
+    const pv = BODIES[c.body].pivot;
+    const rs = qRot(q, [pv[0] * scl[0], pv[1] * scl[1], pv[2] * scl[2]]);
+    return { pos: [pos[0] + pv[0] - rs[0], pos[1] + pv[1] - rs[1], pos[2] + pv[2] - rs[2]], rot: q, scl };
+  }
+  // ==POSE-END==
+
+  // ---------- 確認用の形（Unity には出力しない） ----------
+  // 楕円体の組み合わせ：c 中心, r 半径, col 色（"$" は敵ごとの色）, a 透明度, glow 発光
+  const SHAPES = {
+    Mushroom: [
+      { c: [0, 0.2, 0], r: [0.14, 0.22, 0.14], col: "#f1e7d0" },
+      { c: [0, 0.46, 0], r: [0.33, 0.17, 0.33], col: "$" },
+      { c: [-0.05, 0.26, 0.125], r: [0.022, 0.035, 0.02], col: "#1c1a17" },
+      { c: [0.05, 0.26, 0.125], r: [0.022, 0.035, 0.02], col: "#1c1a17" },
+    ],
+    Bee: [
+      { c: [0, 0.97, -0.21], r: [0.12, 0.12, 0.2], col: "$" },
+      { c: [0, 0.97, -0.3], r: [0.1, 0.1, 0.06], col: "#221f1b" },
+      { c: [0, 1.0, 0], r: [0.12, 0.12, 0.12], col: "$" },
+      { c: [0, 1.02, 0.17], r: [0.08, 0.08, 0.08], col: "#221f1b" },
+      { c: [0, 0.94, -0.44], r: [0.02, 0.02, 0.06], col: "#221f1b" },
+      { c: [-0.16, 1.12, -0.03], r: [0.16, 0.01, 0.07], col: "#bfdbfe", a: 0.45 },
+      { c: [0.16, 1.12, -0.03], r: [0.16, 0.01, 0.07], col: "#bfdbfe", a: 0.45 },
+    ],
+    Fairy: [
+      { c: [0, 1.2, 0], r: [0.12, 0.12, 0.12], col: "$", glow: true },
+      { c: [-0.13, 1.26, -0.03], r: [0.1, 0.01, 0.05], col: "#e0f2fe", a: 0.5 },
+      { c: [0.13, 1.26, -0.03], r: [0.1, 0.01, 0.05], col: "#e0f2fe", a: 0.5 },
+      { c: [-0.035, 1.22, 0.11], r: [0.015, 0.02, 0.01], col: "#1c1a17" },
+      { c: [0.035, 1.22, 0.11], r: [0.015, 0.02, 0.01], col: "#1c1a17" },
+    ],
+    RockBall: [
+      { c: [0, 0.3, 0], r: [0.3, 0.28, 0.3], col: "$" },
+      { c: [-0.11, 0.08, 0.05], r: [0.08, 0.06, 0.1], col: "#6b7280" },
+      { c: [0.11, 0.08, 0.05], r: [0.08, 0.06, 0.1], col: "#6b7280" },
+      { c: [-0.08, 0.36, 0.26], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
+      { c: [0.08, 0.36, 0.26], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
+    ],
+    Slug: [
+      { c: [0, 0.1, -0.05], r: [0.15, 0.1, 0.38], col: "$", a: 0.75 },
+      { c: [0, 0.17, 0.24], r: [0.11, 0.1, 0.12], col: "$", a: 0.8 },
+      { c: [-0.05, 0.33, 0.3], r: [0.015, 0.08, 0.015], col: "$" },
+      { c: [0.05, 0.33, 0.3], r: [0.015, 0.08, 0.015], col: "$" },
+      { c: [-0.05, 0.41, 0.3], r: [0.025, 0.025, 0.025], col: "#1c1a17" },
+      { c: [0.05, 0.41, 0.3], r: [0.025, 0.025, 0.025], col: "#1c1a17" },
+    ],
+    Creature: [
+      { c: [0, 0.38, -0.05], r: [0.3, 0.26, 0.45], col: "$" },
+      { c: [0, 0.5, 0.42], r: [0.2, 0.18, 0.2], col: "$" },
+      { c: [-0.08, 0.58, 0.58], r: [0.03, 0.03, 0.02], col: "#1c1a17" },
+      { c: [0.08, 0.58, 0.58], r: [0.03, 0.03, 0.02], col: "#1c1a17" },
+      { c: [-0.18, 0.12, 0.25], r: [0.07, 0.12, 0.07], col: "#57534e" },
+      { c: [0.18, 0.12, 0.25], r: [0.07, 0.12, 0.07], col: "#57534e" },
+      { c: [-0.18, 0.12, -0.3], r: [0.07, 0.12, 0.07], col: "#57534e" },
+      { c: [0.18, 0.12, -0.3], r: [0.07, 0.12, 0.07], col: "#57534e" },
+      { c: [0, 0.38, -0.58], r: [0.06, 0.06, 0.18], col: "$" },
+    ],
+    Plant: [
+      { c: [0, 0.03, 0], r: [0.3, 0.03, 0.3], col: "#78350f" },
+      { c: [0, 0.38, 0], r: [0.14, 0.36, 0.14], col: "#4d7c0f" },
+      { c: [-0.25, 0.3, 0], r: [0.2, 0.03, 0.1], col: "#65a30d" },
+      { c: [0.25, 0.3, 0], r: [0.2, 0.03, 0.1], col: "#65a30d" },
+      { c: [0, 0.85, 0.05], r: [0.28, 0.24, 0.28], col: "$" },
+      { c: [0, 0.8, 0.31], r: [0.12, 0.05, 0.03], col: "#1c1a17" },
+    ],
+    Flyer: [
+      { c: [0, 1.6, 0], r: [0.16, 0.26, 0.14], col: "$" },
+      { c: [0, 1.95, 0.06], r: [0.11, 0.11, 0.11], col: "$" },
+      { c: [-0.42, 1.72, -0.08], r: [0.36, 0.02, 0.18], col: "$", a: 0.8 },
+      { c: [0.42, 1.72, -0.08], r: [0.36, 0.02, 0.18], col: "$", a: 0.8 },
+      { c: [-0.07, 1.28, 0], r: [0.04, 0.14, 0.04], col: "#1c1a17" },
+      { c: [0.07, 1.28, 0], r: [0.04, 0.14, 0.04], col: "#1c1a17" },
+      { c: [0, 1.45, -0.25], r: [0.03, 0.03, 0.2], col: "$" },
+      { c: [-0.04, 1.97, 0.16], r: [0.02, 0.015, 0.01], col: "#fbbf24" },
+      { c: [0.04, 1.97, 0.16], r: [0.02, 0.015, 0.01], col: "#fbbf24" },
+    ],
+    Upright: [
+      { c: [-0.1, 0.45, 0], r: [0.08, 0.45, 0.08], col: "$" },
+      { c: [0.1, 0.45, 0], r: [0.08, 0.45, 0.08], col: "$" },
+      { c: [0, 1.15, 0], r: [0.22, 0.32, 0.14], col: "$" },
+      { c: [-0.3, 1.12, 0.02], r: [0.07, 0.33, 0.07], col: "$" },
+      { c: [0.3, 1.12, 0.02], r: [0.07, 0.33, 0.07], col: "$" },
+      { c: [0, 1.62, 0.02], r: [0.12, 0.13, 0.12], col: "$" },
+      { c: [-0.04, 1.64, 0.13], r: [0.02, 0.015, 0.01], col: "#1c1a17" },
+      { c: [0.04, 1.64, 0.13], r: [0.02, 0.015, 0.01], col: "#1c1a17" },
+    ],
+    Spider: [
+      { c: [0, 0.22, -0.18], r: [0.17, 0.14, 0.2], col: "$" },
+      { c: [0, 0.2, 0.1], r: [0.1, 0.08, 0.1], col: "$" },
+      ...[0, 1, 2, 3].flatMap((i) => [-1, 1].map((s) => ({ c: [s * 0.22, 0.12, 0.14 - i * 0.1], r: [0.16, 0.02, 0.02], col: "#292524" }))),
+      { c: [-0.03, 0.24, 0.19], r: [0.02, 0.02, 0.01], col: "#dc2626" },
+      { c: [0.03, 0.24, 0.19], r: [0.02, 0.02, 0.01], col: "#dc2626" },
+    ],
+    Phantom: [
+      { c: [0, 0.45, -0.05], r: [0.1, 0.25, 0.08], col: "$", a: 0.5 },
+      { c: [0, 1.0, 0], r: [0.24, 0.45, 0.17], col: "$", a: 0.7 },
+      { c: [0, 1.6, 0], r: [0.15, 0.16, 0.15], col: "$", a: 0.8 },
+      { c: [-0.05, 1.63, 0.13], r: [0.025, 0.02, 0.01], col: "#fef08a" },
+      { c: [0.05, 1.63, 0.13], r: [0.025, 0.02, 0.01], col: "#fef08a" },
+    ],
+    Clockwork: [
+      { c: [-0.15, 0.08, 0.05], r: [0.06, 0.08, 0.06], col: "#78350f" },
+      { c: [0.15, 0.08, 0.05], r: [0.06, 0.08, 0.06], col: "#78350f" },
+      { c: [0, 0.08, -0.15], r: [0.06, 0.08, 0.06], col: "#78350f" },
+      { c: [0, 0.45, 0], r: [0.33, 0.33, 0.3], col: "$" },
+      { c: [0, 0.5, 0.28], r: [0.22, 0.22, 0.04], col: "#fef3c7" },
+      { c: [0, 0.55, 0.32], r: [0.015, 0.12, 0.01], col: "#1c1a17" },
+      { c: [0, 0.62, -0.33], r: [0.05, 0.1, 0.03], col: "#78350f" },
+    ],
+    Whale: [
+      { c: [0, 0.3, 0], r: [0.3, 0.26, 0.7], col: "$" },
+      { c: [0, 0.2, 0.05], r: [0.26, 0.12, 0.55], col: "#cbd5e1" },
+      { c: [0, 0.35, -0.75], r: [0.35, 0.04, 0.12], col: "$" },
+      { c: [-0.32, 0.22, 0.1], r: [0.18, 0.03, 0.1], col: "$" },
+      { c: [0.32, 0.22, 0.1], r: [0.18, 0.03, 0.1], col: "$" },
+      { c: [-0.2, 0.38, 0.45], r: [0.03, 0.03, 0.03], col: "#0ea5e9" },
+      { c: [0.2, 0.38, 0.45], r: [0.03, 0.03, 0.03], col: "#0ea5e9" },
+    ],
+    Hound: [
+      { c: [-0.12, 0.3, 0.35], r: [0.05, 0.3, 0.05], col: "$" },
+      { c: [0.12, 0.3, 0.35], r: [0.05, 0.3, 0.05], col: "$" },
+      { c: [-0.12, 0.3, -0.35], r: [0.05, 0.3, 0.05], col: "$" },
+      { c: [0.12, 0.3, -0.35], r: [0.05, 0.3, 0.05], col: "$" },
+      { c: [0, 0.62, -0.05], r: [0.2, 0.2, 0.45], col: "$" },
+      { c: [0, 0.66, 0.3], r: [0.2, 0.22, 0.2], col: "$" },
+      { c: [0, 0.82, 0.58], r: [0.13, 0.13, 0.17], col: "$" },
+      { c: [0, 0.78, 0.76], r: [0.07, 0.07, 0.1], col: "$" },
+      { c: [-0.07, 0.97, 0.55], r: [0.03, 0.07, 0.03], col: "$" },
+      { c: [0.07, 0.97, 0.55], r: [0.03, 0.07, 0.03], col: "$" },
+      { c: [0, 0.72, -0.55], r: [0.04, 0.04, 0.2], col: "$" },
+      { c: [-0.06, 0.87, 0.71], r: [0.02, 0.02, 0.01], col: "#fbbf24" },
+      { c: [0.06, 0.87, 0.71], r: [0.02, 0.02, 0.01], col: "#fbbf24" },
+    ],
+    Barrel: [
+      { c: [0, 0.4, 0], r: [0.3, 0.4, 0.3], col: "$" },
+      { c: [0, 0.15, 0], r: [0.31, 0.03, 0.31], col: "#44403c" },
+      { c: [0, 0.65, 0], r: [0.31, 0.03, 0.31], col: "#44403c" },
+      { c: [-0.08, 0.5, 0.28], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
+      { c: [0.08, 0.5, 0.28], r: [0.03, 0.04, 0.02], col: "#1c1a17" },
+    ],
+    Box: [
+      { c: [0, 0.28, 0], r: [0.34, 0.28, 0.3], col: "$" },
+      { c: [0, 0.6, 0], r: [0.36, 0.06, 0.32], col: "#92400e" },
+      { c: [0.2, 0.42, 0.3], r: [0.06, 0.08, 0.01], col: "#fef3c7" },
+      { c: [-0.1, 0.42, 0.3], r: [0.03, 0.03, 0.01], col: "#dc2626" },
+      { c: [0.02, 0.42, 0.3], r: [0.03, 0.03, 0.01], col: "#dc2626" },
+      { c: [0, 0.53, 0.3], r: [0.25, 0.02, 0.01], col: "#f5f5f4" },
+    ],
+    Shears: [
+      { c: [-0.04, 1.1, 0.28], r: [0.03, 0.015, 0.42], col: "#d6d3d1" },
+      { c: [0.04, 1.1, 0.28], r: [0.03, 0.015, 0.42], col: "#d6d3d1" },
+      { c: [-0.1, 1.1, -0.28], r: [0.08, 0.02, 0.1], col: "$" },
+      { c: [0.1, 1.1, -0.28], r: [0.08, 0.02, 0.1], col: "$" },
+      { c: [0, 1.1, 0], r: [0.03, 0.03, 0.03], col: "#1c1a17" },
+    ],
+  };
+  // 楕円体の表面の点（凸包で塗る）
+  const UNIT = [];
+  for (let i = 1; i < 6; i++) for (let j = 0; j < 10; j++) {
+    const th = (i / 6) * Math.PI, ph = (j / 10) * TAU;
+    UNIT.push([sin(th) * cos(ph), cos(th), sin(th) * sin(ph)]);
+  }
+  UNIT.push([0, 1, 0], [0, -1, 0]);
+
+  // ---------- 描画 ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  const add3 = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub3 = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul3 = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const norm3 = (a) => { const l = Math.hypot(...a) || 1; return mul3(a, 1 / l); };
+
+  const state = {
+    playing: true, speed: 1, enemy: 0, clip: "Idle", time: 0, chain: null,
+    yaw: 35 * DEG, yawTarget: 35 * DEG, pitch: 0.22, travel: 0,
+  };
+
+  let cam = null;
+  function setupCamera(E, followZ) {
+    const target = [0, 0.55 * E.scale, 0.4 + followZ];
+    const dist = 3.2 + 1.3 * E.scale;
+    const cp = cos(state.pitch);
+    const pos = add3(target, [sin(state.yaw) * cp * dist, sin(state.pitch) * dist, cos(state.yaw) * cp * dist]);
+    const F = norm3(sub3(target, pos));
+    const R = norm3(cross3([0, 1, 0], F));   // Unity と同じ左手系（正面から見ると +X が画面の左）
+    const U = cross3(F, R);
+    cam = { pos, F, R, U, f: Math.min(W, H * 1.4) * 0.9, cx: W / 2 + Math.min(150, W * 0.12), cy: H * 0.56 };
+  }
+  const NEAR = 0.2;
+  const toCam = (p) => { const q = sub3(p, cam.pos); return [dot3(q, cam.R), dot3(q, cam.U), dot3(q, cam.F)]; };
+  const projC = (c) => ({ x: cam.cx + cam.f * c[0] / c[2], y: cam.cy - cam.f * c[1] / c[2], s: cam.f / c[2], z: c[2] });
+  const proj = (p) => { const c = toCam(p); return c[2] > NEAR ? projC(c) : null; };
+
+  function hull(pts) {
+    pts = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
+    const crs = (o, a, b) => (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+    const lo = [], up = [];
+    for (const p of pts) { while (lo.length >= 2 && crs(lo[lo.length - 2], lo[lo.length - 1], p) <= 0) lo.pop(); lo.push(p); }
+    for (const p of pts.slice().reverse()) { while (up.length >= 2 && crs(up[up.length - 2], up[up.length - 1], p) <= 0) up.pop(); up.push(p); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+
+  function drawGround(E) {
+    const rgb = css("--grid");
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css("--sky-top")); g.addColorStop(1, css("--sky-bottom"));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 1;
+    const line = (a, b, alpha) => {
+      let ca = toCam(a), cb = toCam(b);
+      if (ca[2] < NEAR && cb[2] < NEAR) return;
+      if (ca[2] < NEAR) ca = add3(ca, mul3(sub3(cb, ca), (NEAR - ca[2]) / (cb[2] - ca[2])));
+      else if (cb[2] < NEAR) cb = add3(cb, mul3(sub3(ca, cb), (NEAR - cb[2]) / (ca[2] - cb[2])));
+      const p = projC(ca), q = projC(cb);
+      ctx.strokeStyle = `rgba(${rgb},${alpha})`;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+    };
+    for (let x = -20; x <= 20; x++) line([x, 0, -40], [x, 0, 16], x === 0 ? 0.2 : 0.08);
+    for (let z = -40; z <= 16; z++) line([-20, 0, z], [20, 0, z], 0.08);
+  }
+
+  function drawEnemy(E, T, offsetZ) {
+    const scale = E.scale;
+    // ルート（敵の本体）→ Motion（クリップ）→ 形
+    const toWorld = (p) => {
+      const local = add3(qRot(T.rot, [p[0] * T.scl[0], p[1] * T.scl[1], p[2] * T.scl[2]]), T.pos);
+      return [local[0] * scale, local[1] * scale, local[2] * scale + offsetZ];
+    };
+    // 影
+    const center = toWorld(BODIES[E.body].pivot);
+    const sp = proj([center[0], 0, center[2]]);
+    if (sp) {
+      const k = clamp(1.2 - center[1] * 0.4, 0.4, 1);
+      ctx.fillStyle = `rgba(0,0,0,${0.14 * k})`;
+      ctx.beginPath();
+      ctx.ellipse(sp.x, sp.y, 0.34 * scale * sp.s * k, 0.34 * scale * sp.s * k * Math.max(0.15, sin(state.pitch) * 1.1), 0, 0, TAU);
+      ctx.fill();
+    }
+    const items = [];
+    for (const sh of SHAPES[E.body]) {
+      const pts = UNIT.map((u) => proj(toWorld([sh.c[0] + u[0] * sh.r[0], sh.c[1] + u[1] * sh.r[1], sh.c[2] + u[2] * sh.r[2]])));
+      if (pts.some((p) => !p)) continue;
+      const cc = toCam(toWorld(sh.c));
+      items.push({ sh, pts: hull(pts), c: projC(cc), depth: cc[2] });
+    }
+    items.sort((a, b) => b.depth - a.depth);
+    for (const it of items) {
+      const col = it.sh.col === "$" ? E.color : it.sh.col;
+      if (it.sh.glow) {
+        const R = Math.max(4, Math.max(...it.pts.map((p) => Math.hypot(p.x - it.c.x, p.y - it.c.y))));
+        const g = ctx.createRadialGradient(it.c.x, it.c.y, 0, it.c.x, it.c.y, R * 3);
+        g.addColorStop(0, "rgba(255,255,240,0.9)"); g.addColorStop(0.3, "rgba(253,230,138,0.45)"); g.addColorStop(1, "rgba(253,230,138,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(it.c.x, it.c.y, R * 3, 0, TAU); ctx.fill();
+      }
+      ctx.globalAlpha = it.sh.a || 1;
+      ctx.beginPath();
+      it.pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.fillStyle = col;
+      ctx.fill();
+      const R = Math.max(...it.pts.map((p) => Math.hypot(p.x - it.c.x, p.y - it.c.y)));
+      const g = ctx.createRadialGradient(it.c.x - R * 0.3, it.c.y - R * 0.35, R * 0.05, it.c.x, it.c.y, R);
+      g.addColorStop(0, "rgba(255,255,255,0.35)"); g.addColorStop(0.5, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(0,0,0,0.22)");
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = css("--outline"); ctx.lineWidth = 1; ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // ---------- UI ----------
+  const enemySel = document.getElementById("enemy");
+  const clipsEl = document.getElementById("clips");
+  const descEl = document.getElementById("desc");
+  const infoEl = document.getElementById("clipInfo");
+  const eventEl = document.getElementById("event");
+  const timelineEl = document.getElementById("timeline");
+  ENEMIES.forEach((e, i) => {
+    const o = document.createElement("option");
+    o.value = i; o.textContent = `${e.id} ${e.name}（${BODIES[e.body].name}）`;
+    enemySel.appendChild(o);
+  });
+  function selectEnemy(i) {
+    state.enemy = i;
+    enemySel.value = String(i);
+    const E = ENEMIES[i];
+    descEl.textContent = E.desc;
+    clipsEl.innerHTML = "";
+    for (const name of E.clips) {
+      const b = document.createElement("button");
+      b.textContent = name;
+      b.dataset.clip = name;
+      b.addEventListener("click", () => { state.chain = null; playClip(name); });
+      clipsEl.appendChild(b);
+    }
+    state.chain = null;
+    playClip("Idle");
+  }
+  function playClip(name) {
+    const E = ENEMIES[state.enemy];
+    state.clip = name;
+    state.time = 0;
+    state.travel = 0;
+    const c = findClip(E.body, name);
+    infoEl.textContent = `${E.body}_${name}：${c.dur}秒・${c.loop ? "ループ" : "1回"}` + (c.events.length ? `・イベント ${c.events.map(([t, n]) => `${n}(${t}s)`).join(" ")}` : "");
+    clipsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.clip === name));
+  }
+  let eventTimer = 0;
+  function showEvent(name) { eventEl.textContent = `イベント：${name}`; eventEl.classList.add("show"); eventTimer = 0.6; }
+  enemySel.addEventListener("change", () => selectEnemy(+enemySel.value));
+
+  // ---------- ループ ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const E = ENEMIES[state.enemy];
+    let c = findClip(E.body, state.clip);
+    const prev = state.time;
+    if (state.playing) state.time += dt * state.speed;
+    for (const [t, n] of c.events) if (prev < t && state.time >= t) showEvent(n);
+    if (state.time >= c.dur) {
+      if (c.loop && !state.chain) state.time %= c.dur;
+      else {
+        // 1回きりのクリップは少し止めてから次へ（連続再生中は次のクリップ、それ以外は待機へ）
+        if (state.time >= c.dur + (c.name.startsWith("Death") ? 1.2 : 0.35)) {
+          if (state.chain) {
+            state.chain.i = (state.chain.i + 1) % E.clips.length;
+            playClip(E.clips[state.chain.i]);
+          } else playClip("Idle");
+          c = findClip(E.body, state.clip);
+        }
+      }
+    }
+    const t = Math.min(state.time, c.dur);
+    // 確認用：突進・転がりの区間だけ前へ動かす（Unity ではゲーム側が動かす）
+    let offsetZ = 0;
+    if (c.travel) offsetZ = c.travel.dist * clamp((t - c.travel.from) / (c.travel.to - c.travel.from), 0, 1) * (t < c.dur ? 1 : 0);
+
+    let dy = state.yawTarget - state.yaw;
+    dy = Math.atan2(sin(dy), cos(dy));
+    state.yaw += dy * Math.min(1, dt * 6);
+    eventTimer -= dt;
+    if (eventTimer <= 0) eventEl.classList.remove("show");
+    timelineEl.textContent = `${E.body}_${c.name}  ${t.toFixed(2)} / ${c.dur.toFixed(2)} 秒`;
+
+    setupCamera(E, offsetZ * 0.85);
+    drawGround(E);
+    drawEnemy(E, evalClip(c, t), offsetZ);
+    requestAnimationFrame(frame);
+  }
+
+  const playBtn = document.getElementById("play");
+  const togglePlay = () => {
+    state.playing = !state.playing;
+    playBtn.textContent = state.playing ? "一時停止" : "再生";
+    playBtn.classList.toggle("on", state.playing);
+  };
+  playBtn.addEventListener("click", togglePlay);
+  window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); togglePlay(); } });
+  document.getElementById("all").addEventListener("click", () => {
+    state.chain = { i: 0 };
+    playClip(ENEMIES[state.enemy].clips[0]);
+  });
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.yawTarget = (+b.dataset.view) * DEG;
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.getElementById("speed").addEventListener("input", (e) => { state.speed = +e.target.value; });
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, yaw: state.yawTarget, pitch: state.pitch }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.yawTarget = drag.yaw - (e.clientX - drag.x) * 0.008;
+    state.yaw = state.yawTarget;
+    state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.004, -0.2, 1.2);
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.remove("on"));
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+
+  selectEnemy(0);
+  requestAnimationFrame(frame);
+  window.__dm = { state, ENEMIES, CLIPS, playClip, selectEnemy, evalClip, findClip };
+})();
+</script>
+</body>
+</html>

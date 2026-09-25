@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ダンジョン雑魚・人型</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --sky-top: #e9e6de;
+    --sky-bottom: #f7f4ee;
+    --ink: #1c1a17;
+    --grid: 60, 52, 40;
+    --accent: #c2410c;
+    --panel: rgba(255, 255, 255, 0.86);
+    --panel-border: rgba(0, 0, 0, 0.1);
+    --muted: #6b645a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --sky-top: #0c0c0e;
+      --sky-bottom: #1b1a19;
+      --ink: #f2efe9;
+      --grid: 210, 200, 185;
+      --accent: #fb923c;
+      --panel: rgba(28, 27, 26, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --muted: #a39d93;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --sky-top: #0c0c0e;
+    --sky-bottom: #1b1a19;
+    --ink: #f2efe9;
+    --grid: 210, 200, 185;
+    --accent: #fb923c;
+    --panel: rgba(28, 27, 26, 0.88);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --muted: #a39d93;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .side {
+    position: fixed; top: 12px; left: 12px; width: min(300px, calc(100vw - 24px)); max-height: calc(100vh - 110px); overflow-y: auto;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; font-size: 13px; backdrop-filter: blur(8px);
+  }
+  .side h1 { font-size: 15px; margin: 0 0 8px; }
+  .side h2 { font-size: 12px; color: var(--muted); font-weight: 600; margin: 12px 0 6px; }
+  .side p { margin: 6px 0; line-height: 1.5; }
+  .muted { color: var(--muted); }
+  select { font: inherit; width: 100%; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--panel-border); background: transparent; color: var(--ink); }
+  select option { color: #1c1a17; }
+  .clips { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { font: inherit; color: var(--ink); background: transparent; border: 1px solid var(--panel-border); border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .panel {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); width: min(720px, calc(100vw - 32px));
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 12px; padding: 10px 14px;
+    display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; backdrop-filter: blur(8px); font-size: 13px;
+  }
+  .group { display: flex; gap: 6px; align-items: center; }
+  label { color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 110px; accent-color: var(--accent); }
+  .event { position: fixed; top: 16px; right: 16px; font-size: 14px; font-weight: 600; color: var(--accent); opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+  .event.show { opacity: 1; transition: none; }
+  .timeline { position: fixed; right: 16px; top: 44px; font-size: 12px; color: var(--muted); text-align: right; pointer-events: none; }
+  @media (max-width: 640px) { .side { max-height: 38vh; } }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="side">
+  <h1>ダンジョン雑魚・人型</h1>
+  <select id="enemy"></select>
+  <p id="desc" class="muted"></p>
+  <h2>クリップ</h2>
+  <div class="clips" id="clips"></div>
+  <p class="muted" id="clipInfo"></p>
+</div>
+<div class="event" id="event"></div>
+<div class="timeline" id="timeline"></div>
+<div class="panel">
+  <div class="group">
+    <button id="play" class="on">一時停止</button>
+    <button id="all">全クリップ連続</button>
+  </div>
+  <div class="group">
+    <button data-view="0">正面</button>
+    <button data-view="35" class="on">斜め</button>
+    <button data-view="90">側面</button>
+  </div>
+  <div class="group">
+    <label for="speed">速度</label>
+    <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ==POSE-BEGIN== （ここから POSE-END までは Unity 書き出しでも共有: tools/export_humanoid.mjs）
+  // 座標は Unity と同じ：+X 右、+Y 上、+Z 正面（足元が原点）。角度は度
+  const TAU = Math.PI * 2, DEG = Math.PI / 180;
+  const sin = Math.sin, cos = Math.cos;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const mul = (a, s) => [a[0] * s, a[1] * s, a[2] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const len = (a) => Math.hypot(a[0], a[1], a[2]);
+  const norm = (a) => { const l = len(a) || 1; return mul(a, 1 / l); };
+  // ベクトル v を軸 k（単位）まわりに deg 度回す
+  const rotAround = (v, k, deg) => {
+    const c = cos(deg * DEG), s = sin(deg * DEG);
+    return add(add(mul(v, c), mul(cross(k, v), s)), mul(k, dot(k, v) * (1 - c)));
+  };
+
+  // キー補間（dungeon_minor.html と同じ）
+  let registerTimes = null;
+  function K(keys) {
+    if (registerTimes) for (const k of keys) registerTimes.push(k[0]);
+    return (t) => {
+      if (t <= keys[0][0]) return keys[0][1];
+      for (let i = 0; i < keys.length - 1; i++) {
+        const [t0, v0] = keys[i], [t1, v1, ease] = keys[i + 1];
+        if (t <= t1) {
+          const u = (t - t0) / (t1 - t0);
+          const e = ease === "l" ? u : ease === "in" ? u * u * u : ease === "out" ? 1 - (1 - u) ** 3 : u * u * (3 - 2 * u);
+          if (Array.isArray(v0)) return v0.map((x, j) => x + (v1[j] - x) * e);
+          return v0 + (v1 - v0) * e;
+        }
+      }
+      return keys[keys.length - 1][1];
+    };
+  }
+  const env = (t, a, b) => (t <= a || t >= b ? 0 : sin(Math.PI * (t - a) / (b - a)) ** 2);
+
+  // ---------- 骨組み ----------
+  const UPPER_ARM = 0.28, FOREARM = 0.26, HAND = 0.09, THIGH = 0.44, SHIN = 0.44, PELVIS_Y = 0.95;
+  // 代理の骨組み（名前は Unity の HumanBodyBones と同じ）。HeadForward は顔の向きを表す目印
+  const JOINTS = [
+    ["Hips", null], ["Spine", "Hips"], ["Chest", "Spine"], ["Neck", "Chest"], ["Head", "Neck"], ["HeadForward", "Head"],
+    ["LeftUpperArm", "Chest"], ["LeftLowerArm", "LeftUpperArm"], ["LeftHand", "LeftLowerArm"], ["LeftHandTip", "LeftHand"],
+    ["RightUpperArm", "Chest"], ["RightLowerArm", "RightUpperArm"], ["RightHand", "RightLowerArm"], ["RightHandTip", "RightHand"],
+    ["LeftUpperLeg", "Hips"], ["LeftLowerLeg", "LeftUpperLeg"], ["LeftFoot", "LeftLowerLeg"], ["LeftToes", "LeftFoot"],
+    ["RightUpperLeg", "Hips"], ["RightLowerLeg", "RightUpperLeg"], ["RightFoot", "RightLowerLeg"], ["RightToes", "RightFoot"],
+  ];
+
+  function ik(S, W, l1, l2, pole) {
+    const d = sub(W, S);
+    // 伸び切る手前でなめらかに頭打ちにする（肘・膝が急にはね返らないように）
+    const L = l1 + l2, knee = 0.9 * L;
+    let dl = Math.max(len(d), 0.05);
+    if (dl > knee) dl = knee + 0.08 * L * (1 - Math.exp(-(dl - knee) / (0.08 * L)));
+    const dir = norm(d);
+    const end = add(S, mul(dir, dl));
+    const a = (l1 * l1 - l2 * l2 + dl * dl) / (2 * dl);
+    const h = Math.sqrt(Math.max(0, l1 * l1 - a * a));
+    const p = norm(sub(pole, mul(dir, dot(pole, dir))));
+    return { mid: add(add(S, mul(dir, a)), mul(p, h)), end };
+  }
+
+  // 姿勢パラメータ（省略した項目は立ち姿）
+  //   root   腰の位置のずれ [x,y,z]      offset 全身の平行移動（沈む・浮く）
+  //   yaw    全身の向き（度）            fall   足元を軸に全身を前後に倒す（度、- で後ろへ）
+  //   lean   上体の前傾   bend 横曲げ   twist 胸のひねり
+  //   headPitch 顔を上げる  headYaw 顔を横へ
+  //   armL / armR  手首の目標（肩から見た胸の座標：x は外側、y 上、z 前）
+  //   handL / handR 手首の反らし（度）   poleL / poleR 肘を曲げる向き
+  //   footL / footR 足首の目標（足元の座標：x は外側へのずれ、y 高さ、z 前）
+  const DEFAULT = {
+    root: [0, 0, 0], offset: [0, 0, 0], yaw: 0, fall: 0, lean: 3, bend: 0, twist: 0, headPitch: 0, headYaw: 0,
+    armL: [0.06, -0.52, 0.05], armR: [0.06, -0.52, 0.05], handL: 10, handR: 10, footL: [0, 0, 0], footR: [0, 0, 0],
+    poleL: [0.6, -0.4, -0.6], poleR: [0.6, -0.4, -0.6],   // 肘を曲げる向き（胸の座標：x 外側、y 上、z 前）
+  };
+
+  function buildPose(p) {
+    p = { ...DEFAULT, ...p };
+    const J = {};
+    const pelvis = [p.root[0], PELVIS_Y + p.root[1], p.root[2]];
+    const spineDir = (l, b) => norm([sin(b * DEG), cos(l * DEG) * cos(b * DEG), sin(l * DEG)]);
+    J.Hips = pelvis;
+    J.Spine = add(pelvis, mul(spineDir(p.lean * 0.5, p.bend * 0.5), 0.12));
+    J.Chest = add(J.Spine, mul(spineDir(p.lean * 0.8, p.bend * 0.8), 0.22));
+    const up = spineDir(p.lean, p.bend);
+    let right = norm(cross(up, [0, 0, 1]));
+    right = rotAround(right, up, -p.twist);
+    const fwd = cross(right, up);
+    J.Neck = add(J.Chest, mul(up, 0.2));
+    const headAxis = rotAround(up, right, -p.headPitch * 0.6);
+    J.Head = add(J.Neck, mul(headAxis, 0.1));
+    let face = rotAround(fwd, right, -p.headPitch);
+    face = rotAround(face, headAxis, -p.headYaw);
+    J.HeadForward = add(J.Head, mul(face, 0.12));
+    for (const [side, s] of [["Left", -1], ["Right", 1]]) {
+      const sh = add(add(J.Chest, mul(right, s * 0.18)), mul(up, 0.14));
+      const a = side === "Left" ? p.armL : p.armR;
+      const target = add(sh, add(add(mul(right, s * a[0]), mul(up, a[1])), mul(fwd, a[2])));
+      const pl = side === "Left" ? p.poleL : p.poleR;
+      const pole = add(add(mul(right, s * pl[0]), mul(up, pl[1])), mul(fwd, pl[2]));
+      const { mid, end } = ik(sh, target, UPPER_ARM, FOREARM, pole);
+      const fa = norm(sub(end, mid));
+      let perp = sub(up, mul(fa, dot(up, fa)));
+      perp = len(perp) < 1e-3 ? fwd : norm(perp);
+      const flex = (side === "Left" ? p.handL : p.handR) * DEG;
+      J[side + "UpperArm"] = sh; J[side + "LowerArm"] = mid; J[side + "Hand"] = end;
+      J[side + "HandTip"] = add(end, mul(norm(add(mul(fa, cos(flex)), mul(perp, sin(flex)))), HAND));
+      const hip = add(pelvis, [s * 0.1, -0.06, 0]);
+      const f = side === "Left" ? p.footL : p.footR;
+      const ankleT = [s * 0.12 + s * f[0], 0.08 + f[1], f[2]];
+      const leg = ik(hip, ankleT, THIGH, SHIN, [s * 0.1, 0, 1]);
+      J[side + "UpperLeg"] = hip; J[side + "LowerLeg"] = leg.mid; J[side + "Foot"] = leg.end;
+      const raise = clamp((f[1] - 0.05) / 0.15, 0, 1);   // 足を上げるほどつま先を水平に（なめらかに切り替える）
+      const toeDir = norm([s * 0.1, -0.3 + 0.3 * raise * raise * (3 - 2 * raise), 1]);
+      J[side + "Toes"] = add(leg.end, mul(toeDir, 0.14));
+    }
+    // 全身：足元を軸に倒す → 向きを変える → 平行移動
+    for (const k of Object.keys(J)) {
+      let v = J[k];
+      if (p.fall) v = rotAround(v, [1, 0, 0], p.fall);
+      if (p.yaw) v = rotAround(v, [0, 1, 0], p.yaw);
+      J[k] = add(v, p.offset);
+    }
+    return J;
+  }
+
+  // 歩き・走り（片足の周期 period、歩幅 stride、足の上がり lift、dir = 1 前進 / -1 後退）
+  function gait(t, o) {
+    const { period = 1.0, stride = 0.5, lift = 0.1, bob = 0.03, swing = 0.2, dir = 1 } = o;
+    const u = t / period;
+    const foot = (ph) => [0, lift * Math.max(0, cos(TAU * ph)) ** 2 * (dir > 0 ? 1 : 0.8), dir * stride / 2 * sin(TAU * ph)];
+    return {
+      footL: foot(u), footR: foot(u + 0.5),
+      root: [0, -bob * (1 + cos(2 * TAU * u)) / 2 - 0.03, 0],
+      armSwingL: -swing * sin(TAU * u), armSwingR: -swing * sin(TAU * (u + 0.5)),
+    };
+  }
+
+  const CLIPS = [];
+  function clip(rig, name, dur, loop, events, build) {
+    registerTimes = [0, dur];
+    const sample = build();
+    for (const [t] of events) registerTimes.push(t);
+    const times = [...new Set(registerTimes)].filter((t) => t >= 0 && t <= dur).sort((a, b) => a - b);
+    registerTimes = null;
+    CLIPS.push({ rig, name, dur, loop, events, times, sample });
+  }
+  const evalClip = (c, t) => buildPose(c.sample(clamp(t, 0, c.dur)));
+
+  // 共通：被弾・倒れる
+  function hitClip(rig, base) {
+    clip(rig, "Hit", 0.45, false, [], () => {
+      const lean = K([[0, base.lean ?? 3], [0.08, (base.lean ?? 3) - 18, "out"], [0.45, base.lean ?? 3]]);
+      const rz = K([[0, 0], [0.08, -0.1, "out"], [0.45, 0]]);
+      const tw = K([[0, base.twist ?? 0], [0.08, (base.twist ?? 0) + 12, "out"], [0.45, base.twist ?? 0]]);
+      return (t) => ({ ...base, lean: lean(t), twist: tw(t), headPitch: 15 * env(t, 0, 0.3), root: add(base.root || [0, 0, 0], [0, -0.03 * env(t, 0, 0.3), rz(t)]) });
+    });
+  }
+  function deathFall(rig, base, o = {}) {
+    const { name = "Death", dir = -1, dur = 1.8, ev = "Down" } = o;
+    clip(rig, name, dur, false, [[1.2, ev]], () => {
+      const fall = K([[0, 0], [0.4, 0], [1.2, dir * 82, "in"], [1.32, dir * 76, "out"], [1.45, dir * 82], [dur, dir * 82]]);
+      const drop = K([[0, 0], [0.4, -0.15], [1.2, -0.2], [dur, -0.2]]);
+      const lift = K([[0, 0], [1.2, 0.12], [dur, 0.12]]);
+      return (t) => ({
+        ...base, root: add(base.root || [0, 0, 0], [0, drop(t), 0]), fall: fall(t), offset: [0, lift(t), 0],
+        lean: (base.lean ?? 3) * (1 - clamp(t / 1.2, 0, 1)) + 10 * env(t, 0, 0.6), headPitch: dir < 0 ? 20 * clamp(t / 1.2, 0, 1) : -30 * clamp(t / 1.2, 0, 1),
+        armL: [0.25, -0.3, 0.05], armR: [0.25, -0.3, 0.05],
+      });
+    });
+  }
+
+  // ---------- EN-12 狼の獣人：拳を構えるファイター ----------
+  const WOLF_STANCE = { root: [0, -0.07, 0], lean: 10, armL: [-0.04, 0.02, 0.3], armR: [-0.06, -0.02, 0.26], handL: 30, handR: 30, footL: [0.02, 0, 0.16], footR: [0.02, 0, -0.12], twist: -8 };
+  clip("Wolfman", "Idle", 2.0, true, [], () => (t) => ({ ...WOLF_STANCE, root: [0, -0.07 + 0.02 * sin(TAU * 2 * t / 2), 0], bend: 2 * sin(TAU * t / 2) }));
+  clip("Wolfman", "Move", 0.6, true, [], () => (t) => {
+    const g = gait(t, { period: 0.6, stride: 0.9, lift: 0.25, bob: 0.05, swing: 0.3 });
+    return { root: g.root, lean: 16, footL: g.footL, footR: g.footR, armL: [0.02, -0.25, 0.15 + g.armSwingL], armR: [0.02, -0.25, 0.15 + g.armSwingR], handL: 30, handR: 30 };
+  });
+  clip("Wolfman", "Attack_Punch", 1.0, false, [[0.4, "Hit"]], () => {
+    const armR = K([[0, WOLF_STANCE.armR], [0.25, [0.02, -0.02, 0.1]], [0.4, [-0.12, 0.04, 0.53], "in"], [0.6, [-0.1, 0.03, 0.5]], [1.0, WOLF_STANCE.armR]]);
+    const twist = K([[0, -8], [0.25, -25], [0.4, 25, "in"], [0.6, 20], [1.0, -8]]);
+    const z = K([[0, 0], [0.25, -0.03], [0.4, 0.15, "in"], [0.6, 0.15], [1.0, 0]]);
+    return (t) => ({ ...WOLF_STANCE, armR: armR(t), twist: twist(t), root: [0, -0.07, z(t)], lean: 12 });
+  });
+  clip("Wolfman", "Attack_Kick", 1.2, false, [[0.5, "Hit"]], () => {
+    const footR = K([[0, WOLF_STANCE.footR], [0.3, [0.02, 0.45, 0.25]], [0.5, [0.02, 0.72, 0.62], "in"], [0.8, [0.02, 0.4, 0.2]], [1.2, WOLF_STANCE.footR]]);
+    const lean = K([[0, 10], [0.3, -5], [0.5, -20, "in"], [0.8, 0], [1.2, 10]]);
+    return (t) => ({ ...WOLF_STANCE, footR: footR(t), lean: lean(t), root: [0, -0.04, 0] });
+  });
+  clip("Wolfman", "Howl", 1.6, false, [[0.5, "Howl"]], () => {
+    // 吠えて仲間を呼ぶ
+    const a = K([[0, 0], [0.4, 1], [1.3, 1], [1.6, 0]]);
+    return (t) => {
+      const k = a(t);
+      const mix = (x, y) => x.map((v, i) => v + (y[i] - v) * k);
+      return { ...WOLF_STANCE, lean: 10 - 25 * k, headPitch: 60 * k, twist: -8 * (1 - k), root: [0, -0.07 + 0.05 * k, 0],
+        armL: mix(WOLF_STANCE.armL, [0.3, -0.35, 0.1]), armR: mix(WOLF_STANCE.armR, [0.3, -0.35, 0.1]) };
+    };
+  });
+  hitClip("Wolfman", WOLF_STANCE);
+  deathFall("Wolfman", WOLF_STANCE);
+
+  // ---------- EN-13 狼の獣人（弓） ----------
+  const ARCHER = { lean: 4, armL: [0.05, -0.45, 0.18], armR: [0.06, -0.5, 0.05], handL: 0, footL: [0, 0, 0.08], footR: [0, 0, -0.06] };
+  clip("Archer", "Idle", 2.2, true, [], () => (t) => ({ ...ARCHER, root: [0, 0.01 * sin(TAU * t / 2.2), 0], bend: 1.5 * sin(TAU * t / 2.2) }));
+  clip("Archer", "Move_Back", 0.8, true, [], () => (t) => {
+    // 正面を向いたまま後ろへ下がる
+    const g = gait(t, { period: 0.8, stride: 0.45, lift: 0.08, bob: 0.02, swing: 0.1, dir: -1 });
+    return { ...ARCHER, root: g.root, footL: g.footL, footR: g.footR, lean: 6 };
+  });
+  clip("Archer", "Attack_Bow", 2.0, false, [[1.2, "Shoot"]], () => {
+    // 弓を構え（左腕を前へ）→ 右手で弦を頬まで引く → 放つ
+    const armL = K([[0, ARCHER.armL], [0.4, [-0.02, 0.06, 0.55]], [1.4, [-0.02, 0.06, 0.55]], [2.0, ARCHER.armL]]);
+    const armR = K([[0, ARCHER.armR], [0.4, [-0.28, 0.06, 0.5]], [1.0, [-0.14, 0.08, 0.04]], [1.2, [-0.14, 0.08, 0.04]], [1.3, [0.12, 0.06, -0.08], "out"], [2.0, ARCHER.armR]]);
+    const twist = K([[0, 0], [0.4, -25], [1.2, -30], [1.5, -25], [2.0, 0]]);
+    // 弦を引く右腕は肘を後ろへ張る
+    const poleR = K([[0, [0.6, -0.4, -0.6]], [0.4, [0.3, 0.1, -1]], [1.5, [0.3, 0.1, -1]], [2.0, [0.6, -0.4, -0.6]]]);
+    return (t) => ({ ...ARCHER, armL: armL(t), armR: armR(t), poleR: poleR(t), twist: twist(t), headYaw: -twist(t) * 0.8, handL: 0, handR: 20 });
+  });
+  hitClip("Archer", ARCHER);
+  deathFall("Archer", ARCHER);
+
+  // ---------- EN-09 溺れた村人：うなだれて、ゆっくり歩き、掴みかかる ----------
+  const DROWNED = { lean: 16, headPitch: -22, armL: [0.02, -0.45, 0.18], armR: [0.04, -0.48, 0.14], handL: -10, handR: -10 };
+  clip("Drowned", "Idle", 2.6, true, [], () => (t) => ({ ...DROWNED, bend: 5 * sin(TAU * t / 2.6), root: [0, -0.02, 0], headYaw: 6 * sin(TAU * t / 2.6 + 1) }));
+  clip("Drowned", "Move", 1.6, true, [], () => (t) => {
+    // 足を引きずるように遅く歩く。腕を前へ伸ばす
+    const g = gait(t, { period: 1.6, stride: 0.35, lift: 0.05, bob: 0.03, swing: 0.05 });
+    return { ...DROWNED, root: g.root, footL: g.footL, footR: g.footR, lean: 18, bend: 6 * sin(TAU * t / 1.6),
+      armL: [-0.02, -0.15 + 0.03 * sin(TAU * t / 1.6), 0.45], armR: [-0.02, -0.18 - 0.03 * sin(TAU * t / 1.6), 0.45] };
+  });
+  clip("Drowned", "Attack_Grab", 2.6, false, [[0.7, "Grab"], [2.2, "Release"]], () => {
+    // 腕を伸ばして掴みかかる → 1.5 秒つかんで離さない → 離す
+    const reach = K([[0, 0], [0.5, 1], [2.2, 1], [2.6, 0]]);
+    const z = K([[0, 0], [0.5, 0], [0.7, 0.35, "in"], [2.2, 0.35], [2.6, 0]]);
+    const lean = K([[0, 16], [0.5, 10], [0.7, 25, "in"], [2.2, 25], [2.6, 16]]);
+    return (t) => {
+      const k = reach(t), sh = 0.03 * sin(TAU * 6 * t) * env(t, 0.7, 2.2);
+      const mix = (x, y) => x.map((v, i) => v + (y[i] - v) * k);
+      return { ...DROWNED, root: [0, -0.03, z(t)], lean: lean(t), headPitch: -22 + 20 * k,
+        armL: add(mix(DROWNED.armL, [-0.08, 0.02, 0.48]), [0, sh, 0]), armR: add(mix(DROWNED.armR, [-0.08, 0.02, 0.48]), [0, -sh, 0]) };
+    };
+  });
+  hitClip("Drowned", DROWNED);
+  deathFall("Drowned", DROWNED, { dir: 1 });
+
+  // ---------- EN-33 罪人の影：影から影へ移る ----------
+  const SHADE = { lean: 25, headPitch: -10, root: [0, -0.08, 0], armL: [0.1, -0.4, 0.2], armR: [0.1, -0.4, 0.2], handL: -20, handR: -20, footL: [0.03, 0, 0.1], footR: [0.03, 0, -0.1] };
+  clip("Shade", "Idle", 2.0, true, [], () => (t) => ({ ...SHADE, bend: 4 * sin(TAU * t / 2), root: [0, -0.08 + 0.015 * sin(TAU * 2 * t / 2), 0] }));
+  clip("Shade", "Move", 0.8, true, [], () => (t) => {
+    const g = gait(t, { period: 0.8, stride: 0.5, lift: 0.08, bob: 0.03, swing: 0.12 });
+    return { ...SHADE, root: add(g.root, [0, -0.06, 0]), footL: g.footL, footR: g.footR, armL: [0.1, -0.4, 0.2 + g.armSwingL], armR: [0.1, -0.4, 0.2 + g.armSwingR] };
+  });
+  clip("Shade", "Sink", 1.0, false, [[0.9, "Hidden"]], () => {
+    // うずくまって影に沈む（明るい場所から逃げるとき・移るとき）
+    const crouch = K([[0, 0], [0.35, 1], [1.0, 1]]);
+    const off = K([[0, 0], [0.3, 0], [0.95, -1.9, "in"], [1.0, -1.9]]);
+    return (t) => ({ ...SHADE, root: [0, -0.08 - 0.3 * crouch(t), 0], lean: 25 + 20 * crouch(t), offset: [0, off(t), 0], armL: [0.15, -0.5, 0.25], armR: [0.15, -0.5, 0.25] });
+  });
+  clip("Shade", "Rise", 1.0, false, [[0.5, "Emerge"]], () => {
+    const crouch = K([[0, 1], [0.6, 1], [1.0, 0]]);
+    const off = K([[0, -1.9], [0.6, 0, "out"], [1.0, 0]]);
+    return (t) => ({ ...SHADE, root: [0, -0.08 - 0.3 * crouch(t), 0], lean: 25 + 20 * crouch(t), offset: [0, off(t), 0] });
+  });
+  clip("Shade", "Attack_Claw", 1.1, false, [[0.5, "Hit"]], () => {
+    // 右腕を振り上げ、斜めに引き裂く
+    const armR = K([[0, SHADE.armR], [0.3, [0.22, 0.32, 0.05]], [0.5, [-0.25, -0.28, 0.45], "in"], [0.7, [-0.25, -0.3, 0.42]], [1.1, SHADE.armR]]);
+    const lean = K([[0, 25], [0.3, 5], [0.5, 30, "in"], [1.1, 25]]);
+    const z = K([[0, 0], [0.3, -0.05], [0.5, 0.25, "in"], [0.7, 0.25], [1.1, 0]]);
+    const tw = K([[0, 0], [0.3, -20], [0.5, 20, "in"], [1.1, 0]]);
+    return (t) => ({ ...SHADE, armR: armR(t), lean: lean(t), twist: tw(t), root: [0, -0.08, z(t)] });
+  });
+  hitClip("Shade", SHADE);
+  clip("Shade", "Death", 1.6, false, [[1.5, "Vanish"]], () => {
+    // 膝から崩れ、影に溶けて消える
+    const crouch = K([[0, 0], [0.6, 1], [1.6, 1]]);
+    const off = K([[0, 0], [0.6, 0], [1.6, -1.9, "in"]]);
+    return (t) => ({ ...SHADE, root: [0, -0.08 - 0.35 * crouch(t), 0], lean: 25 + 25 * crouch(t), headPitch: -40, offset: [0, off(t), 0], armL: [0.2, -0.55, 0.2], armR: [0.2, -0.55, 0.2] });
+  });
+
+  // ---------- EN-54 光の番人：光の道の上に現れ、光の矢を撃つ ----------
+  const GUARD = { lean: 0, armL: [0.15, -0.45, 0.1], armR: [0.15, -0.45, 0.1], handL: 30, handR: 30 };
+  clip("Guardian", "Idle", 3.0, true, [], () => (t) => ({ ...GUARD, offset: [0, 0.03 * sin(TAU * t / 1.5), 0], bend: 1.5 * sin(TAU * t / 3) }));
+  clip("Guardian", "Appear", 1.2, false, [[0.6, "Visible"]], () => {
+    // 片膝をついた姿から立ち上がって現れる
+    const k = K([[0, 1], [0.3, 1], [1.1, 0], [1.2, 0]]);
+    return (t) => ({ ...GUARD, root: [0, -0.42 * k(t), 0], footL: [0, 0, 0.25 * k(t)], footR: [0, 0.02 * k(t), -0.3 * k(t)], lean: 15 * k(t), headPitch: -30 * k(t) });
+  });
+  clip("Guardian", "Attack_Shoot", 1.8, false, [[1.1, "Shoot"]], () => {
+    // 左手を前へかざして光の弓を作り、右手で引いて放つ
+    const armL = K([[0, GUARD.armL], [0.4, [-0.04, 0.08, 0.55]], [1.3, [-0.04, 0.08, 0.55]], [1.8, GUARD.armL]]);
+    const armR = K([[0, GUARD.armR], [0.4, [-0.25, 0.08, 0.45]], [0.9, [-0.12, 0.1, 0.08]], [1.1, [-0.12, 0.1, 0.08]], [1.2, [0.2, 0.05, -0.05], "out"], [1.8, GUARD.armR]]);
+    const tw = K([[0, 0], [0.4, -20], [1.1, -25], [1.4, -20], [1.8, 0]]);
+    const poleR = K([[0, [0.6, -0.4, -0.6]], [0.4, [0.3, 0.1, -1]], [1.4, [0.3, 0.1, -1]], [1.8, [0.6, -0.4, -0.6]]]);
+    return (t) => ({ ...GUARD, armL: armL(t), armR: armR(t), poleR: poleR(t), twist: tw(t), headYaw: -tw(t) * 0.8, handL: 45, handR: 10, offset: [0, 0.02, 0] });
+  });
+  hitClip("Guardian", GUARD);
+  clip("Guardian", "Death", 1.6, false, [[1.5, "Vanish"]], () => {
+    // 片膝をつき、うなだれて消える
+    const k = K([[0, 0], [0.8, 1], [1.6, 1]]);
+    return (t) => ({ ...GUARD, root: [0, -0.42 * k(t), 0], footL: [0, 0, 0.25 * k(t)], footR: [0, 0.02 * k(t), -0.3 * k(t)], lean: 20 * k(t), headPitch: -40 * k(t), armL: [0.2, -0.5, 0.15], armR: [0.2, -0.5, 0.15] });
+  });
+
+  const RIGS = {
+    Wolfman: { name: "拳で戦う獣人" }, Archer: { name: "弓を撃つ獣人" }, Drowned: { name: "溺れた死者" },
+    Shade: { name: "影の人" }, Guardian: { name: "光の人影" },
+  };
+  const ENEMIES = [
+    { id: "EN-09", name: "溺れた村人", rig: "Drowned", color: "#475569", clips: ["Idle", "Move", "Attack_Grab", "Hit", "Death"],
+      desc: "水の中からゆっくり歩いてきて掴みかかる（Grab〜Release の1.5秒つかんで離さない）。未作成モデル：水に濡れた村人の死者" },
+    { id: "EN-12", name: "狼の獣人", rig: "Wolfman", color: "#57534e", clips: ["Idle", "Move", "Attack_Punch", "Attack_Kick", "Howl", "Hit", "Death"],
+      desc: "パンチとキック。1体が吠える（Howl）と周りも寄ってくる" },
+    { id: "EN-13", name: "狼の獣人（弓）", rig: "Archer", color: "#78716c", clips: ["Idle", "Move_Back", "Attack_Bow", "Hit", "Death"],
+      desc: "崖の上から矢を撃つ（Shoot）。近づくと下がる（Move_Back）" },
+    { id: "EN-33", name: "罪人の影", rig: "Shade", color: "#18181b", clips: ["Idle", "Move", "Sink", "Rise", "Attack_Claw", "Hit", "Death"],
+      desc: "影から影へ移る（Sink → Hidden、Rise → Emerge）。未作成モデル：黒い人影" },
+    { id: "EN-54", name: "光の番人", rig: "Guardian", color: "#fbbf24", clips: ["Idle", "Appear", "Attack_Shoot", "Hit", "Death"],
+      desc: "光の道の上にだけ現れ（Appear）、光の矢を撃つ（Shoot）。未作成モデル：光でできた人影" },
+  ];
+  const REST = buildPose({});   // 代理の骨組みの初期姿勢（立ち姿）
+  // ==POSE-END==
+
+  const findClip = (rig, name) => CLIPS.find((c) => c.rig === rig && c.name === name);
+
+  // ---------- 描画 ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  const state = { playing: true, speed: 1, enemy: 0, clip: "Idle", time: 0, chain: null, yaw: 35 * DEG, yawTarget: 35 * DEG, pitch: 0.18 };
+  let cam = null;
+  function setupCamera() {
+    const target = [0, 0.95, 0.2], dist = 3.6, cp = cos(state.pitch);
+    const pos = add(target, [sin(state.yaw) * cp * dist, sin(state.pitch) * dist, cos(state.yaw) * cp * dist]);
+    const F = norm(sub(target, pos)), R = norm(cross([0, 1, 0], F)), U = cross(F, R);
+    cam = { pos, F, R, U, f: Math.min(W, H * 1.4) * 0.9, cx: W / 2 + Math.min(150, W * 0.12), cy: H * 0.55 };
+  }
+  const NEAR = 0.2;
+  const toCam = (p) => { const q = sub(p, cam.pos); return [dot(q, cam.R), dot(q, cam.U), dot(q, cam.F)]; };
+  const projC = (c) => ({ x: cam.cx + cam.f * c[0] / c[2], y: cam.cy - cam.f * c[1] / c[2], s: cam.f / c[2], z: c[2] });
+  const proj = (p) => { const c = toCam(p); return c[2] > NEAR ? projC(c) : null; };
+
+  function drawGround() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css("--sky-top")); g.addColorStop(1, css("--sky-bottom"));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    const rgb = css("--grid");
+    ctx.lineWidth = 1;
+    const line = (a, b, al) => {
+      let ca = toCam(a), cb = toCam(b);
+      if (ca[2] < NEAR && cb[2] < NEAR) return;
+      if (ca[2] < NEAR) ca = add(ca, mul(sub(cb, ca), (NEAR - ca[2]) / (cb[2] - ca[2])));
+      else if (cb[2] < NEAR) cb = add(cb, mul(sub(ca, cb), (NEAR - cb[2]) / (ca[2] - cb[2])));
+      const p = projC(ca), q = projC(cb);
+      ctx.strokeStyle = `rgba(${rgb},${al})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+    };
+    for (let x = -20; x <= 20; x++) line([x, 0, -40], [x, 0, 16], x === 0 ? 0.2 : 0.08);
+    for (let z = -40; z <= 16; z++) line([-20, 0, z], [20, 0, z], 0.08);
+  }
+
+  const BONES = [
+    ["Hips", "Spine"], ["Spine", "Chest"], ["Chest", "Neck"], ["Neck", "Head"],
+    ["Chest", "LeftUpperArm"], ["LeftUpperArm", "LeftLowerArm"], ["LeftLowerArm", "LeftHand"], ["LeftHand", "LeftHandTip"],
+    ["Chest", "RightUpperArm"], ["RightUpperArm", "RightLowerArm"], ["RightLowerArm", "RightHand"], ["RightHand", "RightHandTip"],
+    ["Hips", "LeftUpperLeg"], ["LeftUpperLeg", "LeftLowerLeg"], ["LeftLowerLeg", "LeftFoot"], ["LeftFoot", "LeftToes"],
+    ["Hips", "RightUpperLeg"], ["RightUpperLeg", "RightLowerLeg"], ["RightLowerLeg", "RightFoot"], ["RightFoot", "RightToes"],
+  ];
+  function drawFigure(E, J) {
+    const color = E.color;
+    // 影（地面より下に沈んでいるときは描かない）
+    const sp = proj([J.Hips[0], 0, J.Hips[2]]);
+    if (sp && J.Head[1] > 0) {
+      ctx.fillStyle = "rgba(0,0,0,0.13)";
+      ctx.beginPath(); ctx.ellipse(sp.x, sp.y, 0.35 * sp.s, 0.35 * sp.s * Math.max(0.15, sin(state.pitch) * 1.2), 0, 0, TAU); ctx.fill();
+    }
+    // 地面より下は切り取る（沈む動きの確認用）
+    const gy = proj([J.Hips[0], 0, J.Hips[2]]);
+    ctx.save();
+    if (gy) { ctx.beginPath(); ctx.rect(0, 0, W, gy.y + 4); ctx.clip(); }
+    const items = BONES.map(([a, b]) => ({ a: J[a], b: J[b], depth: (toCam(J[a])[2] + toCam(J[b])[2]) / 2, w: b.endsWith("Tip") || b.endsWith("Toes") ? 0.03 : 0.05 }));
+    items.push({ head: true, depth: toCam(J.Head)[2] });
+    items.sort((x, y) => y.depth - x.depth);
+    ctx.lineCap = "round";
+    for (const it of items) {
+      if (it.head) {
+        const p = proj(J.Head); if (!p) continue;
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(p.x, p.y, 0.11 * p.s, 0, TAU); ctx.fill();
+        // 顔の向きの目印（目）
+        const f = norm(sub(J.HeadForward, J.Head));
+        if (dot(f, norm(sub(cam.pos, J.Head))) > 0.05) {
+          const side = norm(cross([0, 1, 0], f));
+          for (const s of [-1, 1]) {
+            const e = proj(add(add(J.Head, mul(f, 0.095)), add(mul(side, s * 0.04), [0, 0.02, 0])));
+            if (e) { ctx.fillStyle = E.id === "EN-54" ? "#fff7d6" : "#fbbf24"; ctx.beginPath(); ctx.arc(e.x, e.y, Math.max(1, 0.016 * e.s), 0, TAU); ctx.fill(); }
+          }
+        }
+        // 狼の耳
+        if (E.rig === "Wolfman" || E.rig === "Archer") {
+          const up = norm(sub(J.Head, J.Neck)), side = norm(cross(up, f));
+          for (const s of [-1, 1]) {
+            const base = add(J.Head, add(mul(up, 0.08), mul(side, s * 0.06)));
+            const pa = proj(base), pb = proj(add(base, add(mul(up, 0.09), mul(side, s * 0.02))));
+            if (pa && pb) { ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, 0.035 * pa.s); ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke(); }
+          }
+        }
+        continue;
+      }
+      const pa = proj(it.a), pb = proj(it.b);
+      if (!pa || !pb) continue;
+      ctx.strokeStyle = color; ctx.lineWidth = Math.max(1, it.w * (pa.s + pb.s) / 2);
+      ctx.beginPath(); ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y); ctx.stroke();
+    }
+    // 弓（EN-13）：左手に持つ
+    if (E.rig === "Archer") {
+      const h = J.LeftHand, fa = norm(sub(J.LeftHand, J.LeftLowerArm)), up = [0, 1, 0];
+      const side = norm(cross(fa, up)), vert = norm(cross(side, fa));
+      const pts = [];
+      for (let i = 0; i <= 12; i++) { const a = (i / 12 - 0.5) * 2.2; pts.push(add(h, add(mul(vert, sin(a) * 0.5), mul(fa, (cos(a) - 1) * -0.12)))); }
+      ctx.strokeStyle = "#7c2d12"; ctx.lineWidth = 3; ctx.beginPath();
+      pts.map(proj).forEach((p, i) => p && (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- UI ----------
+  const enemySel = document.getElementById("enemy"), clipsEl = document.getElementById("clips");
+  const descEl = document.getElementById("desc"), infoEl = document.getElementById("clipInfo");
+  const eventEl = document.getElementById("event"), timelineEl = document.getElementById("timeline");
+  ENEMIES.forEach((e, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${e.id} ${e.name}`; enemySel.appendChild(o); });
+  function selectEnemy(i) {
+    state.enemy = i; enemySel.value = String(i);
+    const E = ENEMIES[i];
+    descEl.textContent = E.desc;
+    clipsEl.innerHTML = "";
+    for (const name of E.clips) {
+      const b = document.createElement("button"); b.textContent = name; b.dataset.clip = name;
+      b.addEventListener("click", () => { state.chain = null; playClip(name); });
+      clipsEl.appendChild(b);
+    }
+    state.chain = null; playClip("Idle");
+  }
+  function playClip(name) {
+    const E = ENEMIES[state.enemy];
+    state.clip = name; state.time = 0;
+    const c = findClip(E.rig, name);
+    infoEl.textContent = `${E.rig}_${name}：${c.dur}秒・${c.loop ? "ループ" : "1回"}` + (c.events.length ? `・イベント ${c.events.map(([t, n]) => `${n}(${t}s)`).join(" ")}` : "");
+    clipsEl.querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.clip === name));
+  }
+  let eventTimer = 0;
+  enemySel.addEventListener("change", () => selectEnemy(+enemySel.value));
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const E = ENEMIES[state.enemy];
+    let c = findClip(E.rig, state.clip);
+    const prev = state.time;
+    if (state.playing) state.time += dt * state.speed;
+    for (const [t, n] of c.events) if (prev < t && state.time >= t) { eventEl.textContent = `イベント：${n}`; eventEl.classList.add("show"); eventTimer = 0.6; }
+    if (state.time >= c.dur) {
+      if (c.loop && !state.chain) state.time %= c.dur;
+      else if (state.time >= c.dur + (c.name.startsWith("Death") ? 1.2 : 0.35)) {
+        if (state.chain) { state.chain.i = (state.chain.i + 1) % E.clips.length; playClip(E.clips[state.chain.i]); }
+        else playClip("Idle");
+        c = findClip(E.rig, state.clip);
+      }
+    }
+    const t = Math.min(state.time, c.dur);
+    let dy = state.yawTarget - state.yaw; dy = Math.atan2(sin(dy), cos(dy)); state.yaw += dy * Math.min(1, dt * 6);
+    eventTimer -= dt; if (eventTimer <= 0) eventEl.classList.remove("show");
+    timelineEl.textContent = `${E.rig}_${c.name}  ${t.toFixed(2)} / ${c.dur.toFixed(2)} 秒`;
+    setupCamera(); drawGround(); drawFigure(E, evalClip(c, t));
+    requestAnimationFrame(frame);
+  }
+  const playBtn = document.getElementById("play");
+  const togglePlay = () => { state.playing = !state.playing; playBtn.textContent = state.playing ? "一時停止" : "再生"; playBtn.classList.toggle("on", state.playing); };
+  playBtn.addEventListener("click", togglePlay);
+  window.addEventListener("keydown", (e) => { if (e.code === "Space") { e.preventDefault(); togglePlay(); } });
+  document.getElementById("all").addEventListener("click", () => { state.chain = { i: 0 }; playClip(ENEMIES[state.enemy].clips[0]); });
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.yawTarget = (+b.dataset.view) * DEG;
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.getElementById("speed").addEventListener("input", (e) => { state.speed = +e.target.value; });
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, yaw: state.yawTarget, pitch: state.pitch }; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.yawTarget = drag.yaw - (e.clientX - drag.x) * 0.008; state.yaw = state.yawTarget;
+    state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.004, -0.2, 1.2);
+    document.querySelectorAll("[data-view]").forEach((x) => x.classList.remove("on"));
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+  selectEnemy(0);
+  requestAnimationFrame(frame);
+  window.__hm = { state, ENEMIES, CLIPS, playClip, selectEnemy, evalClip };
+})();
+</script>
+</body>
+</html>
