@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>獣走りモーション</title>
+<style>
+  :root {
+    --bg: #f4f1ea;
+    --sky-top: #e9e4d8;
+    --sky-bottom: #f7f4ee;
+    --ink: #1c1a17;
+    --grid: 60, 52, 40;
+    --accent: #c2410c;
+    --panel: rgba(255, 255, 255, 0.82);
+    --panel-border: rgba(0, 0, 0, 0.1);
+    --muted: #6b645a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121212;
+      --sky-top: #0b0b0d;
+      --sky-bottom: #1b1a19;
+      --ink: #f2efe9;
+      --grid: 210, 200, 185;
+      --accent: #fb923c;
+      --panel: rgba(28, 27, 26, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --muted: #a39d93;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121212;
+    --sky-top: #0b0b0d;
+    --sky-bottom: #1b1a19;
+    --ink: #f2efe9;
+    --grid: 210, 200, 185;
+    --accent: #fb923c;
+    --panel: rgba(28, 27, 26, 0.85);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --muted: #a39d93;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif;
+    overflow: hidden;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  .panel {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 32px));
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    backdrop-filter: blur(8px);
+    font-size: 13px;
+  }
+  .group { display: flex; gap: 6px; align-items: center; }
+  button {
+    font: inherit;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  label { color: var(--muted); white-space: nowrap; }
+  input[type="range"] { width: 110px; accent-color: var(--accent); }
+  .title {
+    position: fixed;
+    top: 14px;
+    left: 16px;
+    font-size: 14px;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  .title b { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="title"><b>獣走り</b>　両腕を左右に構えて迫ってくる棒人間　<span id="hint">ドラッグで視点回転</span></div>
+<canvas id="c"></canvas>
+
+<div class="panel">
+  <div class="group">
+    <button id="play" class="on">一時停止</button>
+  </div>
+  <div class="group">
+    <button data-mode="approach" class="on">迫ってくる</button>
+    <button data-mode="inplace">その場</button>
+  </div>
+  <div class="group">
+    <button data-view="0">正面</button>
+    <button data-view="35">斜め</button>
+    <button data-view="90">側面</button>
+  </div>
+  <div class="group">
+    <label for="speed">速度</label>
+    <input id="speed" type="range" min="0.1" max="2" step="0.05" value="1">
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- ベクトル ----------
+  const V = (x, y, z) => ({ x, y, z });
+  const add = (a, b) => V(a.x + b.x, a.y + b.y, a.z + b.z);
+  const sub = (a, b) => V(a.x - b.x, a.y - b.y, a.z - b.z);
+  const mul = (a, s) => V(a.x * s, a.y * s, a.z * s);
+  const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+  const cross = (a, b) => V(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+  const norm = (a) => { const l = Math.hypot(a.x, a.y, a.z) || 1; return mul(a, 1 / l); };
+  const rotY = (v, a) => {
+    const c = Math.cos(a), s = Math.sin(a);
+    return V(v.x * c + v.z * s, v.y, -v.x * s + v.z * c);
+  };
+  // 矢状面の角度 a（0=真下, +=前方）の単位ベクトル
+  const sag = (a) => V(0, -Math.cos(a), Math.sin(a));
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const TAU = Math.PI * 2;
+
+  // ---------- 体の寸法 (m) ----------
+  const THIGH = 0.46, SHIN = 0.45, FOOT = 0.17;
+  const UPPER_ARM = 0.31, FOREARM = 0.29;
+  const HEAD_R = 0.12;
+  const STRIDE = 2.9;          // 1サイクルで進む距離
+  const BASE_FREQ = 1.45;      // 1秒あたりのサイクル数（速度1のとき）
+
+  // ---------- 脚 ----------
+  function leg(p, s) {
+    const w = TAU * p;
+    const th = 0.64 * Math.sin(w);                                           // 太もも角
+    const kb = 0.3 + 1.45 * Math.pow(Math.max(0, Math.cos(w - 0.35)), 1.6);  // 膝の曲げ
+    const sa = th - kb;                                                     // すね角
+    const hip = V(s * 0.11, 0, 0);
+    const knee = add(add(hip, mul(sag(th), THIGH)), V(s * 0.06, 0, 0));     // 獣っぽくガニ股
+    const ankle = add(knee, add(mul(sag(sa), SHIN), V(-s * 0.03, 0, 0)));
+    const fa = sa + 1.5 - 0.7 * Math.max(0, -Math.sin(w));                 // 蹴り出しでつま先を伸ばす
+    const toe = add(ankle, mul(sag(fa), FOOT));
+    return { hip, knee, ankle, toe };
+  }
+
+  // ---------- 腕（左右に広げて構える獣の腕） ----------
+  function arm(t, s, shoulder, twist, lean) {
+    const p = s > 0 ? t : t + 0.5;
+    const legFwd = Math.sin(TAU * p);           // 同側の脚が前に出ているほど +
+    const swing = -0.22 * legFwd;               // 腕は脚と逆に振る
+    const bob = 0.06 * Math.sin(TAU * 2 * t + 0.6);
+    // 上腕：横へ大きく張り出し、少し前・少し下
+    const ua = rotY(norm(V(s * 0.88, -0.45 + bob, 0.22 + swing)), twist * 0.6);
+    const elbow = add(shoulder, mul(ua, UPPER_ARM));
+    // 前腕：前へ突き出し、手首をやや持ち上げる
+    const fa = rotY(norm(V(s * 0.4, 0.38 - bob * 0.5, 0.85 + swing * 0.4)), twist * 0.6);
+    const wrist = add(elbow, mul(fa, FOREARM));
+
+    // 爪：開いた手のひら（前向き）から4本の鉤爪
+    const side = V(s, 0, 0);
+    const lat = norm(sub(side, mul(fa, dot(side, fa))));
+    let down = norm(cross(fa, lat));
+    if (down.y > 0) down = mul(down, -1);
+    const up = mul(down, -1);
+    const flex = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(TAU * 2 * t));  // 爪がわきわき動く
+    const claws = [];
+    const spreads = [-1, -0.35, 0.35, 1];
+    for (const k of spreads) {
+      const fan = norm(add(mul(up, 0.55 + 0.2 * Math.abs(k)), mul(lat, k * 0.85)));
+      const d1 = norm(add(fa, mul(fan, 0.9)));
+      const j1 = add(wrist, mul(d1, 0.085));
+      const d2 = norm(add(d1, add(mul(fa, 0.6), mul(down, flex * 1.3))));
+      const j2 = add(j1, mul(d2, 0.075));
+      const d3 = norm(add(d2, mul(down, flex * 1.6)));
+      const j3 = add(j2, mul(d3, 0.055));
+      claws.push([wrist, j1, j2, j3]);
+    }
+    // 親指（内側から）
+    const td = norm(add(add(fa, mul(lat, -1.1)), mul(down, 0.4)));
+    const t1 = add(wrist, mul(td, 0.07));
+    const t2 = add(t1, mul(norm(add(td, mul(down, flex * 1.4))), 0.06));
+    claws.push([wrist, t1, t2]);
+    return { shoulder, elbow, wrist, claws };
+  }
+
+  // ---------- 全身ポーズ（ローカル座標：+z が進行方向） ----------
+  function pose(t) {
+    const R = leg(t, 1), L = leg(t + 0.5, -1);
+    const minY = Math.min(R.ankle.y, R.toe.y, L.ankle.y, L.toe.y);
+    const py = -minY + 0.02;  // 接地している足が地面につく高さ
+    const lift = (o) => V(o.x, o.y + py, o.z);
+    for (const lg of [R, L]) for (const k in lg) lg[k] = lift(lg[k]);
+
+    const pelvis = V(0, py, 0);
+    const twist = 0.16 * Math.sin(TAU * t);          // 胸の回旋（骨盤と逆）
+    const lean = 0.62 + 0.05 * Math.sin(TAU * 2 * t + 0.4);
+    const spineDir = (a) => V(0, Math.cos(a), Math.sin(a));
+    const mid = add(pelvis, mul(spineDir(lean * 0.7), 0.27));
+    const chest = add(mid, mul(spineDir(lean * 1.3), 0.27));
+    const neck = add(chest, mul(spineDir(lean * 1.5), 0.08));
+    const head = add(neck, mul(norm(V(0, 0.55, 0.85)), 0.17));   // 頭は低く前へ突き出す
+
+    const sh = (s) => add(chest, rotY(V(s * 0.21, 0.06, -0.02), twist));
+    const hipTw = -0.1 * Math.sin(TAU * t);
+    for (const [lg, s] of [[R, 1], [L, -1]]) {
+      lg.hip = add(pelvis, rotY(V(s * 0.11, 0, 0), hipTw));
+    }
+    const ra = arm(t, 1, sh(1), twist, lean);
+    const la = arm(t, -1, sh(-1), twist, lean);
+    return { pelvis, mid, chest, neck, head, R, L, ra, la, lean, footLift: [R.toe.y - py, L.toe.y - py] };
+  }
+
+  // ---------- 描画 ----------
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  let W = 0, H = 0, DPR = 1;
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  const state = {
+    playing: true,
+    mode: "approach",
+    speed: 1,
+    phase: 0,
+    bodyZ: -32,
+    groundOffset: 0,
+    yaw: 0, yawTarget: 0,
+    pitch: 0.12,
+    dust: [],
+    prevLift: [1, 1],
+  };
+
+  let cam = null;
+  function setupCamera() {
+    const approach = state.mode === "approach";
+    const target = approach ? V(0, 1.0, 0) : V(0, 0.95, 0);
+    const dist = approach ? 6.5 : 4.2;
+    const cp = Math.cos(state.pitch);
+    const pos = add(target, V(Math.sin(state.yaw) * cp * dist, Math.sin(state.pitch) * dist, Math.cos(state.yaw) * cp * dist));
+    const F = norm(sub(target, pos));
+    const Rt = norm(cross(F, V(0, 1, 0)));
+    const U = cross(Rt, F);
+    cam = { pos, F, R: Rt, U, f: Math.min(W, H * 1.4) * 0.95, cx: W / 2, cy: H * 0.55 };
+  }
+  const NEAR = 0.25;
+  function toCam(p) {
+    const q = sub(p, cam.pos);
+    return V(dot(q, cam.R), dot(q, cam.U), dot(q, cam.F));
+  }
+  function projC(c) {
+    return { x: cam.cx + cam.f * c.x / c.z, y: cam.cy - cam.f * c.y / c.z, s: cam.f / c.z, z: c.z };
+  }
+  // 近クリップ付きの線分投影
+  function projSeg(a, b) {
+    let ca = toCam(a), cb = toCam(b);
+    if (ca.z < NEAR && cb.z < NEAR) return null;
+    if (ca.z < NEAR) ca = add(ca, mul(sub(cb, ca), (NEAR - ca.z) / (cb.z - ca.z)));
+    else if (cb.z < NEAR) cb = add(cb, mul(sub(ca, cb), (NEAR - cb.z) / (ca.z - cb.z)));
+    return [projC(ca), projC(cb)];
+  }
+
+  function drawSky() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, css("--sky-top"));
+    g.addColorStop(1, css("--sky-bottom"));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawGround() {
+    const rgb = css("--grid");
+    const off = state.mode === "inplace" ? state.groundOffset % 1 : 0;
+    ctx.lineWidth = 1;
+    const zMin = -70, zMax = 12;
+    for (let x = -24; x <= 24; x += 1) {
+      const s = projSeg(V(x, 0, zMin), V(x, 0, zMax));
+      if (!s) continue;
+      ctx.strokeStyle = `rgba(${rgb},${x === 0 ? 0.22 : 0.1})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+    for (let z = zMin; z <= zMax; z += 1) {
+      const zz = z - off;
+      const s = projSeg(V(-24, 0, zz), V(24, 0, zz));
+      if (!s) continue;
+      const a = clamp(0.16 - (zMax - zz) * 0.0018, 0.03, 0.16);
+      ctx.strokeStyle = `rgba(${rgb},${a})`;
+      ctx.beginPath(); ctx.moveTo(s[0].x, s[0].y); ctx.lineTo(s[1].x, s[1].y); ctx.stroke();
+    }
+  }
+
+  function drawFigure(P, origin, alpha) {
+    const w = (p) => add(origin, p);
+    const ink = css("--ink");
+    const accent = css("--accent");
+    const segs = [];
+    const S = (a, b, width, color) => segs.push({ a: w(a), b: w(b), width, color: color || ink });
+
+    // 影
+    const sc = toCam(w(V(P.pelvis.x, 0, 0.05)));
+    if (sc.z > NEAR) {
+      const pp = projC(sc);
+      const h = clamp(1.2 - (P.pelvis.y - 0.8) * 2, 0.6, 1.2);
+      ctx.fillStyle = `rgba(0,0,0,${0.16 * alpha})`;
+      ctx.beginPath();
+      ctx.ellipse(pp.x, pp.y, 0.55 * pp.s * h, 0.55 * pp.s * h * Math.max(0.12, Math.abs(Math.sin(state.pitch + 0.05)) * 1.6), 0, 0, TAU);
+      ctx.fill();
+    }
+
+    // 脚
+    for (const lg of [P.R, P.L]) {
+      S(lg.hip, lg.knee, 0.05);
+      S(lg.knee, lg.ankle, 0.045);
+      S(lg.ankle, lg.toe, 0.04);
+    }
+    S(P.R.hip, P.L.hip, 0.05);
+    // 胴体（猫背）
+    S(P.pelvis, P.mid, 0.055);
+    S(P.mid, P.chest, 0.055);
+    S(P.chest, P.neck, 0.05);
+    S(P.ra.shoulder, P.la.shoulder, 0.05);
+    // 腕と爪
+    for (const a of [P.ra, P.la]) {
+      S(a.shoulder, a.elbow, 0.05);
+      S(a.elbow, a.wrist, 0.045);
+      for (const c of a.claws) {
+        for (let i = 0; i < c.length - 1; i++) {
+          const tip = i === c.length - 2;
+          S(c[i], c[i + 1], tip ? 0.018 : 0.026, tip ? accent : ink);
+        }
+      }
+    }
+
+    const items = [];
+    for (const sg of segs) {
+      const pr = projSeg(sg.a, sg.b);
+      if (!pr) continue;
+      items.push({ kind: "seg", pr, width: sg.width, color: sg.color, depth: (pr[0].z + pr[1].z) / 2 });
+    }
+    const hc = toCam(w(P.head));
+    if (hc.z > NEAR) items.push({ kind: "head", c: hc, depth: hc.z });
+
+    items.sort((a, b) => b.depth - a.depth);
+    ctx.globalAlpha = alpha;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const it of items) {
+      if (it.kind === "seg") {
+        const [a, b] = it.pr;
+        ctx.strokeStyle = it.color;
+        ctx.lineWidth = Math.max(1, it.width * (a.s + b.s) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+      } else {
+        drawHead(it.c, w, P);
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawHead(hc, w, P) {
+    const ink = css("--ink");
+    const p = projC(hc);
+    const r = HEAD_R * p.s;
+    ctx.fillStyle = ink;
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, TAU); ctx.fill();
+    // 光る目（こちらを向いているときだけ見える）
+    const fwd = norm(sub(toCam(w(add(P.head, V(0, 0, 1)))), hc));
+    if (fwd.z < 0.2) {
+      const accent = css("--accent");
+      for (const s of [-1, 1]) {
+        const e = toCam(w(add(P.head, V(s * 0.05, 0.015, HEAD_R * 0.92))));
+        if (e.z <= NEAR) continue;
+        const ep = projC(e);
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.ellipse(ep.x, ep.y, Math.max(1, 0.022 * ep.s), Math.max(0.6, 0.011 * ep.s), s * -0.35, 0, TAU);
+        ctx.fill();
+      }
+    }
+  }
+
+  function spawnDust(pos) {
+    for (let i = 0; i < 9; i++) {
+      const a = Math.random() * TAU;
+      const sp = 0.4 + Math.random() * 0.9;
+      state.dust.push({
+        p: V(pos.x, 0.02, pos.z),
+        v: V(Math.cos(a) * sp, 0.4 + Math.random() * 0.7, Math.sin(a) * sp * 0.6 - 0.4),
+        life: 0, max: 0.45 + Math.random() * 0.35, r: 0.03 + Math.random() * 0.04,
+      });
+    }
+  }
+  function updateDust(dt) {
+    for (const d of state.dust) {
+      d.life += dt;
+      d.p = add(d.p, mul(d.v, dt));
+      d.v = add(mul(d.v, 1 - 2.5 * dt), V(0, -1.2 * dt, 0));
+      if (d.p.y < 0) d.p.y = 0;
+    }
+    state.dust = state.dust.filter((d) => d.life < d.max);
+  }
+  function drawDust() {
+    const rgb = css("--grid");
+    for (const d of state.dust) {
+      const c = toCam(d.p);
+      if (c.z <= NEAR) continue;
+      const p = projC(c);
+      const k = d.life / d.max;
+      ctx.fillStyle = `rgba(${rgb},${0.35 * (1 - k)})`;
+      ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(0.8, d.r * (1 + k * 1.5) * p.s), 0, TAU); ctx.fill();
+    }
+  }
+
+  // ---------- ループ ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const sdt = state.playing ? dt * state.speed : 0;
+    const dPhase = sdt * BASE_FREQ;
+    state.phase = (state.phase + dPhase) % 1;
+
+    if (state.mode === "approach") {
+      state.bodyZ += dPhase * STRIDE;
+      if (state.bodyZ > 4.4) { state.bodyZ = -32; state.dust = []; }
+    } else {
+      state.bodyZ = 0;
+      state.groundOffset += dPhase * STRIDE;
+      for (const d of state.dust) d.p = add(d.p, V(0, 0, -dPhase * STRIDE));
+    }
+    // 視点をなめらかに追従
+    let dy = state.yawTarget - state.yaw;
+    dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    state.yaw += dy * Math.min(1, dt * 6);
+
+    const P = pose(state.phase);
+    const origin = V(0, 0, state.bodyZ);
+
+    // 着地で砂ぼこり
+    for (let i = 0; i < 2; i++) {
+      const lg = i === 0 ? P.R : P.L;
+      const h = Math.min(lg.toe.y, lg.ankle.y);
+      if (state.prevLift[i] > 0.05 && h <= 0.03 && state.playing) spawnDust(add(origin, lg.toe));
+      state.prevLift[i] = h;
+    }
+    updateDust(sdt);
+
+    setupCamera();
+    drawSky();
+    drawGround();
+    drawDust();
+    const alpha = state.mode === "approach" ? clamp((state.bodyZ + 32) / 6, 0, 1) : 1;
+    drawFigure(P, origin, alpha);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---------- 操作 ----------
+  const playBtn = document.getElementById("play");
+  const togglePlay = () => {
+    state.playing = !state.playing;
+    playBtn.textContent = state.playing ? "一時停止" : "再生";
+    playBtn.classList.toggle("on", state.playing);
+  };
+  playBtn.addEventListener("click", togglePlay);
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+  });
+
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    state.mode = b.dataset.mode;
+    state.dust = [];
+    if (state.mode === "approach") state.bodyZ = -32;
+    document.querySelectorAll("[data-mode]").forEach((x) => x.classList.toggle("on", x === b));
+  }));
+  document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => {
+    state.yawTarget = (+b.dataset.view * Math.PI) / 180;
+  }));
+  document.getElementById("speed").addEventListener("input", (e) => { state.speed = +e.target.value; });
+
+  // ドラッグで視点回転
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    drag = { x: e.clientX, y: e.clientY, yaw: state.yawTarget, pitch: state.pitch };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    state.yawTarget = drag.yaw - (e.clientX - drag.x) * 0.008;
+    state.yaw = state.yawTarget;
+    state.pitch = clamp(drag.pitch + (e.clientY - drag.y) * 0.004, 0.02, 0.9);
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("pointercancel", () => { drag = null; });
+
+  // テスト用フック
+  window.__beast = { state, pose };
+})();
+</script>
+</body>
+</html>
