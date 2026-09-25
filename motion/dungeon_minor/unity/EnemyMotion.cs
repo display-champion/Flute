@@ -73,6 +73,7 @@ public class EnemyMotion : MonoBehaviour
         playables = new AnimationClipPlayable[clips.Length];
         for (int i = 0; i < clips.Length; i++)
         {
+            if (clips[i] == null) continue;   // 空の枠は飛ばす
             playables[i] = AnimationClipPlayable.Create(graph, clips[i]);
             graph.Connect(playables[i], 0, mixer, i);
             mixer.SetInputWeight(i, 0f);
@@ -88,7 +89,10 @@ public class EnemyMotion : MonoBehaviour
         if (graph.IsValid()) graph.Destroy();
     }
 
-    /// <summary>クリップを最初から再生する。name はクリップ名、または末尾（"Attack_Lunge" など）</summary>
+    /// <summary>
+    /// クリップを最初から再生する。name はクリップ名、または末尾（"Attack_Lunge" など）。
+    /// 末尾が一致するクリップが無ければ "_name_" を含むクリップを使う（"Death" で Death_SporeBurst、"Move" で Move_Flee）
+    /// </summary>
     public bool Play(string clipName) => Play(clipName, fadeTime);
 
     public bool Play(string clipName, float fade)
@@ -103,7 +107,7 @@ public class EnemyMotion : MonoBehaviour
         current = index;
         // 使っていないクリップは止めておく（時間が進んでイベントが出ないように）
         for (int i = 0; i < playables.Length; i++)
-            if (i != current && i != previous) playables[i].SetSpeed(0);
+            if (i != current && i != previous && playables[i].IsValid()) playables[i].SetSpeed(0);
         playables[index].SetTime(0);
         playables[index].SetTime(0);   // 2回呼ぶと前回との差分がリセットされ、途中のイベントが飛ばない
         playables[index].SetSpeed(1);
@@ -123,6 +127,10 @@ public class EnemyMotion : MonoBehaviour
             if (clips[i] == null) continue;
             string n = clips[i].name;
             if (n == clipName || n.EndsWith("_" + clipName)) return i;
+        }
+        for (int i = 0; i < clips.Length; i++)
+        {
+            if (clips[i] != null && clips[i].name.Contains("_" + clipName + "_")) return i;
         }
         return -1;
     }
@@ -151,8 +159,9 @@ public class EnemyMotion : MonoBehaviour
                 finishedSent = true;
                 onMotionFinished?.Invoke(clip.name);
             }
+            int idle = Find(idleClip);
             if (clip.name.Contains("Death")) playables[current].SetSpeed(0);
-            else if (Find(idleClip) != current) Play(idleClip);
+            else if (idle >= 0 && idle != current) Play(idleClip);
         }
     }
 

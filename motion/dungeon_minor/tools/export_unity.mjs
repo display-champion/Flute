@@ -203,6 +203,7 @@ const readme = `# ダンジョン雑魚モーション（Unity 用）
    - モデルは \`Motion\` の下に、足元が原点・+Z が正面になるよう置く（浮く敵は下の表の高さに体の中心を合わせる）。
 3. **Clips** にその敵のクリップを入れる（下の「敵ごとのクリップ」）。
 4. ゲーム側から \`GetComponent<EnemyMotion>().Play("Attack_Lunge")\` のように名前の末尾で再生する。
+   - \`Play("Death")\` で Death_SporeBurst、\`Play("Move")\` で妖精の Move_Flee も再生されるので、どの敵も同じ名前（Idle / Move / Hit / Death）で呼べます。
    - 1回きりのクリップが終わると自動で待機（Idle）に戻ります。名前に Death を含むクリップは最後の姿勢で止まります。
    - 移動中は \`Play("Move")\`、止まったら \`Play("Idle")\`。
 5. **On Motion Event** に処理をつなぐと、攻撃が当たる瞬間などにイベント名（Hit / Stomp など）付きで呼ばれます。
