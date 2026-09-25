@@ -157,9 +157,10 @@
 
 | 段階 | 内容 | 状態 |
 |---|---|---|
-| 2-1 | 人型へ移す 12 体のクリップを dungeon_humanoid.html に追加 | 未着手 |
+| 2-1 | 人型へ移す 12 体のクリップを dungeon_humanoid.html に追加 | 完了（91 クリップ・17 体。dungeon_minor.html からは Upright/Phantom/Hound を削除し 39 体・106 クリップ） |
 | 2-2 | 手足の代理関節と動きを dungeon_minor.html に追加（体の種類ごと） | 未着手 |
 | 2-3 | 書き出し（export_unity.mjs に手足のカーブ、LimbRigs.cs 生成）と LimbRetarget.cs | 未着手 |
 | 2-4 | 検証・zip 納品・git から作業ファイル削除 | 未着手 |
 
 - 作業ファイルをコミット `80330b7` から戻して開始
+- 2-1 完了：人型の骨組みに Knight / Heavy / Sentry / Grabber / Ghoul / Statue / Laugher / Hound / Steam / Chained / Silent を追加。四つ足用に roll（横倒し）と handWL/handWR（手を地面の位置で指定）を追加。確認画面は Idle が無い敵（笑う死者）でも動くよう修正

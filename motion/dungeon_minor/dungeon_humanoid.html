@@ -171,11 +171,14 @@
   //   headPitch 顔を上げる  headYaw 顔を横へ
   //   armL / armR  手首の目標（肩から見た胸の座標：x は外側、y 上、z 前）
   //   handL / handR 手首の反らし（度）   poleL / poleR 肘を曲げる向き
+  //   handWL / handWR 手首の目標を足元の座標で直接指定（四つ足で地面に手をつくとき）
+  //   roll   足元を軸に全身を横へ倒す（度）
   //   footL / footR 足首の目標（足元の座標：x は外側へのずれ、y 高さ、z 前）
   const DEFAULT = {
     root: [0, 0, 0], offset: [0, 0, 0], yaw: 0, fall: 0, lean: 3, bend: 0, twist: 0, headPitch: 0, headYaw: 0,
     armL: [0.06, -0.52, 0.05], armR: [0.06, -0.52, 0.05], handL: 10, handR: 10, footL: [0, 0, 0], footR: [0, 0, 0],
     poleL: [0.6, -0.4, -0.6], poleR: [0.6, -0.4, -0.6],   // 肘を曲げる向き（胸の座標：x 外側、y 上、z 前）
+    roll: 0, handWL: null, handWR: null,
   };
 
   function buildPose(p) {
@@ -199,7 +202,8 @@
     for (const [side, s] of [["Left", -1], ["Right", 1]]) {
       const sh = add(add(J.Chest, mul(right, s * 0.18)), mul(up, 0.14));
       const a = side === "Left" ? p.armL : p.armR;
-      const target = add(sh, add(add(mul(right, s * a[0]), mul(up, a[1])), mul(fwd, a[2])));
+      const hw = side === "Left" ? p.handWL : p.handWR;
+      const target = hw ? [s * Math.abs(hw[0]), hw[1], hw[2]] : add(sh, add(add(mul(right, s * a[0]), mul(up, a[1])), mul(fwd, a[2])));
       const pl = side === "Left" ? p.poleL : p.poleR;
       const pole = add(add(mul(right, s * pl[0]), mul(up, pl[1])), mul(fwd, pl[2]));
       const { mid, end } = ik(sh, target, UPPER_ARM, FOREARM, pole);
@@ -222,6 +226,7 @@
     for (const k of Object.keys(J)) {
       let v = J[k];
       if (p.fall) v = rotAround(v, [1, 0, 0], p.fall);
+      if (p.roll) v = rotAround(v, [0, 0, 1], p.roll);
       if (p.yaw) v = rotAround(v, [0, 1, 0], p.yaw);
       J[k] = add(v, p.offset);
     }
@@ -406,9 +411,227 @@
     return (t) => ({ ...GUARD, root: [0, -0.42 * k(t), 0], footL: [0, 0, 0.25 * k(t)], footR: [0, 0.02 * k(t), -0.3 * k(t)], lean: 20 * k(t), headPitch: -40 * k(t), armL: [0.2, -0.5, 0.15], armR: [0.2, -0.5, 0.15] });
   });
 
+  // ======================================================================
+  // 第2段階：人の形の骨で動かす敵（名前に「人」は無いが、手足を動かすため人型の仕組みへ移した）
+  // ======================================================================
+  const mixV = (a, b, k) => a.map((v, i) => v + (b[i] - v) * k);
+  function idleClip(rig, base, o = {}) {
+    const { name = "Idle", dur = 2.4, bob = 0.012, sway = 2, extra = () => ({}) } = o;
+    clip(rig, name, dur, true, [], () => (t) => ({ ...base, root: add(base.root || [0, 0, 0], [0, bob * sin(TAU * 2 * t / dur), 0]), bend: (base.bend || 0) + sway * sin(TAU * t / dur), ...extra(t) }));
+  }
+  function walkClip(rig, base, o = {}) {
+    const { name = "Move", period = 1.0, stride = 0.5, lift = 0.08, bob = 0.03, swing = 0.12, sway = 0, lean = base.lean ?? 3, armsForward = null } = o;
+    clip(rig, name, period, true, [], () => (t) => {
+      const g = gait(t, { period, stride, lift, bob, swing });
+      const aL = armsForward || base.armL || DEFAULT.armL, aR = armsForward || base.armR || DEFAULT.armR;
+      return { ...base, root: add(base.root || [0, 0, 0], g.root), footL: g.footL, footR: g.footR, lean,
+        bend: sway * sin(TAU * t / period), armL: add(aL, [0, 0, g.armSwingL]), armR: add(aR, [0, 0, g.armSwingR]) };
+    });
+  }
+
+  // ---------- EN-39 聖堂騎士：剣の2連撃 ----------
+  const KNIGHT = { lean: 6, root: [0, -0.04, 0], armR: [0.05, -0.25, 0.3], handR: 40, armL: [0.1, -0.3, 0.2], footL: [0, 0, 0.12], footR: [0, 0, -0.1], twist: -10 };
+  idleClip("Knight", KNIGHT, { dur: 2.4 });
+  walkClip("Knight", KNIGHT, { period: 1.0, stride: 0.5, lift: 0.08, swing: 0.04 });
+  clip("Knight", "Attack_Combo2", 1.9, false, [[0.45, "Hit"], [0.85, "Hit"]], () => {
+    const armR = K([[0, KNIGHT.armR], [0.3, [0.2, 0.25, 0.05]], [0.45, [-0.25, -0.3, 0.4], "in"], [0.7, [-0.2, 0.2, 0.1]], [0.85, [0.25, -0.2, 0.45], "in"], [1.1, [0.25, -0.22, 0.42]], [1.9, KNIGHT.armR]]);
+    const twist = K([[0, -10], [0.3, -30], [0.45, 25, "in"], [0.7, 30], [0.85, -25, "in"], [1.1, -20], [1.9, -10]]);
+    const z = K([[0, 0], [0.3, -0.03], [0.45, 0.35, "in"], [0.7, 0.35], [0.85, 0.6, "in"], [1.1, 0.6], [1.9, 0]]);
+    const footL = K([[0, KNIGHT.footL], [0.45, [0, 0, 0.3]], [0.85, [0, 0, 0.45]], [1.9, KNIGHT.footL]]);
+    return (t) => ({ ...KNIGHT, armR: armR(t), twist: twist(t), root: [0, -0.06, z(t)], footL: footL(t), lean: 10 });
+  });
+  hitClip("Knight", KNIGHT);
+  deathFall("Knight", KNIGHT);
+
+  // ---------- EN-18 石くれ人形 / EN-40 動く鎧：予備動作0.8秒の大振り ----------
+  const HEAVY = { lean: 8, root: [0, -0.06, 0], armL: [0.12, -0.45, 0.12], armR: [0.12, -0.45, 0.12], footL: [0.05, 0, 0.1], footR: [0.05, 0, -0.1] };
+  idleClip("Heavy", HEAVY, { dur: 3.0, bob: 0.01, sway: 1.5 });
+  walkClip("Heavy", HEAVY, { period: 1.3, stride: 0.45, lift: 0.06, bob: 0.04, swing: 0.06, sway: 4 });
+  clip("Heavy", "Attack_HeavySlam", 2.4, false, [[0.98, "Hit"], [1.6, "Recover"]], () => {
+    // 両腕を頭上へ振りかぶり（0.8秒）→ 叩きつけ → 硬直 → 戻る
+    const arm = K([[0, HEAVY.armR], [0.8, [-0.12, 0.42, 0.05]], [1.0, [-0.12, -0.35, 0.45], "in"], [1.6, [-0.12, -0.36, 0.43]], [2.4, HEAVY.armR]]);
+    const lean = K([[0, 8], [0.8, -12], [1.0, 30, "in"], [1.6, 28], [2.4, 8]]);
+    const root = K([[0, [0, -0.06, 0]], [0.8, [0, -0.02, -0.05]], [1.0, [0, -0.16, 0.3], "in"], [1.6, [0, -0.16, 0.3]], [2.4, [0, -0.06, 0]]]);
+    return (t) => ({ ...HEAVY, armL: arm(t), armR: arm(t), lean: lean(t), root: root(t), bend: 1.5 * sin(TAU * 8 * t) * env(t, 0.1, 0.8), footL: [0.05, 0, 0.1 + 0.2 * env(t, 0.8, 2.4)] });
+  });
+  hitClip("Heavy", HEAVY);
+  deathFall("Heavy", HEAVY, { dir: 1 });
+
+  // ---------- EN-27 天の番兵：警棒を振る ----------
+  const SENTRY = { lean: 2, armR: [0.08, -0.4, 0.15], handR: 30, armL: [0.06, -0.52, 0.02] };
+  idleClip("Sentry", SENTRY, { dur: 3.0, bob: 0.005, sway: 0.5, extra: (t) => ({ headYaw: 20 * sin(TAU * t / 3) }) });
+  walkClip("Sentry", SENTRY, { period: 1.0, stride: 0.5, lift: 0.07, swing: 0.1 });
+  clip("Sentry", "Attack_Swing", 1.3, false, [[0.5, "Hit"]], () => {
+    const armR = K([[0, SENTRY.armR], [0.35, [0.35, 0.1, -0.05]], [0.5, [-0.3, 0.0, 0.4], "in"], [0.8, [-0.3, -0.05, 0.38]], [1.3, SENTRY.armR]]);
+    const twist = K([[0, 0], [0.35, -35], [0.5, 35, "in"], [0.8, 30], [1.3, 0]]);
+    const z = K([[0, 0], [0.35, -0.03], [0.5, 0.2, "in"], [0.8, 0.2], [1.3, 0]]);
+    return (t) => ({ ...SENTRY, armR: armR(t), twist: twist(t), root: [0, -0.03, z(t)] });
+  });
+  hitClip("Sentry", SENTRY);
+  deathFall("Sentry", SENTRY);
+
+  // ---------- EN-28 仕分けの手：掴んで後ろへ放り投げる ----------
+  const GRABBER = { lean: 5, armL: [0.1, -0.4, 0.2], armR: [0.1, -0.4, 0.2], handL: 20, handR: 20 };
+  idleClip("Grabber", GRABBER, { dur: 2.4 });
+  walkClip("Grabber", GRABBER, { period: 1.1, stride: 0.45, lift: 0.06, swing: 0.05 });
+  clip("Grabber", "Attack_GrabThrow", 2.6, false, [[1.0, "Grab"], [1.5, "Throw"]], () => {
+    const arm = K([[0, GRABBER.armR], [0.8, [0.35, 0.1, 0.15]], [1.0, [-0.12, -0.1, 0.5], "in"], [1.5, [-0.1, 0.35, 0.3]], [1.7, [0.1, 0.2, -0.1]], [2.6, GRABBER.armR]]);
+    const yaw = K([[0, 0], [1.0, 0], [1.5, 160, "in"], [1.7, 170], [2.6, 0]]);
+    const z = K([[0, 0], [0.8, -0.1], [1.0, 0.5, "in"], [1.5, 0.3], [2.6, 0]]);
+    const lean = K([[0, 5], [0.8, -5], [1.0, 20, "in"], [1.5, -10], [2.6, 5]]);
+    return (t) => ({ ...GRABBER, armL: arm(t), armR: arm(t), yaw: yaw(t), root: [0, -0.05, z(t)], lean: lean(t), bend: 2 * sin(TAU * 10 * t) * env(t, 0.1, 0.8), handL: 50, handR: 50 });
+  });
+  hitClip("Grabber", GRABBER);
+  deathFall("Grabber", GRABBER);
+
+  // ---------- EN-47 名を失くした亡者：名前を探して暴れる ----------
+  const GHOUL = { lean: 14, headPitch: -10, armL: [0.12, -0.45, 0.1], armR: [0.1, -0.48, 0.08], bend: 6 };
+  idleClip("Ghoul", GHOUL, { dur: 3.0, bob: 0.015, sway: 5, extra: (t) => ({ headYaw: 35 * sin(TAU * t / 3), headPitch: -10 + 8 * sin(TAU * 2 * t / 3) }) });
+  walkClip("Ghoul", GHOUL, { period: 1.1, stride: 0.4, lift: 0.06, swing: 0.15, sway: 8, lean: 16 });
+  clip("Ghoul", "Attack_Punch", 1.1, false, [[0.45, "Hit"]], () => {
+    const armR = K([[0, GHOUL.armR], [0.3, [0.3, 0.05, -0.1]], [0.45, [-0.2, 0.05, 0.45], "in"], [0.65, [-0.22, 0.0, 0.42]], [1.1, GHOUL.armR]]);
+    const twist = K([[0, 0], [0.3, -30], [0.45, 30, "in"], [0.65, 25], [1.1, 0]]);
+    const z = K([[0, 0], [0.3, -0.03], [0.45, 0.3, "in"], [0.65, 0.3], [1.1, 0]]);
+    return (t) => ({ ...GHOUL, armR: armR(t), twist: twist(t), root: [0, -0.03, z(t)] });
+  });
+  hitClip("Ghoul", GHOUL);
+  deathFall("Ghoul", GHOUL, { dir: 1 });
+
+  // ---------- EN-48 苔の石像：像のふり → 殴る ----------
+  const STATUE = { lean: 0, armL: [0.05, -0.52, 0.08], armR: [0.05, -0.52, 0.08], handL: 0, handR: 0 };
+  clip("Statue", "Disguise", 2.0, true, [], () => () => STATUE);
+  clip("Statue", "Ambush_Punch", 1.4, false, [[0.15, "Awake"], [0.6, "Hit"]], () => {
+    const armR = K([[0, STATUE.armR], [0.15, STATUE.armR], [0.45, [0.25, 0.0, -0.1]], [0.6, [-0.1, 0.05, 0.52], "in"], [0.85, [-0.1, 0.03, 0.5]], [1.4, STATUE.armR]]);
+    const twist = K([[0, 0], [0.15, 0], [0.45, -35], [0.6, 25, "in"], [0.85, 20], [1.4, 0]]);
+    const z = K([[0, 0], [0.45, -0.03], [0.6, 0.35, "in"], [0.85, 0.3], [1.4, 0]]);
+    return (t) => ({ ...STATUE, armR: armR(t), twist: twist(t), root: [0, -0.03, z(t)], bend: 3 * sin(TAU * 16 * t) * env(t, 0, 0.18) });
+  });
+  idleClip("Statue", STATUE, { dur: 3.0, bob: 0.005, sway: 1 });
+  walkClip("Statue", STATUE, { period: 1.3, stride: 0.4, lift: 0.05, bob: 0.03, swing: 0.05, sway: 3 });
+  hitClip("Statue", STATUE);
+  deathFall("Statue", STATUE, { dir: 1 });
+
+  // ---------- EN-51 笑う死者：笑いながら掴みかかり、花になって崩れる ----------
+  const LAUGHER = { lean: 5, headPitch: 20, armL: [0.15, -0.45, 0.1], armR: [0.15, -0.45, 0.1], handL: -20, handR: -20 };
+  clip("Laugher", "Idle_Laugh", 1.2, true, [], () => (t) => ({
+    ...LAUGHER, root: [0, 0.015 * Math.abs(sin(TAU * 3 * t / 1.2)) - 0.02, 0], headPitch: 20 + 10 * sin(TAU * 3 * t / 1.2),
+    bend: 5 * sin(TAU * t / 1.2), armL: add(LAUGHER.armL, [0, 0.04 * sin(TAU * 3 * t / 1.2), 0]), armR: add(LAUGHER.armR, [0, 0.04 * sin(TAU * 3 * t / 1.2 + 1), 0]),
+  }));
+  walkClip("Laugher", LAUGHER, { period: 1.0, stride: 0.5, lift: 0.08, swing: 0.05, sway: 10, lean: 12, armsForward: [0, -0.2, 0.4] });
+  clip("Laugher", "Attack_Grab", 1.8, false, [[0.5, "Grab"], [1.4, "Release"]], () => {
+    const reach = K([[0, 0], [0.5, 1, "in"], [1.4, 1], [1.8, 0]]);
+    const z = K([[0, 0], [0.3, -0.05], [0.5, 0.4, "in"], [1.4, 0.4], [1.8, 0]]);
+    return (t) => {
+      const k = reach(t), sh = 0.03 * sin(TAU * 8 * t) * env(t, 0.5, 1.4);
+      return { ...LAUGHER, root: [0, -0.03, z(t)], lean: 5 + 15 * k, headPitch: 20 + 10 * sin(TAU * 4 * t) * env(t, 0.5, 1.4),
+        armL: add(mixV(LAUGHER.armL, [-0.08, 0.02, 0.5], k), [0, sh, 0]), armR: add(mixV(LAUGHER.armR, [-0.08, 0.02, 0.5], k), [0, -sh, 0]) };
+    };
+  });
+  hitClip("Laugher", LAUGHER);
+  clip("Laugher", "Death_Crumble", 2.0, false, [[0.6, "Crumble"], [1.5, "Down"]], () => {
+    // 膝をつき、前へ崩れ落ちる（花になって崩れる演出はゲーム側）
+    const kneel = K([[0, 0], [0.6, 1], [2.0, 1]]);
+    const fall = K([[0, 0], [0.9, 0], [1.5, 80, "in"], [2.0, 80]]);
+    return (t) => ({ ...LAUGHER, root: [0, -0.42 * kneel(t), 0], footL: [0, 0, 0.25 * kneel(t)], footR: [0, 0.02 * kneel(t), -0.3 * kneel(t)],
+      lean: 5 + 35 * kneel(t), headPitch: 20 - 50 * kneel(t), fall: fall(t), offset: [0, 0.1 * clamp((t - 0.9) / 0.6, 0, 1), 0], armL: [0.2, -0.5, 0.2], armR: [0.2, -0.5, 0.2] });
+  });
+
+  // ---------- EN-36 看守の犬：狼の獣人 CHR-025 を四つ足で ----------
+  const HOUND = { root: [0, -0.5, 0], lean: 78, headPitch: 72, handWL: [0.16, 0.1, 0.42], handWR: [0.16, 0.1, 0.42], handL: 80, handR: 80, footL: [0.02, 0, -0.15], footR: [0.02, 0, -0.15], poleL: [0.2, 0, -1], poleR: [0.2, 0, -1] };
+  clip("Hound", "Idle", 1.0, true, [], () => (t) => ({ ...HOUND, root: [0, -0.5 + 0.01 * sin(TAU * 3 * t), 0], headYaw: 8 * sin(TAU * t) }));
+  clip("Hound", "Move", 0.45, true, [], () => (t) => {
+    // 跳ねるように走る（前足と後ろ足が交互に地面をける）
+    const u = t / 0.45, a = sin(TAU * u), b = sin(TAU * u + Math.PI);
+    const lf = (ph) => 0.1 * Math.max(0, cos(TAU * u + ph)) ** 2;
+    return { ...HOUND, root: [0, -0.5 + 0.05 * sin(2 * TAU * u), 0], lean: 78 + 6 * sin(TAU * u),
+      handWL: [0.16, 0.1 + lf(0), 0.42 + 0.2 * a], handWR: [0.16, 0.1 + lf(0.4), 0.42 + 0.2 * sin(TAU * u + 0.4)],
+      footL: [0.02, lf(Math.PI), -0.15 + 0.2 * b], footR: [0.02, lf(Math.PI + 0.4), -0.15 + 0.2 * sin(TAU * u + Math.PI + 0.4)] };
+  });
+  clip("Hound", "Sniff", 1.6, true, [], () => (t) => ({ ...HOUND, lean: 84, headPitch: 45, headYaw: 20 * sin(TAU * t / 1.6), root: [0, -0.53, 0] }));
+  clip("Hound", "Bark", 1.2, false, [[0.35, "Bark"], [0.75, "Bark"]], () => (t) => ({
+    ...HOUND, lean: 70 - 8 * (env(t, 0.25, 0.5) + env(t, 0.65, 0.9)), headPitch: 95 + 10 * (env(t, 0.3, 0.45) + env(t, 0.7, 0.85)), root: [0, -0.46, 0],
+  }));
+  clip("Hound", "Attack_Bite", 1.0, false, [[0.45, "Hit"]], () => {
+    const z = K([[0, 0], [0.3, -0.1], [0.45, 0.6, "in"], [0.65, 0.55], [1.0, 0]]);
+    const hp = K([[0, 72], [0.3, 85], [0.45, 60, "in"], [1.0, 72]]);
+    return (t) => ({ ...HOUND, root: [0, -0.5 + 0.1 * env(t, 0.3, 0.5), z(t)], headPitch: hp(t),
+      handWL: [0.16, 0.1 + 0.15 * env(t, 0.3, 0.55), 0.42 + 0.3 * env(t, 0.3, 0.6)], handWR: [0.16, 0.1 + 0.15 * env(t, 0.3, 0.55), 0.42 + 0.3 * env(t, 0.3, 0.6)] });
+  });
+  hitClip("Hound", HOUND);
+  clip("Hound", "Death", 1.6, false, [[0.8, "Down"]], () => {
+    // 横倒しになる
+    const roll = K([[0, 0], [0.8, 80, "in"], [0.92, 72, "out"], [1.05, 80], [1.6, 80]]);
+    return (t) => ({ ...HOUND, roll: roll(t), offset: [0, 0.18 * clamp(t / 0.8, 0, 1), 0], headPitch: 72 - 20 * clamp(t / 0.8, 0, 1) });
+  });
+
+  // ---------- 浮かぶ人影（EN-24 湯煙の精 / EN-37 鎖の魂 / EN-38 無音の影） ----------
+  const FLOAT = { offset: [0, 0.3, 0], lean: 5, footL: [0, 0.12, -0.1], footR: [0.02, 0.14, -0.12], armL: [0.15, -0.45, 0.1], armR: [0.15, -0.45, 0.1], handL: -10, handR: -10 };
+  const floatIdle = (rig, base) => clip(rig, "Idle", 2.4, true, [], () => (t) => ({ ...base, offset: add(base.offset, [0, 0.05 * sin(TAU * 2 * t / 2.4), 0]), bend: 3 * sin(TAU * t / 2.4),
+    armL: add(base.armL, [0, 0.03 * sin(TAU * t / 2.4), 0]), armR: add(base.armR, [0, 0.03 * sin(TAU * t / 2.4 + 1), 0]) }));
+  const floatMove = (rig, base) => clip(rig, "Move", 1.6, true, [], () => (t) => ({ ...base, lean: 15, offset: add(base.offset, [0, 0.03 * sin(TAU * 2 * t / 1.6), 0]), bend: 5 * sin(TAU * t / 1.6),
+    footL: [0, 0.2, -0.2], footR: [0.02, 0.22, -0.22], armL: [0.18, -0.4, -0.05], armR: [0.18, -0.4, -0.05] }));
+  const floatSink = (rig, base, name, from, to, evT, ev) => clip(rig, name, 1.0, false, [[evT, ev]], () => {
+    const off = K([[0, from], [1.0, to, from > to ? "in" : "out"]]);
+    return (t) => ({ ...base, offset: [0, off(t), 0], lean: 20 * (from > to ? t : 1 - t), armL: [0.3, -0.2, 0.1], armR: [0.3, -0.2, 0.1] });
+  });
+
+  // EN-24 湯煙の精
+  floatIdle("Steam", FLOAT);
+  floatMove("Steam", FLOAT);
+  floatSink("Steam", FLOAT, "Appear", -1.9, 0.3, 0.5, "Visible");
+  floatSink("Steam", FLOAT, "Vanish", 0.3, -1.9, 0.75, "Hidden");
+  clip("Steam", "Attack_Blow", 2.2, false, [[0.4, "BlowStart"], [1.8, "BlowEnd"]], () => {
+    // 腕を広げて吸い込み → 両手を前へ押し出して熱い湯気を吹きかける
+    const arm = K([[0, FLOAT.armR], [0.4, [0.35, 0.1, 0.1]], [0.55, [-0.05, 0.0, 0.5], "in"], [1.8, [-0.05, 0.0, 0.5]], [2.2, FLOAT.armR]]);
+    const lean = K([[0, 5], [0.4, -12], [0.55, 15, "in"], [1.8, 15], [2.2, 5]]);
+    return (t) => ({ ...FLOAT, armL: arm(t), armR: arm(t), lean: lean(t), headPitch: -5, twist: 8 * sin(TAU * 1.5 * t) * env(t, 0.45, 1.85), handL: 60, handR: 60 });
+  });
+  hitClip("Steam", FLOAT);
+  floatSink("Steam", FLOAT, "Death", 0.3, -1.9, 0.9, "Vanish");
+
+  // EN-37 鎖の魂
+  const CHAINED = { ...FLOAT, armL: [0.12, -0.45, 0.12], armR: [0.12, -0.45, 0.12] };
+  const CURLED = { ...CHAINED, offset: [0, 0.05, 0], root: [0, -0.4, 0], lean: 55, headPitch: -35, armL: [-0.15, -0.25, 0.25], armR: [-0.15, -0.25, 0.25], footL: [0, 0.25, 0.15], footR: [0, 0.25, 0.15] };
+  clip("Chained", "Dormant", 3.0, true, [], () => (t) => ({ ...CURLED, offset: [0, 0.05 + 0.02 * sin(TAU * t / 3), 0] }));
+  clip("Chained", "WakeUp", 1.2, false, [[0.8, "Awake"]], () => {
+    const k = K([[0, 0], [0.8, 1, "out"], [1.2, 1]]);
+    return (t) => {
+      const a = k(t);
+      return { ...CHAINED, offset: [0, 0.05 + 0.25 * a, 0], root: [0, -0.4 * (1 - a), 0], lean: 55 * (1 - a) - 10 * env(t, 0.5, 1.2), headPitch: -35 * (1 - a) + 15 * env(t, 0.5, 1.2),
+        armL: mixV(CURLED.armL, CHAINED.armL, a), armR: mixV(CURLED.armR, CHAINED.armR, a), footL: mixV(CURLED.footL, CHAINED.footL, a), footR: mixV(CURLED.footR, CHAINED.footR, a) };
+    };
+  });
+  floatIdle("Chained", CHAINED);
+  floatMove("Chained", CHAINED);
+  clip("Chained", "Attack_ChainLash", 1.4, false, [[0.6, "Hit"]], () => {
+    // 右腕の鎖を頭上から振り下ろして打つ
+    const armR = K([[0, CHAINED.armR], [0.45, [0.2, 0.35, -0.15]], [0.6, [-0.1, -0.1, 0.55], "in"], [0.85, [-0.1, -0.15, 0.5]], [1.4, CHAINED.armR]]);
+    const twist = K([[0, 0], [0.45, -30], [0.6, 30, "in"], [0.85, 25], [1.4, 0]]);
+    const lean = K([[0, 5], [0.45, -8], [0.6, 18, "in"], [1.4, 5]]);
+    return (t) => ({ ...CHAINED, armR: armR(t), twist: twist(t), lean: lean(t) });
+  });
+  hitClip("Chained", CHAINED);
+  floatSink("Chained", CHAINED, "Death", 0.3, -1.9, 0.9, "Vanish");
+
+  // EN-38 無音の影
+  const SILENT = { ...FLOAT, offset: [0, 0.15, 0], lean: 20, headPitch: -10, armL: [0.1, -0.4, 0.2], armR: [0.1, -0.4, 0.2], handL: -30, handR: -30 };
+  floatIdle("Silent", SILENT);
+  floatMove("Silent", SILENT);
+  clip("Silent", "Attack_Strike", 1.0, false, [[0.38, "Hit"]], () => {
+    // 予備動作の小さい、両腕の突き
+    const arm = K([[0, SILENT.armR], [0.25, [0.12, -0.3, 0.1]], [0.4, [-0.05, 0.0, 0.52], "in"], [0.55, [-0.05, 0.0, 0.5]], [1.0, SILENT.armR]]);
+    const z = K([[0, 0], [0.25, -0.05], [0.4, 0.6, "in"], [0.55, 0.55], [1.0, 0]]);
+    return (t) => ({ ...SILENT, armL: arm(t), armR: arm(t), root: [0, 0, z(t)], lean: 20 + 10 * env(t, 0.25, 0.7) });
+  });
+  hitClip("Silent", SILENT);
+  floatSink("Silent", SILENT, "Death", 0.15, -1.9, 0.9, "Vanish");
+
   const RIGS = {
     Wolfman: { name: "拳で戦う獣人" }, Archer: { name: "弓を撃つ獣人" }, Drowned: { name: "溺れた死者" },
     Shade: { name: "影の人" }, Guardian: { name: "光の人影" },
+    Knight: { name: "剣の騎士" }, Heavy: { name: "大振りの鎧・人形" }, Sentry: { name: "警棒の番兵" }, Grabber: { name: "掴んで投げる機械" },
+    Ghoul: { name: "暴れる亡者" }, Statue: { name: "動く石像" }, Laugher: { name: "笑う死者" }, Hound: { name: "四つ足の獣人" },
+    Steam: { name: "湯気の人影" }, Chained: { name: "鎖の人影" }, Silent: { name: "音のない人影" },
   };
   const ENEMIES = [
     { id: "EN-09", name: "溺れた村人", rig: "Drowned", color: "#475569", clips: ["Idle", "Move", "Attack_Grab", "Hit", "Death"],
@@ -421,6 +644,30 @@
       desc: "影から影へ移る（Sink → Hidden、Rise → Emerge）。未作成モデル：黒い人影" },
     { id: "EN-54", name: "光の番人", rig: "Guardian", color: "#fbbf24", clips: ["Idle", "Appear", "Attack_Shoot", "Hit", "Death"],
       desc: "光の道の上にだけ現れ（Appear）、光の矢を撃つ（Shoot）。未作成モデル：光でできた人影" },
+    { id: "EN-18", name: "石くれ人形", rig: "Heavy", color: "#a8a29e", clips: ["Idle", "Move", "Attack_HeavySlam", "Hit", "Death"],
+      desc: "遅いが一撃が大きい。両腕を振りかぶって（予備動作0.8秒）叩きつける。ロボットメカ CHR-014" },
+    { id: "EN-24", name: "湯煙の精", rig: "Steam", color: "#e5e7eb", clips: ["Idle", "Move", "Appear", "Attack_Blow", "Vanish", "Hit", "Death"],
+      desc: "攻撃中しか見えない：Appear → 両手で湯気を吹きかける → Vanish。未作成モデル：湯気の人影" },
+    { id: "EN-27", name: "天の番兵", rig: "Sentry", color: "#f8fafc", clips: ["Idle", "Move", "Attack_Swing", "Hit", "Death"],
+      desc: "事務的に警棒を振る。サービスロボット CHR-007" },
+    { id: "EN-28", name: "仕分けの手", rig: "Grabber", color: "#e2e8f0", clips: ["Idle", "Move", "Attack_GrabThrow", "Hit", "Death"],
+      desc: "予備動作0.8秒 → 両腕で掴む（Grab）→ 振り回して後ろへ投げる（Throw）。ロボットメカ CHR-014" },
+    { id: "EN-36", name: "看守の犬", rig: "Hound", color: "#57534e", clips: ["Idle", "Move", "Sniff", "Bark", "Attack_Bite", "Hit", "Death"],
+      desc: "狼の獣人 CHR-025 を四つ足で。嗅ぎ回り、見つけると吠える" },
+    { id: "EN-37", name: "鎖の魂", rig: "Chained", color: "#fde68a", clips: ["Dormant", "WakeUp", "Idle", "Move", "Attack_ChainLash", "Hit", "Death"],
+      desc: "丸まって眠る（Dormant）→ 起きて右腕の鎖で打つ。未作成モデル：光の鎖が絡まった人の形" },
+    { id: "EN-38", name: "無音の影", rig: "Silent", color: "#f5f5f4", clips: ["Idle", "Move", "Attack_Strike", "Hit", "Death"],
+      desc: "音もなく近づき、予備動作の小さい両腕の突き。未作成モデル：罪人の影の白い版" },
+    { id: "EN-39", name: "聖堂騎士", rig: "Knight", color: "#94a3b8", clips: ["Idle", "Move", "Attack_Combo2", "Hit", "Death"],
+      desc: "剣の2連撃（右上から、左から）。アニメ鎧戦士 CHR-004" },
+    { id: "EN-40", name: "動く鎧", rig: "Heavy", color: "#6b7280", clips: ["Idle", "Move", "Attack_HeavySlam", "Hit", "Death"],
+      desc: "遅いが怯まない。大振りの一撃の後に硬直（Recover まで）。アニメ鎧戦士 CHR-004" },
+    { id: "EN-47", name: "名を失くした亡者", rig: "Ghoul", color: "#9ca3af", clips: ["Idle", "Move", "Attack_Punch", "Hit", "Death"],
+      desc: "名前を探して首を振り、暴れて殴る" },
+    { id: "EN-48", name: "苔の石像", rig: "Statue", color: "#6b8f5e", clips: ["Disguise", "Ambush_Punch", "Idle", "Move", "Hit", "Death"],
+      desc: "動かない像のふり（Disguise）→ 横を通ると殴る。アニメ鎧戦士 CHR-004" },
+    { id: "EN-51", name: "笑う死者", rig: "Laugher", color: "#d6d3d1", clips: ["Idle_Laugh", "Move", "Attack_Grab", "Hit", "Death_Crumble"],
+      desc: "笑いながら掴みかかる。倒すと膝をついて崩れる" },
   ];
   const REST = buildPose({});   // 代理の骨組みの初期姿勢（立ち姿）
   // ==POSE-END==
@@ -541,6 +788,8 @@
   const descEl = document.getElementById("desc"), infoEl = document.getElementById("clipInfo");
   const eventEl = document.getElementById("event"), timelineEl = document.getElementById("timeline");
   ENEMIES.forEach((e, i) => { const o = document.createElement("option"); o.value = i; o.textContent = `${e.id} ${e.name}`; enemySel.appendChild(o); });
+  // 待機クリップ（Idle が無ければ名前に Idle を含むもの、それも無ければ最初のクリップ）
+  const idleOf = (E) => E.clips.find((n) => n === "Idle") || E.clips.find((n) => n.includes("Idle")) || E.clips[0];
   function selectEnemy(i) {
     state.enemy = i; enemySel.value = String(i);
     const E = ENEMIES[i];
@@ -551,7 +800,7 @@
       b.addEventListener("click", () => { state.chain = null; playClip(name); });
       clipsEl.appendChild(b);
     }
-    state.chain = null; playClip("Idle");
+    state.chain = null; playClip(idleOf(E));
   }
   function playClip(name) {
     const E = ENEMIES[state.enemy];
@@ -575,7 +824,7 @@
       if (c.loop && !state.chain) state.time %= c.dur;
       else if (state.time >= c.dur + (c.name.startsWith("Death") ? 1.2 : 0.35)) {
         if (state.chain) { state.chain.i = (state.chain.i + 1) % E.clips.length; playClip(E.clips[state.chain.i]); }
-        else playClip("Idle");
+        else playClip(idleOf(E));
         c = findClip(E.rig, state.clip);
       }
     }
