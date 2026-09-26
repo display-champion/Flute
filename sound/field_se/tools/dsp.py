@@ -413,3 +413,17 @@ def write_wav(path, x):
         w.setsampwidth(2)
         w.setframerate(SR)
         w.writeframes(data.tobytes())
+
+
+def slow_noise(d, rate):
+    """ゆっくり揺れる乱数（rate 回/秒くらいの速さ。平均 0・振れ幅およそ ±1）"""
+    n = N(d)
+    k = max(2, int(d * rate) + 3)
+    pts = RNG.uniform(-1, 1, k)
+    xs = np.linspace(0, d, k)
+    t = T(d)
+    # なめらかにつなぐ（余弦補間）
+    i = np.clip(np.searchsorted(xs, t) - 1, 0, k - 2)
+    u = (t - xs[i]) / (xs[i + 1] - xs[i])
+    w = (1 - np.cos(np.pi * u)) / 2
+    return pts[i] * (1 - w) + pts[i + 1] * w
