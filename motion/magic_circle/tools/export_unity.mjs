@@ -196,7 +196,7 @@ ${edC}  m_EulerEditorCurves: []
 
 // README
 let clipTable = "| クリップ | 長さ | 内容 | イベント |\n|---|---|---|---|\n";
-for (const c of CLIPS) clipTable += `| MagicCircle_${c.name} | ${c.dur}秒 | ${c.note} | ${c.events.map(([t, n]) => `${n}（${t}秒）`).join("、")} |\n`;
+for (const c of CLIPS) clipTable += `| MagicCircle_${c.name} | ${c.dur}秒 | ${c.note} | ${c.events.map(([t, n]) => `${n}（${+t.toFixed(2)}秒）`).join("、")} |\n`;
 let elTable = "| 属性（Element） | 色 | 味付け |\n|---|---|---|\n";
 for (const e of ELEMENTS) elTable += `| ${e.key}（${e.name}） | ${e.main} | ${e.note} |\n`;
 fs.writeFileSync(path.join(outDir, "README.md"), `# 魔法陣の玉とビーム（Unity 用）

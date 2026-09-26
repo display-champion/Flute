@@ -25,12 +25,12 @@
 |---|---|---|---|
 | MagicCircle_Orb_Single | 2秒 | 前に立つ魔法陣の中心に玉が生まれ、正面へ1発（約13m・0.55秒） | Appear（0秒）、Charge（0.4秒）、Fire:0（0.9秒）、Impact:0（1.45秒）、Vanish（1.9秒） |
 | MagicCircle_Orb_Triple | 2.6秒 | 輪の上に3つの玉が並び、順に扇形（左右12°）へ撃つ | Appear（0秒）、Charge（0.4秒）、Fire:0（1秒）、Fire:1（1.15秒）、Fire:2（1.3秒）、Impact:0（1.55秒）、Impact:1（1.7秒）、Impact:2（1.85秒）、Vanish（2.5秒） |
-| MagicCircle_Orb_Barrage | 3.2秒 | 輪の周り8か所から0.2秒おきに連射（少し中心へ寄りながら約12m） | Appear（0秒）、Charge（0.4秒）、Fire:0（0.9秒）、Fire:1（1.1秒）、Fire:2（1.3秒）、Fire:3（1.5秒）、Fire:4（1.7000000000000002秒）、Fire:5（1.9秒）、Fire:6（2.1秒）、Fire:7（2.3000000000000003秒）、Impact:0（1.4秒）、Impact:1（1.5999999999999999秒）、Impact:2（1.7999999999999998秒）、Impact:3（2秒）、Impact:4（2.2秒）、Impact:5（2.4秒）、Impact:6（2.6秒）、Impact:7（2.8秒）、Vanish（3.15秒） |
-| MagicCircle_Orb_Homing | 3.2秒 | 6つの玉が魔法陣の周りを回り、いっせいに外へふくらんでから前方12m の一点へ曲がって集まる | Appear（0秒）、Charge（0.4秒）、Fire（1.4秒）、Impact:0（2.2秒）、Impact:1（2.25秒）、Impact:2（2.3000000000000003秒）、Impact:3（2.35秒）、Impact:4（2.4000000000000004秒）、Impact:5（2.45秒）、Vanish（3秒） |
+| MagicCircle_Orb_Barrage | 3.2秒 | 輪の周り8か所から0.2秒おきに連射（少し中心へ寄りながら約12m） | Appear（0秒）、Charge（0.4秒）、Fire:0（0.9秒）、Fire:1（1.1秒）、Fire:2（1.3秒）、Fire:3（1.5秒）、Fire:4（1.7秒）、Fire:5（1.9秒）、Fire:6（2.1秒）、Fire:7（2.3秒）、Impact:0（1.4秒）、Impact:1（1.6秒）、Impact:2（1.8秒）、Impact:3（2秒）、Impact:4（2.2秒）、Impact:5（2.4秒）、Impact:6（2.6秒）、Impact:7（2.8秒）、Vanish（3.15秒） |
+| MagicCircle_Orb_Homing | 3.2秒 | 6つの玉が魔法陣の周りを回り、いっせいに外へふくらんでから前方12m の一点へ曲がって集まる | Appear（0秒）、Charge（0.4秒）、Fire（1.4秒）、Impact:0（2.2秒）、Impact:1（2.25秒）、Impact:2（2.3秒）、Impact:3（2.35秒）、Impact:4（2.4秒）、Impact:5（2.45秒）、Vanish（3秒） |
 | MagicCircle_Beam | 3秒 | 溜めてから、太さ0.55m・長さ20m のビームを1.4秒撃ち続ける | Appear（0秒）、Charge（0.4秒）、BeamStart（1秒）、BeamEnd（2.4秒）、Vanish（2.9秒） |
 | MagicCircle_Beam_Sweep | 3.6秒 | ビームを左40°から右40°へなぎ払う（魔法陣も少し向きを変える） | Appear（0秒）、Charge（0.4秒）、BeamStart（1秒）、BeamEnd（2.8秒）、Vanish（3.5秒） |
 | MagicCircle_Pillar | 2.6秒 | 前方3m の地面に魔法陣が広がり、光の柱（高さ7m・太さ1.1m）が噴き上がる | Appear（0秒）、Charge（0.35秒）、PillarStart（1秒）、PillarEnd（1.8秒）、Vanish（2.5秒） |
-| MagicCircle_Rain | 3.6秒 | 前方6m・高さ6m に魔法陣が現れ、玉が0.22秒おきに8発降り注ぐ | Appear（0秒）、Charge（0.4秒）、Fire:0（1秒）、Fire:1（1.22秒）、Fire:2（1.44秒）、Fire:3（1.6600000000000001秒）、Fire:4（1.88秒）、Fire:5（2.1秒）、Fire:6（2.3200000000000003秒）、Fire:7（2.54秒）、Impact:0（1.35秒）、Impact:1（1.57秒）、Impact:2（1.79秒）、Impact:3（2.0100000000000002秒）、Impact:4（2.23秒）、Impact:5（2.45秒）、Impact:6（2.67秒）、Impact:7（2.89秒）、Vanish（3.5秒） |
+| MagicCircle_Rain | 3.6秒 | 前方6m・高さ6m に魔法陣が現れ、玉が0.22秒おきに8発降り注ぐ | Appear（0秒）、Charge（0.4秒）、Fire:0（1秒）、Fire:1（1.22秒）、Fire:2（1.44秒）、Fire:3（1.66秒）、Fire:4（1.88秒）、Fire:5（2.1秒）、Fire:6（2.32秒）、Fire:7（2.54秒）、Impact:0（1.35秒）、Impact:1（1.57秒）、Impact:2（1.79秒）、Impact:3（2.01秒）、Impact:4（2.23秒）、Impact:5（2.45秒）、Impact:6（2.67秒）、Impact:7（2.89秒）、Vanish（3.5秒） |
 
 ## 属性
 
