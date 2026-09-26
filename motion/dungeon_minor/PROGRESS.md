@@ -182,3 +182,21 @@
 2. 人型以外：`dungeon_minor.html` の POSE 部分（BODIES・clip(...)・LIMBS・ENEMIES）を編集 → `node motion/dungeon_minor/tools/export_unity.mjs`
 3. 人型：`dungeon_humanoid.html` の POSE 部分（姿勢の基本形・clip(...)・RIGS・ENEMIES）を編集 → `node motion/dungeon_minor/tools/export_humanoid.mjs`
 4. このファイルを更新してコミット。納品したら作業ファイルを git から消し、このファイルだけ残す
+
+## 第3段階：更新された「モンスター一覧」シートの I列（行動・攻撃）から追加
+
+- 001〜060 のうち、ダンジョン雑魚で作っていなかった 4 体と、I列に内容のあるボス 3 体を追加する
+- ボスのうち「未設計（ボスの行動・攻撃はまだ決めていない）」の 40 体は、行動が決まってから作る（今回は作らない）
+- 時間はモンスター表・モンスタースキル表の数値どおりにし、区切りにイベント（Telegraph / Strike / Recover など）を入れる。0.7m・0.3m の踏み込みはゲーム側（MonsterController）が動かすので、クリップはその場
+
+| No. | 名前 | 仕組み | 作るクリップ | 状態 |
+|---|---|---|---|---|
+| 001 | キノコ | Mushroom（体全体＋手足） | Run（追跡 3.2m/秒）/ Attack_Lunge_Std（予告0.3＋のけぞり0.55→攻撃0.18→硬直0.9） ＋ 既存の Idle / Move / Hit / Death | 未着手 |
+| 006 | 装甲バチ | Bee | Run / Attack_Lunge_Std ＋ 既存 | 未着手 |
+| 007 | 植物クリーチャー | Plant（2倍＝高さ2.4m） | Run / Attack_Lunge_Std ＋ 既存 | 未着手 |
+| 008 | 魔族（下っ端） | 人型 Demon | Idle / Move / Run / Attack_Punch / Attack_Kick（予告0.3＋0.3→攻撃0.15→硬直0.7）/ Hit / Death | 未着手 |
+| 065 | 魔族の群れ頭 | 人型 Demon（2.5倍） | 008 と同じ | 未着手 |
+| 063 | ベリット | 人型 Berit | 008 と同じ ＋ Attack_Flame（両腕を上げる→1.8秒）/ Attack_Charge_Start / Attack_Charge_Loop / Attack_Charge_End（硬直0.8） | 未着手 |
+| 095 | 空鯨 | SkyWhale（新しい体・20倍＝全長30m） | Idle / Move / Attack_Breath（0.3＋0.9→1.2）/ Attack_TailSweep（0.3＋0.7→0.5）/ Attack_Inhale（0.3＋1.2→4）/ Shake（0.4）/ Hit（銛）/ Crash / Death | 未着手 |
+
+- 作業ファイルをコミット `564aabd` から戻して開始

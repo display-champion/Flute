@@ -1,0 +1,2927 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!74 &7400000
+AnimationClip:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Chained_Dormant
+  serializedVersion: 6
+  m_Legacy: 0
+  m_Compressed: 0
+  m_UseHighQualityCurve: 1
+  m_RotationCurves: []
+  m_CompressedRotationCurves: []
+  m_EulerCurves: []
+  m_PositionCurves:
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: 0.6, z: 0}
+        inSlope: {x: 0, y: 0.0418879, z: 0}
+        outSlope: {x: 0, y: 0.0418879, z: 0}
+      - serializedVersion: 3
+        time: 0.05
+        value: {x: 0, y: 0.602091, z: 0}
+        inSlope: {x: 0, y: 0.0416589, z: 0}
+        outSlope: {x: 0, y: 0.041658, z: 0}
+      - serializedVersion: 3
+        time: 0.1
+        value: {x: 0, y: 0.604158, z: 0}
+        inSlope: {x: 0, y: 0.0409735, z: 0}
+        outSlope: {x: 0, y: 0.0409716, z: 0}
+      - serializedVersion: 3
+        time: 0.15
+        value: {x: 0, y: 0.60618, z: 0}
+        inSlope: {x: 0, y: 0.0398391, z: 0}
+        outSlope: {x: 0, y: 0.0398364, z: 0}
+      - serializedVersion: 3
+        time: 0.2
+        value: {x: 0, y: 0.608135, z: 0}
+        inSlope: {x: 0, y: 0.0382683, z: 0}
+        outSlope: {x: 0, y: 0.0382647, z: 0}
+      - serializedVersion: 3
+        time: 0.25
+        value: {x: 0, y: 0.61, z: 0}
+        inSlope: {x: 0, y: 0.0362782, z: 0}
+        outSlope: {x: 0, y: 0.0362738, z: 0}
+      - serializedVersion: 3
+        time: 0.3
+        value: {x: 0, y: 0.611756, z: 0}
+        inSlope: {x: 0, y: 0.0338906, z: 0}
+        outSlope: {x: 0, y: 0.0338854, z: 0}
+      - serializedVersion: 3
+        time: 0.35
+        value: {x: 0, y: 0.613383, z: 0}
+        inSlope: {x: 0, y: 0.0311317, z: 0}
+        outSlope: {x: 0, y: 0.0311258, z: 0}
+      - serializedVersion: 3
+        time: 0.4
+        value: {x: 0, y: 0.614863, z: 0}
+        inSlope: {x: 0, y: 0.0280317, z: 0}
+        outSlope: {x: 0, y: 0.0280252, z: 0}
+      - serializedVersion: 3
+        time: 0.45
+        value: {x: 0, y: 0.61618, z: 0}
+        inSlope: {x: 0, y: 0.0246246, z: 0}
+        outSlope: {x: 0, y: 0.0246175, z: 0}
+      - serializedVersion: 3
+        time: 0.5
+        value: {x: 0, y: 0.617321, z: 0}
+        inSlope: {x: 0, y: 0.0209477, z: 0}
+        outSlope: {x: 0, y: 0.0209402, z: 0}
+      - serializedVersion: 3
+        time: 0.55
+        value: {x: 0, y: 0.618271, z: 0}
+        inSlope: {x: 0, y: 0.0170414, z: 0}
+        outSlope: {x: 0, y: 0.0170333, z: 0}
+      - serializedVersion: 3
+        time: 0.6
+        value: {x: 0, y: 0.619021, z: 0}
+        inSlope: {x: 0, y: 0.0129482, z: 0}
+        outSlope: {x: 0, y: 0.0129399, z: 0}
+      - serializedVersion: 3
+        time: 0.65
+        value: {x: 0, y: 0.619563, z: 0}
+        inSlope: {x: 0, y: 0.00871328, z: 0}
+        outSlope: {x: 0, y: 0.00870469, z: 0}
+      - serializedVersion: 3
+        time: 0.7
+        value: {x: 0, y: 0.61989, z: 0}
+        inSlope: {x: 0, y: 0.00438284, z: 0}
+        outSlope: {x: 0, y: 0.00437412, z: 0}
+      - serializedVersion: 3
+        time: 0.75
+        value: {x: 0, y: 0.62, z: 0}
+        inSlope: {x: 0, y: 0.00000438649, z: 0}
+        outSlope: {x: 0, y: -0.00000438649, z: 0}
+      - serializedVersion: 3
+        time: 0.8
+        value: {x: 0, y: 0.61989, z: 0}
+        inSlope: {x: 0, y: -0.00437412, z: 0}
+        outSlope: {x: 0, y: -0.00438284, z: 0}
+      - serializedVersion: 3
+        time: 0.85
+        value: {x: 0, y: 0.619563, z: 0}
+        inSlope: {x: 0, y: -0.00870469, z: 0}
+        outSlope: {x: 0, y: -0.00871328, z: 0}
+      - serializedVersion: 3
+        time: 0.9
+        value: {x: 0, y: 0.619021, z: 0}
+        inSlope: {x: 0, y: -0.0129399, z: 0}
+        outSlope: {x: 0, y: -0.0129482, z: 0}
+      - serializedVersion: 3
+        time: 0.95
+        value: {x: 0, y: 0.618271, z: 0}
+        inSlope: {x: 0, y: -0.0170333, z: 0}
+        outSlope: {x: 0, y: -0.0170414, z: 0}
+      - serializedVersion: 3
+        time: 1
+        value: {x: 0, y: 0.617321, z: 0}
+        inSlope: {x: 0, y: -0.0209402, z: 0}
+        outSlope: {x: 0, y: -0.0209477, z: 0}
+      - serializedVersion: 3
+        time: 1.05
+        value: {x: 0, y: 0.61618, z: 0}
+        inSlope: {x: 0, y: -0.0246175, z: 0}
+        outSlope: {x: 0, y: -0.0246246, z: 0}
+      - serializedVersion: 3
+        time: 1.1
+        value: {x: 0, y: 0.614863, z: 0}
+        inSlope: {x: 0, y: -0.0280252, z: 0}
+        outSlope: {x: 0, y: -0.0280317, z: 0}
+      - serializedVersion: 3
+        time: 1.15
+        value: {x: 0, y: 0.613383, z: 0}
+        inSlope: {x: 0, y: -0.0311258, z: 0}
+        outSlope: {x: 0, y: -0.0311317, z: 0}
+      - serializedVersion: 3
+        time: 1.2
+        value: {x: 0, y: 0.611756, z: 0}
+        inSlope: {x: 0, y: -0.0338854, z: 0}
+        outSlope: {x: 0, y: -0.0338906, z: 0}
+      - serializedVersion: 3
+        time: 1.25
+        value: {x: 0, y: 0.61, z: 0}
+        inSlope: {x: 0, y: -0.0362738, z: 0}
+        outSlope: {x: 0, y: -0.0362782, z: 0}
+      - serializedVersion: 3
+        time: 1.3
+        value: {x: 0, y: 0.608135, z: 0}
+        inSlope: {x: 0, y: -0.0382647, z: 0}
+        outSlope: {x: 0, y: -0.0382683, z: 0}
+      - serializedVersion: 3
+        time: 1.35
+        value: {x: 0, y: 0.60618, z: 0}
+        inSlope: {x: 0, y: -0.0398364, z: 0}
+        outSlope: {x: 0, y: -0.0398391, z: 0}
+      - serializedVersion: 3
+        time: 1.4
+        value: {x: 0, y: 0.604158, z: 0}
+        inSlope: {x: 0, y: -0.0409716, z: 0}
+        outSlope: {x: 0, y: -0.0409735, z: 0}
+      - serializedVersion: 3
+        time: 1.45
+        value: {x: 0, y: 0.602091, z: 0}
+        inSlope: {x: 0, y: -0.041658, z: 0}
+        outSlope: {x: 0, y: -0.0416589, z: 0}
+      - serializedVersion: 3
+        time: 1.5
+        value: {x: 0, y: 0.6, z: 0}
+        inSlope: {x: 0, y: -0.0418879, z: 0}
+        outSlope: {x: 0, y: -0.0418879, z: 0}
+      - serializedVersion: 3
+        time: 1.55
+        value: {x: 0, y: 0.597909, z: 0}
+        inSlope: {x: 0, y: -0.0416589, z: 0}
+        outSlope: {x: 0, y: -0.041658, z: 0}
+      - serializedVersion: 3
+        time: 1.6
+        value: {x: 0, y: 0.595842, z: 0}
+        inSlope: {x: 0, y: -0.0409735, z: 0}
+        outSlope: {x: 0, y: -0.0409716, z: 0}
+      - serializedVersion: 3
+        time: 1.65
+        value: {x: 0, y: 0.59382, z: 0}
+        inSlope: {x: 0, y: -0.0398391, z: 0}
+        outSlope: {x: 0, y: -0.0398364, z: 0}
+      - serializedVersion: 3
+        time: 1.7
+        value: {x: 0, y: 0.591865, z: 0}
+        inSlope: {x: 0, y: -0.0382683, z: 0}
+        outSlope: {x: 0, y: -0.0382647, z: 0}
+      - serializedVersion: 3
+        time: 1.75
+        value: {x: 0, y: 0.59, z: 0}
+        inSlope: {x: 0, y: -0.0362782, z: 0}
+        outSlope: {x: 0, y: -0.0362738, z: 0}
+      - serializedVersion: 3
+        time: 1.8
+        value: {x: 0, y: 0.588244, z: 0}
+        inSlope: {x: 0, y: -0.0338906, z: 0}
+        outSlope: {x: 0, y: -0.0338854, z: 0}
+      - serializedVersion: 3
+        time: 1.85
+        value: {x: 0, y: 0.586617, z: 0}
+        inSlope: {x: 0, y: -0.0311317, z: 0}
+        outSlope: {x: 0, y: -0.0311258, z: 0}
+      - serializedVersion: 3
+        time: 1.9
+        value: {x: 0, y: 0.585137, z: 0}
+        inSlope: {x: 0, y: -0.0280317, z: 0}
+        outSlope: {x: 0, y: -0.0280252, z: 0}
+      - serializedVersion: 3
+        time: 1.95
+        value: {x: 0, y: 0.58382, z: 0}
+        inSlope: {x: 0, y: -0.0246246, z: 0}
+        outSlope: {x: 0, y: -0.0246175, z: 0}
+      - serializedVersion: 3
+        time: 2
+        value: {x: 0, y: 0.582679, z: 0}
+        inSlope: {x: 0, y: -0.0209477, z: 0}
+        outSlope: {x: 0, y: -0.0209402, z: 0}
+      - serializedVersion: 3
+        time: 2.05
+        value: {x: 0, y: 0.581729, z: 0}
+        inSlope: {x: 0, y: -0.0170414, z: 0}
+        outSlope: {x: 0, y: -0.0170333, z: 0}
+      - serializedVersion: 3
+        time: 2.1
+        value: {x: 0, y: 0.580979, z: 0}
+        inSlope: {x: 0, y: -0.0129482, z: 0}
+        outSlope: {x: 0, y: -0.0129399, z: 0}
+      - serializedVersion: 3
+        time: 2.15
+        value: {x: 0, y: 0.580437, z: 0}
+        inSlope: {x: 0, y: -0.00871328, z: 0}
+        outSlope: {x: 0, y: -0.00870469, z: 0}
+      - serializedVersion: 3
+        time: 2.2
+        value: {x: 0, y: 0.58011, z: 0}
+        inSlope: {x: 0, y: -0.00438284, z: 0}
+        outSlope: {x: 0, y: -0.00437412, z: 0}
+      - serializedVersion: 3
+        time: 2.25
+        value: {x: 0, y: 0.58, z: 0}
+        inSlope: {x: 0, y: -0.00000438649, z: 0}
+        outSlope: {x: 0, y: 0.00000438649, z: 0}
+      - serializedVersion: 3
+        time: 2.3
+        value: {x: 0, y: 0.58011, z: 0}
+        inSlope: {x: 0, y: 0.00437412, z: 0}
+        outSlope: {x: 0, y: 0.00438284, z: 0}
+      - serializedVersion: 3
+        time: 2.35
+        value: {x: 0, y: 0.580437, z: 0}
+        inSlope: {x: 0, y: 0.00870469, z: 0}
+        outSlope: {x: 0, y: 0.00871328, z: 0}
+      - serializedVersion: 3
+        time: 2.4
+        value: {x: 0, y: 0.580979, z: 0}
+        inSlope: {x: 0, y: 0.0129399, z: 0}
+        outSlope: {x: 0, y: 0.0129482, z: 0}
+      - serializedVersion: 3
+        time: 2.45
+        value: {x: 0, y: 0.581729, z: 0}
+        inSlope: {x: 0, y: 0.0170333, z: 0}
+        outSlope: {x: 0, y: 0.0170414, z: 0}
+      - serializedVersion: 3
+        time: 2.5
+        value: {x: 0, y: 0.582679, z: 0}
+        inSlope: {x: 0, y: 0.0209402, z: 0}
+        outSlope: {x: 0, y: 0.0209477, z: 0}
+      - serializedVersion: 3
+        time: 2.55
+        value: {x: 0, y: 0.58382, z: 0}
+        inSlope: {x: 0, y: 0.0246175, z: 0}
+        outSlope: {x: 0, y: 0.0246246, z: 0}
+      - serializedVersion: 3
+        time: 2.6
+        value: {x: 0, y: 0.585137, z: 0}
+        inSlope: {x: 0, y: 0.0280252, z: 0}
+        outSlope: {x: 0, y: 0.0280317, z: 0}
+      - serializedVersion: 3
+        time: 2.65
+        value: {x: 0, y: 0.586617, z: 0}
+        inSlope: {x: 0, y: 0.0311258, z: 0}
+        outSlope: {x: 0, y: 0.0311317, z: 0}
+      - serializedVersion: 3
+        time: 2.7
+        value: {x: 0, y: 0.588244, z: 0}
+        inSlope: {x: 0, y: 0.0338854, z: 0}
+        outSlope: {x: 0, y: 0.0338906, z: 0}
+      - serializedVersion: 3
+        time: 2.75
+        value: {x: 0, y: 0.59, z: 0}
+        inSlope: {x: 0, y: 0.0362738, z: 0}
+        outSlope: {x: 0, y: 0.0362782, z: 0}
+      - serializedVersion: 3
+        time: 2.8
+        value: {x: 0, y: 0.591865, z: 0}
+        inSlope: {x: 0, y: 0.0382647, z: 0}
+        outSlope: {x: 0, y: 0.0382683, z: 0}
+      - serializedVersion: 3
+        time: 2.85
+        value: {x: 0, y: 0.59382, z: 0}
+        inSlope: {x: 0, y: 0.0398364, z: 0}
+        outSlope: {x: 0, y: 0.0398391, z: 0}
+      - serializedVersion: 3
+        time: 2.9
+        value: {x: 0, y: 0.595842, z: 0}
+        inSlope: {x: 0, y: 0.0409716, z: 0}
+        outSlope: {x: 0, y: 0.0409735, z: 0}
+      - serializedVersion: 3
+        time: 2.95
+        value: {x: 0, y: 0.597909, z: 0}
+        inSlope: {x: 0, y: 0.041658, z: 0}
+        outSlope: {x: 0, y: 0.0416589, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: 0.6, z: 0}
+        inSlope: {x: 0, y: 0.0418879, z: 0}
+        outSlope: {x: 0, y: 0.0418879, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: 0.106441, z: 0.0554098}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: 0.106441, z: 0.0554098}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: 0.158255, z: 0.152825}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: 0.158255, z: 0.152825}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: 0.114715, z: 0.16383}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: 0.114715, z: 0.16383}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/Neck
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: 0.0241922, z: 0.0970296}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: 0.0241922, z: 0.0970296}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/Neck/Head
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0, y: -0.12, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0, y: -0.12, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/Neck/Head/HeadForward
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.18, y: 0.0803007, z: 0.114681}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.18, y: 0.0803007, z: 0.114681}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.0198612, y: -0.201841, z: -0.193043}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.0198612, y: -0.201841, z: -0.193043}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.169861, y: -0.146341, z: 0.131649}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.169861, y: -0.146341, z: 0.131649}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.0588475, y: -0.0597012, z: 0.0327527}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.0588475, y: -0.0597012, z: 0.0327527}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand/LeftHandTip
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.18, y: 0.0803007, z: 0.114681}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.18, y: 0.0803007, z: 0.114681}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/RightUpperArm
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.0198612, y: -0.201841, z: -0.193043}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.0198612, y: -0.201841, z: -0.193043}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.169861, y: -0.146341, z: 0.131649}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.169861, y: -0.146341, z: 0.131649}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.0588475, y: -0.0597012, z: 0.0327527}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.0588475, y: -0.0597012, z: 0.0327527}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand/RightHandTip
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.1, y: -0.06, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.1, y: -0.06, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/LeftUpperLeg
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.0317633, y: 0.212422, z: 0.384015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.0317633, y: 0.212422, z: 0.384015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.0117633, y: -0.372422, z: -0.234015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.0117633, y: -0.372422, z: -0.234015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.0139305, y: 0, z: 0.139305}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.0139305, y: 0, z: 0.139305}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot/LeftToes
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.1, y: -0.06, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.1, y: -0.06, z: 0}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/RightUpperLeg
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.0317633, y: 0.212422, z: 0.384015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.0317633, y: 0.212422, z: 0.384015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: -0.0117633, y: -0.372422, z: -0.234015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: -0.0117633, y: -0.372422, z: -0.234015}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: {x: 0.0139305, y: 0, z: 0.139305}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      - serializedVersion: 3
+        time: 3
+        value: {x: 0.0139305, y: 0, z: 0.139305}
+        inSlope: {x: 0, y: 0, z: 0}
+        outSlope: {x: 0, y: 0, z: 0}
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot/RightToes
+  m_ScaleCurves: []
+  m_FloatCurves: []
+  m_PPtrCurves: []
+  m_SampleRate: 60
+  m_WrapMode: 0
+  m_Bounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
+  m_ClipBindingConstant:
+    genericBindings: []
+    pptrCurveMapping: []
+  m_AnimationClipSettings:
+    serializedVersion: 2
+    m_AdditiveReferencePoseClip: {fileID: 0}
+    m_AdditiveReferencePoseTime: 0
+    m_StartTime: 0
+    m_StopTime: 3
+    m_OrientationOffsetY: 0
+    m_Level: 0
+    m_CycleOffset: 0
+    m_HasAdditiveReferencePose: 0
+    m_LoopTime: 1
+    m_LoopBlend: 0
+    m_LoopBlendOrientation: 0
+    m_LoopBlendPositionY: 0
+    m_LoopBlendPositionXZ: 0
+    m_KeepOriginalOrientation: 0
+    m_KeepOriginalPositionY: 1
+    m_KeepOriginalPositionXZ: 0
+    m_HeightFromFeet: 0
+    m_Mirror: 0
+  m_EditorCurves:
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.6
+        inSlope: 0.0418879
+        outSlope: 0.0418879
+      - serializedVersion: 3
+        time: 0.05
+        value: 0.602091
+        inSlope: 0.0416589
+        outSlope: 0.041658
+      - serializedVersion: 3
+        time: 0.1
+        value: 0.604158
+        inSlope: 0.0409735
+        outSlope: 0.0409716
+      - serializedVersion: 3
+        time: 0.15
+        value: 0.60618
+        inSlope: 0.0398391
+        outSlope: 0.0398364
+      - serializedVersion: 3
+        time: 0.2
+        value: 0.608135
+        inSlope: 0.0382683
+        outSlope: 0.0382647
+      - serializedVersion: 3
+        time: 0.25
+        value: 0.61
+        inSlope: 0.0362782
+        outSlope: 0.0362738
+      - serializedVersion: 3
+        time: 0.3
+        value: 0.611756
+        inSlope: 0.0338906
+        outSlope: 0.0338854
+      - serializedVersion: 3
+        time: 0.35
+        value: 0.613383
+        inSlope: 0.0311317
+        outSlope: 0.0311258
+      - serializedVersion: 3
+        time: 0.4
+        value: 0.614863
+        inSlope: 0.0280317
+        outSlope: 0.0280252
+      - serializedVersion: 3
+        time: 0.45
+        value: 0.61618
+        inSlope: 0.0246246
+        outSlope: 0.0246175
+      - serializedVersion: 3
+        time: 0.5
+        value: 0.617321
+        inSlope: 0.0209477
+        outSlope: 0.0209402
+      - serializedVersion: 3
+        time: 0.55
+        value: 0.618271
+        inSlope: 0.0170414
+        outSlope: 0.0170333
+      - serializedVersion: 3
+        time: 0.6
+        value: 0.619021
+        inSlope: 0.0129482
+        outSlope: 0.0129399
+      - serializedVersion: 3
+        time: 0.65
+        value: 0.619563
+        inSlope: 0.00871328
+        outSlope: 0.00870469
+      - serializedVersion: 3
+        time: 0.7
+        value: 0.61989
+        inSlope: 0.00438284
+        outSlope: 0.00437412
+      - serializedVersion: 3
+        time: 0.75
+        value: 0.62
+        inSlope: 0.00000438649
+        outSlope: -0.00000438649
+      - serializedVersion: 3
+        time: 0.8
+        value: 0.61989
+        inSlope: -0.00437412
+        outSlope: -0.00438284
+      - serializedVersion: 3
+        time: 0.85
+        value: 0.619563
+        inSlope: -0.00870469
+        outSlope: -0.00871328
+      - serializedVersion: 3
+        time: 0.9
+        value: 0.619021
+        inSlope: -0.0129399
+        outSlope: -0.0129482
+      - serializedVersion: 3
+        time: 0.95
+        value: 0.618271
+        inSlope: -0.0170333
+        outSlope: -0.0170414
+      - serializedVersion: 3
+        time: 1
+        value: 0.617321
+        inSlope: -0.0209402
+        outSlope: -0.0209477
+      - serializedVersion: 3
+        time: 1.05
+        value: 0.61618
+        inSlope: -0.0246175
+        outSlope: -0.0246246
+      - serializedVersion: 3
+        time: 1.1
+        value: 0.614863
+        inSlope: -0.0280252
+        outSlope: -0.0280317
+      - serializedVersion: 3
+        time: 1.15
+        value: 0.613383
+        inSlope: -0.0311258
+        outSlope: -0.0311317
+      - serializedVersion: 3
+        time: 1.2
+        value: 0.611756
+        inSlope: -0.0338854
+        outSlope: -0.0338906
+      - serializedVersion: 3
+        time: 1.25
+        value: 0.61
+        inSlope: -0.0362738
+        outSlope: -0.0362782
+      - serializedVersion: 3
+        time: 1.3
+        value: 0.608135
+        inSlope: -0.0382647
+        outSlope: -0.0382683
+      - serializedVersion: 3
+        time: 1.35
+        value: 0.60618
+        inSlope: -0.0398364
+        outSlope: -0.0398391
+      - serializedVersion: 3
+        time: 1.4
+        value: 0.604158
+        inSlope: -0.0409716
+        outSlope: -0.0409735
+      - serializedVersion: 3
+        time: 1.45
+        value: 0.602091
+        inSlope: -0.041658
+        outSlope: -0.0416589
+      - serializedVersion: 3
+        time: 1.5
+        value: 0.6
+        inSlope: -0.0418879
+        outSlope: -0.0418879
+      - serializedVersion: 3
+        time: 1.55
+        value: 0.597909
+        inSlope: -0.0416589
+        outSlope: -0.041658
+      - serializedVersion: 3
+        time: 1.6
+        value: 0.595842
+        inSlope: -0.0409735
+        outSlope: -0.0409716
+      - serializedVersion: 3
+        time: 1.65
+        value: 0.59382
+        inSlope: -0.0398391
+        outSlope: -0.0398364
+      - serializedVersion: 3
+        time: 1.7
+        value: 0.591865
+        inSlope: -0.0382683
+        outSlope: -0.0382647
+      - serializedVersion: 3
+        time: 1.75
+        value: 0.59
+        inSlope: -0.0362782
+        outSlope: -0.0362738
+      - serializedVersion: 3
+        time: 1.8
+        value: 0.588244
+        inSlope: -0.0338906
+        outSlope: -0.0338854
+      - serializedVersion: 3
+        time: 1.85
+        value: 0.586617
+        inSlope: -0.0311317
+        outSlope: -0.0311258
+      - serializedVersion: 3
+        time: 1.9
+        value: 0.585137
+        inSlope: -0.0280317
+        outSlope: -0.0280252
+      - serializedVersion: 3
+        time: 1.95
+        value: 0.58382
+        inSlope: -0.0246246
+        outSlope: -0.0246175
+      - serializedVersion: 3
+        time: 2
+        value: 0.582679
+        inSlope: -0.0209477
+        outSlope: -0.0209402
+      - serializedVersion: 3
+        time: 2.05
+        value: 0.581729
+        inSlope: -0.0170414
+        outSlope: -0.0170333
+      - serializedVersion: 3
+        time: 2.1
+        value: 0.580979
+        inSlope: -0.0129482
+        outSlope: -0.0129399
+      - serializedVersion: 3
+        time: 2.15
+        value: 0.580437
+        inSlope: -0.00871328
+        outSlope: -0.00870469
+      - serializedVersion: 3
+        time: 2.2
+        value: 0.58011
+        inSlope: -0.00438284
+        outSlope: -0.00437412
+      - serializedVersion: 3
+        time: 2.25
+        value: 0.58
+        inSlope: -0.00000438649
+        outSlope: 0.00000438649
+      - serializedVersion: 3
+        time: 2.3
+        value: 0.58011
+        inSlope: 0.00437412
+        outSlope: 0.00438284
+      - serializedVersion: 3
+        time: 2.35
+        value: 0.580437
+        inSlope: 0.00870469
+        outSlope: 0.00871328
+      - serializedVersion: 3
+        time: 2.4
+        value: 0.580979
+        inSlope: 0.0129399
+        outSlope: 0.0129482
+      - serializedVersion: 3
+        time: 2.45
+        value: 0.581729
+        inSlope: 0.0170333
+        outSlope: 0.0170414
+      - serializedVersion: 3
+        time: 2.5
+        value: 0.582679
+        inSlope: 0.0209402
+        outSlope: 0.0209477
+      - serializedVersion: 3
+        time: 2.55
+        value: 0.58382
+        inSlope: 0.0246175
+        outSlope: 0.0246246
+      - serializedVersion: 3
+        time: 2.6
+        value: 0.585137
+        inSlope: 0.0280252
+        outSlope: 0.0280317
+      - serializedVersion: 3
+        time: 2.65
+        value: 0.586617
+        inSlope: 0.0311258
+        outSlope: 0.0311317
+      - serializedVersion: 3
+        time: 2.7
+        value: 0.588244
+        inSlope: 0.0338854
+        outSlope: 0.0338906
+      - serializedVersion: 3
+        time: 2.75
+        value: 0.59
+        inSlope: 0.0362738
+        outSlope: 0.0362782
+      - serializedVersion: 3
+        time: 2.8
+        value: 0.591865
+        inSlope: 0.0382647
+        outSlope: 0.0382683
+      - serializedVersion: 3
+        time: 2.85
+        value: 0.59382
+        inSlope: 0.0398364
+        outSlope: 0.0398391
+      - serializedVersion: 3
+        time: 2.9
+        value: 0.595842
+        inSlope: 0.0409716
+        outSlope: 0.0409735
+      - serializedVersion: 3
+        time: 2.95
+        value: 0.597909
+        inSlope: 0.041658
+        outSlope: 0.0416589
+      - serializedVersion: 3
+        time: 3
+        value: 0.6
+        inSlope: 0.0418879
+        outSlope: 0.0418879
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 0.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 1.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.05
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.15
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.2
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.25
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.35
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.4
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.45
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.5
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.55
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.6
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.65
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.7
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.75
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.8
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.85
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.9
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 2.95
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.106441
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.106441
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0554098
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0554098
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.158255
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.158255
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.152825
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.152825
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/Neck
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.114715
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.114715
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/Neck
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.16383
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.16383
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/Neck
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/Neck/Head
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0241922
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0241922
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/Neck/Head
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0970296
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0970296
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/Neck/Head
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/Neck/Head/HeadForward
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.12
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.12
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/Neck/Head/HeadForward
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/Neck/Head/HeadForward
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.18
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.18
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0803007
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0803007
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.114681
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.114681
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0198612
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0198612
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.201841
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.201841
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.193043
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.193043
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.169861
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.169861
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.146341
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.146341
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.131649
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.131649
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0588475
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0588475
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand/LeftHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0597012
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0597012
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand/LeftHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0327527
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0327527
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand/LeftHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.18
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.18
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/RightUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0803007
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0803007
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/RightUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.114681
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.114681
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/RightUpperArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0198612
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0198612
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.201841
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.201841
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.193043
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.193043
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.169861
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.169861
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.146341
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.146341
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.131649
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.131649
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0588475
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0588475
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand/RightHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0597012
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0597012
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand/RightHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0327527
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0327527
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/Spine/Chest/RightUpperArm/RightLowerArm/RightHand/RightHandTip
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.1
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.1
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/LeftUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.06
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.06
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/LeftUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/LeftUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0317633
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0317633
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.212422
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.212422
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.384015
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.384015
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0117633
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0117633
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.372422
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.372422
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.234015
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.234015
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0139305
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0139305
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot/LeftToes
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot/LeftToes
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.139305
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.139305
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/LeftUpperLeg/LeftLowerLeg/LeftFoot/LeftToes
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.1
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.1
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/RightUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.06
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.06
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/RightUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/RightUpperLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0317633
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0317633
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.212422
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.212422
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.384015
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.384015
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.0117633
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.0117633
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.372422
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.372422
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: -0.234015
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: -0.234015
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.0139305
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.0139305
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.x
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot/RightToes
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.y
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot/RightToes
+    classID: 4
+    script: {fileID: 0}
+  - curve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0.139305
+        inSlope: 0
+        outSlope: 0
+      - serializedVersion: 3
+        time: 3
+        value: 0.139305
+        inSlope: 0
+        outSlope: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    attribute: m_LocalPosition.z
+    path: Proxy/Hips/RightUpperLeg/RightLowerLeg/RightFoot/RightToes
+    classID: 4
+    script: {fileID: 0}
+  m_EulerEditorCurves: []
+  m_HasGenericRootTransform: 0
+  m_HasMotionFloatCurves: 0
+  m_Events: []
