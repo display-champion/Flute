@@ -135,3 +135,61 @@ html = html.replace("__DATA__", json.dumps(items, ensure_ascii=False)).replace("
 out = os.path.join(HERE, "..", "preview.html")
 open(out, "w", encoding="utf-8").write(html)
 print(f"{os.path.normpath(out)}（{os.path.getsize(out) // 1024} KB）")
+
+# ---------------- README ----------------
+rows = {}
+for m in meta:
+    rows.setdefault(m["group"], []).append(f"| `{m['name']}` | {m['sec']:.2f}秒{'（ループ）' if m['loop'] else ''} | {m['desc']} | {m['use']} |")
+lists = "\n\n".join(f"### {g}（{len(r)} 音）\n\n| 名前 | 長さ | 音 | 使う所 |\n|---|---|---|---|\n" + "\n".join(r) for g, r in rows.items())
+readme = f"""# バトルの攻撃 SE（{len(meta)} 音）
+
+`preview.html` をブラウザで開くと、全部の音を聞き比べられます（音は html の中に入っているので、このファイルだけで再生できます）。
+このファイルは `tools/make_preview.py` が自動生成します。
+
+## 形式
+
+- WAV（44.1kHz・16bit・モノラル）。`Resources/BattleSE/` に入っています
+- 音量は種類ごとにそろえてあります（振り音は小さめ、命中・爆発は大きめ）。ピークは -1dB 以下
+- 名前の末尾が `_Loop` の音はループ用です（頭とおしりがつながるように作ってあります）。Inspector で Loop にするか、`BattleSE.PlayLoop` で鳴らしてください
+
+## 使い方（Unity）
+
+1. このフォルダ（`battle_se`）を Assets の下に置く（`Resources` フォルダはそのまま。名前で読み込むのに使います）
+2. スクリプトから名前で鳴らす：
+
+```csharp
+BattleSE.Play("Fina_Hit_A");                               // 2D で鳴らす
+BattleSE.Play("Enemy_Stomp", transform.position);          // その位置で鳴らす
+var h = BattleSE.PlayLoop("Flamethrower_Loop", transform); // ループ（ついていく）
+BattleSE.Stop(h);                                          // ループを止める
+BattleSE.PlayMagic("Impact", "Ice");                       // Magic_Impact_Ice
+```
+
+   - `BattleSE` はシーンに置かなくても、最初に鳴らしたときに自動で作られます。置いておくと Inspector で全体の音量・3D の割合・AudioMixer の出力先などを変えられます
+   - 鳴らすたびに高さ（±4%）と音量を少し揺らすので、同じ音の連打が機械的に聞こえません。多段ヒットで同じ音が 0.03 秒以内に重なったときは2回目を鳴らしません
+3. モーションのイベントで鳴らす：`SEEventMap` を Animator と同じ GameObject に付け、「イベント名 → SE 名」を並べる
+   - 魔法陣（`MagicCircleRig`）は、コンポーネント右上の ⋮ →「魔法陣の既定を入れる」で、Appear / Charge / Fire / Impact / BeamStart / PillarStart に音が付きます。玉の音は `MagicCircleRig` の属性（Element）に合わせて切り替わります
+   - `Fire:3` のような番号付きのイベントは `Fire` と書けば一致します。**Log Events** をオンにすると、届いたイベント名がコンソールに出ます
+
+## 音の一覧
+
+{lists}
+
+## 作り直し方
+
+録音素材は使わず、`tools/make_se.py`（音の作り方）と `tools/dsp.py`（道具）で一から合成しています。Python 3 ＋ numpy ＋ scipy で動きます。
+
+```
+pip install numpy scipy
+python tools/make_se.py              # 全部作り直す（Resources/BattleSE/ に上書き）
+python tools/make_se.py Fina_Hit     # 名前の一部を指定して作り直す
+python tools/make_preview.py         # preview.html と README.md を作り直す
+```
+
+## 注意
+
+- 音は数値で確認しています（波形・周波数の形、つなぎ目、音量）が、実際に耳で聞いての調整はしていません。イメージと違う音があれば、名前と「もっと重く」「短く」などを教えてください
+- `BattleSE.cs`・`SEEventMap.cs` は Unity での動作をまだ確認できていません。エラーが出たら文面を教えてください
+"""
+open(os.path.join(HERE, "..", "README.md"), "w", encoding="utf-8").write(readme)
+print("README.md")
