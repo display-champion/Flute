@@ -40,6 +40,9 @@
 | EN-47 | 名を失くした亡者 | Ghoul（暴れる亡者） | Idle / Move / Attack_Punch / Hit / Death |
 | EN-48 | 苔の石像 | Statue（動く石像） | Disguise / Ambush_Punch / Idle / Move / Hit / Death |
 | EN-51 | 笑う死者 | Laugher（笑う死者） | Idle_Laugh / Move / Attack_Grab / Hit / Death_Crumble |
+| No.008 | 魔族（下っ端） | Demon（魔族（下っ端・群れ頭）） | Idle / Move / Run / Attack_Punch / Attack_Kick / Hit / Death |
+| No.065 | 魔族の群れ頭 | Demon（魔族（下っ端・群れ頭）） | Idle / Move / Run / Attack_Punch / Attack_Kick / Hit / Death |
+| No.063 | ベリット | Berit（ベリット） | Idle / Move / Run / Attack_Punch / Attack_Kick / Attack_Flame / Attack_Charge_Start / Attack_Charge_Loop / Attack_Charge_End / Hit / Death |
 
 ## クリップ一覧
 
@@ -136,6 +139,24 @@
 | Silent_Attack_Strike | 1秒 | しない | Hit（0.38秒） |
 | Silent_Hit | 0.45秒 | しない | ― |
 | Silent_Death | 1秒 | しない | Vanish（0.9秒） |
+| Demon_Idle | 2秒 | する | ― |
+| Demon_Move | 1秒 | する | ― |
+| Demon_Run | 0.6秒 | する | ― |
+| Demon_Attack_Punch | 1.6秒 | しない | Telegraph（0秒）、Strike（0.6秒）、Recover（0.75秒）、RecoverEnd（1.45秒） |
+| Demon_Attack_Kick | 1.6秒 | しない | Telegraph（0秒）、Strike（0.6秒）、Recover（0.75秒）、RecoverEnd（1.45秒） |
+| Demon_Hit | 0.45秒 | しない | ― |
+| Demon_Death | 1.8秒 | しない | Down（1.2秒） |
+| Berit_Idle | 2秒 | する | ― |
+| Berit_Move | 1秒 | する | ― |
+| Berit_Run | 0.6秒 | する | ― |
+| Berit_Attack_Punch | 1.6秒 | しない | Telegraph（0秒）、Strike（0.6秒）、Recover（0.75秒）、RecoverEnd（1.45秒） |
+| Berit_Attack_Kick | 1.6秒 | しない | Telegraph（0秒）、Strike（0.6秒）、Recover（0.75秒）、RecoverEnd（1.45秒） |
+| Berit_Hit | 0.45秒 | しない | ― |
+| Berit_Death | 1.8秒 | しない | Down（1.2秒） |
+| Berit_Attack_Flame | 3.3秒 | しない | Telegraph（0秒）、FlameStart（0.85秒）、FlameEnd（2.65秒） |
+| Berit_Attack_Charge_Start | 0.85秒 | しない | Telegraph（0秒）、ChargeStart（0.85秒） |
+| Berit_Attack_Charge_Loop | 0.5秒 | する | ― |
+| Berit_Attack_Charge_End | 0.8秒 | しない | ChargeEnd（0秒）、RecoverEnd（0.8秒） |
 
 ## 注意
 

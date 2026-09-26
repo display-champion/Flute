@@ -78,6 +78,10 @@
 | EN-53 | 庭の番 | Plant | Idle / Move / Attack_Lunge / Hit / Death | 1倍 |
 | EN-55 | 刈り込み鋏 | Shears | Idle / Move / Attack_Snip2 / Hit / Death | 1倍 |
 | EN-56 | 受粉の蜂 | Bee | Idle / Move / Attack_Sting / Hit / Death | 1倍 |
+| No.001 | キノコ | Mushroom | Idle / Move / Run / Attack_Lunge_Std / Hit / Death | 1倍 |
+| No.006 | 装甲バチ | Bee | Idle / Move / Run / Attack_Lunge_Std / Hit / Death | 1倍 |
+| No.007 | 植物クリーチャー | Plant | Idle / Move / Run / Attack_Lunge_Std / Hit / Death | 2倍 |
+| No.095 | 空鯨 | SkyWhale | Idle / Move / Attack_Breath / Attack_TailSweep / Attack_Inhale / Shake / Hit / Crash / Death | 20倍 |
 
 ## クリップ一覧
 
@@ -189,6 +193,21 @@
 | Shears_Attack_Snip2 | 1.6秒 | しない | Hit（0.4秒）、Hit（0.7秒） |
 | Shears_Hit | 0.4秒 | しない | ― |
 | Shears_Death | 1.3秒 | しない | Down（0.6秒） |
+| Mushroom_Attack_Lunge_Std | 2.1秒 | しない | Telegraph（0秒）、Strike（0.85秒）、Recover（1.03秒）、RecoverEnd（1.93秒） |
+| Mushroom_Run | 0.4秒 | する | ― |
+| Bee_Attack_Lunge_Std | 2.1秒 | しない | Telegraph（0秒）、Strike（0.85秒）、Recover（1.03秒）、RecoverEnd（1.93秒） |
+| Bee_Run | 1秒 | する | ― |
+| Plant_Attack_Lunge_Std | 2.1秒 | しない | Telegraph（0秒）、Strike（0.85秒）、Recover（1.03秒）、RecoverEnd（1.93秒） |
+| Plant_Run | 0.5秒 | する | ― |
+| SkyWhale_Idle | 4秒 | する | ― |
+| SkyWhale_Move | 4秒 | する | ― |
+| SkyWhale_Attack_Breath | 2.8秒 | しない | Telegraph（0秒）、BreathStart（1.2秒）、BreathEnd（2.4秒） |
+| SkyWhale_Attack_TailSweep | 2.3秒 | しない | Telegraph（0秒）、SweepStart（1秒）、SweepEnd（1.5秒） |
+| SkyWhale_Attack_Inhale | 6秒 | しない | Telegraph（0秒）、InhaleStart（1.5秒）、InhaleEnd（5.5秒） |
+| SkyWhale_Shake | 0.4秒 | しない | Shake（0秒） |
+| SkyWhale_Hit | 1.5秒 | しない | Hit（0秒） |
+| SkyWhale_Crash | 3秒 | しない | Crash（2.5秒） |
+| SkyWhale_Death | 3秒 | しない | BellySplit（1秒） |
 
 ## 体の種類と手足
 
@@ -208,6 +227,7 @@
 | Barrel（樽） | (0, 0.4, 0) | 足元が原点。高さ 0.8m・半径 0.3m の樽 | FootL（骨1本）、FootR（骨1本） |
 | Box（木箱） | (0, 0, -0.3) | 足元が原点。箱の後ろ下の角（後ろ 0.3m）を軸に傾く | Lid（骨1本） |
 | Shears（浮かぶ鋏） | (0, 1.1, 0) | 鋏の留め具が高さ 1.1m に来るよう置く。刃先が +Z | BladeL（骨1本）、BladeR（骨1本）、HandleL（骨1本）、HandleR（骨1本） |
+| SkyWhale（空鯨） | (0, 0, 0) | 体の中心が原点。敵の本体を20倍（全長30m）にし、高度はゲーム側で動かす（空鯨 CHR-009 / SkyWhale.cs） | Tail（骨2本）、FinL（骨1本）、FinR（骨1本）、Jaw（骨1本） |
 
 ## 作り直し方
 

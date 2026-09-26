@@ -626,12 +626,70 @@
   hitClip("Silent", SILENT);
   floatSink("Silent", SILENT, "Death", 0.15, -1.9, 0.9, "Vanish");
 
+  // ======================================================================
+  // 第3段階：No.008 魔族（下っ端）/ No.065 魔族の群れ頭 / No.063 ベリット（人型・Animator 付きのモデル）
+  // パンチ／キック：予告0.3＋0.3 → 攻撃0.15（0.3m の踏み込みはゲーム側）→ 硬直0.7 → 戻る
+  // ======================================================================
+  const DEMON = { lean: 8, root: [0, -0.05, 0], armL: [0.02, -0.12, 0.26], armR: [0.04, -0.18, 0.22], handL: 35, handR: 35, footL: [0.02, 0, 0.14], footR: [0.02, 0, -0.1], twist: -10 };
+  const PK_EVENTS = [[0, "Telegraph"], [0.6, "Strike"], [0.75, "Recover"], [1.45, "RecoverEnd"]];
+  function demonSet(rig) {
+    idleClip(rig, DEMON, { dur: 2.0, bob: 0.015, sway: 2 });
+    walkClip(rig, DEMON, { name: "Move", period: 1.0, stride: 0.55, lift: 0.08, swing: 0.08 });           // 徘徊 1.2m/秒
+    walkClip(rig, DEMON, { name: "Run", period: 0.6, stride: 0.95, lift: 0.22, bob: 0.05, swing: 0.25, lean: 16 });   // 追跡 3.2m/秒
+    clip(rig, "Attack_Punch", 1.6, false, PK_EVENTS, () => {
+      const armR = K([[0, DEMON.armR], [0.3, DEMON.armR], [0.6, [0.04, -0.05, 0.08]], [0.72, [-0.12, 0.03, 0.53], "in"], [0.75, [-0.12, 0.03, 0.53]], [1.45, [-0.1, 0.0, 0.48]], [1.6, DEMON.armR]]);
+      const twist = K([[0, -10], [0.3, -10], [0.6, -30], [0.72, 25, "in"], [1.45, 20], [1.6, -10]]);
+      const lean = K([[0, 8], [0.3, 8], [0.6, 4], [0.72, 16, "in"], [1.45, 14], [1.6, 8]]);
+      return (t) => ({ ...DEMON, armR: armR(t), twist: twist(t), lean: lean(t), bend: 1.5 * sin(TAU * 12 * t) * env(t, 0, 0.3) });
+    });
+    clip(rig, "Attack_Kick", 1.6, false, PK_EVENTS, () => {
+      const footR = K([[0, DEMON.footR], [0.3, DEMON.footR], [0.6, [0.02, 0.42, 0.2]], [0.72, [0.02, 0.7, 0.6], "in"], [0.75, [0.02, 0.7, 0.6]], [1.0, [0.02, 0.3, 0.2]], [1.45, [0.02, 0, 0.05]], [1.6, DEMON.footR]]);
+      const lean = K([[0, 8], [0.3, 8], [0.6, -4], [0.72, -18, "in"], [1.0, -5], [1.45, 5], [1.6, 8]]);
+      return (t) => ({ ...DEMON, footR: footR(t), lean: lean(t), root: [0, -0.03, 0], bend: 1.5 * sin(TAU * 12 * t) * env(t, 0, 0.3) });
+    });
+    hitClip(rig, DEMON);
+    deathFall(rig, DEMON);
+  }
+  demonSet("Demon");
+  demonSet("Berit");
+
+  // ベリットの火炎放射：予告0.3 → 両腕を上げる0.55 → 1.8秒 炎を放ちながらフィナを追う → 戻る
+  clip("Berit", "Attack_Flame", 3.3, false, [[0, "Telegraph"], [0.85, "FlameStart"], [2.65, "FlameEnd"]], () => {
+    const arm = K([[0, DEMON.armR], [0.3, DEMON.armR], [0.85, [0.25, 0.4, 0.1]], [1.0, [-0.08, 0.1, 0.5], "in"], [2.65, [-0.08, 0.08, 0.5]], [3.3, DEMON.armR]]);
+    const lean = K([[0, 8], [0.3, 8], [0.85, -12], [1.0, 12, "in"], [2.65, 12], [3.3, 8]]);
+    return (t) => ({ ...DEMON, armL: arm(t), armR: arm(t), handL: 70, handR: 70, lean: lean(t), twist: 15 * sin(TAU * 0.5 * (t - 0.85)) * env(t, 0.95, 2.65),
+      root: [0, -0.08 * env(t, 0.85, 2.8), 0], footL: [0.05, 0, 0.2], footR: [0.05, 0, -0.18] });
+  });
+  // 肩からの突進：予告0.3 → 肩を落として向き直る0.55 → 走る（Loop。止まるのはゲーム側）→ 硬直0.8
+  const CHARGE = { lean: 28, twist: 35, root: [0, -0.1, 0], armL: [0.05, -0.2, 0.2], armR: [0.1, -0.35, -0.05], handL: 30, handR: 30, headYaw: -30 };
+  clip("Berit", "Attack_Charge_Start", 0.85, false, [[0, "Telegraph"], [0.85, "ChargeStart"]], () => {
+    const k = K([[0, 0], [0.3, 0], [0.85, 1, "out"]]);
+    return (t) => {
+      const a = k(t), mix = (x, y) => x.map((v, i) => v + (y[i] - v) * a);
+      return { ...DEMON, lean: 8 + 20 * a, twist: -10 + 45 * a, headYaw: -30 * a, root: [0, -0.05 - 0.05 * a, 0], armL: mix(DEMON.armL, CHARGE.armL), armR: mix(DEMON.armR, CHARGE.armR), bend: 1.5 * sin(TAU * 12 * t) * env(t, 0, 0.3) };
+    };
+  });
+  clip("Berit", "Attack_Charge_Loop", 0.5, true, [], () => (t) => {
+    const g = gait(t, { period: 0.5, stride: 1.1, lift: 0.22, bob: 0.05, swing: 0.05 });
+    return { ...DEMON, ...CHARGE, root: add(CHARGE.root, g.root), footL: g.footL, footR: g.footR };
+  });
+  clip("Berit", "Attack_Charge_End", 0.8, false, [[0, "ChargeEnd"], [0.8, "RecoverEnd"]], () => {
+    // 急停止して踏ん張る（硬直0.8）→ 構えに戻る
+    const k = K([[0, 1], [0.15, 1.2, "out"], [0.6, 1], [0.8, 0]]);
+    return (t) => {
+      const a = clamp(k(t), 0, 1.2), mix = (x, y) => x.map((v, i) => v + (y[i] - v) * Math.min(a, 1));
+      return { ...DEMON, lean: 8 + 22 * a, twist: -10 + 45 * Math.min(a, 1), headYaw: -30 * Math.min(a, 1), root: [0, -0.05 - 0.1 * Math.min(a, 1), 0.1 * env(t, 0, 0.3)],
+        armL: mix(DEMON.armL, CHARGE.armL), armR: mix(DEMON.armR, CHARGE.armR), footL: [0.05, 0, 0.25 * env(t, 0, 0.6)], footR: [0.05, 0, -0.2] };
+    };
+  });
+
   const RIGS = {
     Wolfman: { name: "拳で戦う獣人" }, Archer: { name: "弓を撃つ獣人" }, Drowned: { name: "溺れた死者" },
     Shade: { name: "影の人" }, Guardian: { name: "光の人影" },
     Knight: { name: "剣の騎士" }, Heavy: { name: "大振りの鎧・人形" }, Sentry: { name: "警棒の番兵" }, Grabber: { name: "掴んで投げる機械" },
     Ghoul: { name: "暴れる亡者" }, Statue: { name: "動く石像" }, Laugher: { name: "笑う死者" }, Hound: { name: "四つ足の獣人" },
     Steam: { name: "湯気の人影" }, Chained: { name: "鎖の人影" }, Silent: { name: "音のない人影" },
+    Demon: { name: "魔族（下っ端・群れ頭）" }, Berit: { name: "ベリット" },
   };
   const ENEMIES = [
     { id: "EN-09", name: "溺れた村人", rig: "Drowned", color: "#475569", clips: ["Idle", "Move", "Attack_Grab", "Hit", "Death"],
@@ -668,6 +726,12 @@
       desc: "動かない像のふり（Disguise）→ 横を通ると殴る。アニメ鎧戦士 CHR-004" },
     { id: "EN-51", name: "笑う死者", rig: "Laugher", color: "#d6d3d1", clips: ["Idle_Laugh", "Move", "Attack_Grab", "Hit", "Death_Crumble"],
       desc: "笑いながら掴みかかる。倒すと膝をついて崩れる" },
+    { id: "No.008", name: "魔族（下っ端）", rig: "Demon", color: "#7c3aed", clips: ["Idle", "Move", "Run", "Attack_Punch", "Attack_Kick", "Hit", "Death"],
+      desc: "パンチとキックを交互に：予告0.3＋0.3→攻撃0.15（0.3m の踏み込みはゲーム側）→硬直0.7。徘徊は Move、追跡は Run" },
+    { id: "No.065", name: "魔族の群れ頭", rig: "Demon", color: "#5b21b6", clips: ["Idle", "Move", "Run", "Attack_Punch", "Attack_Kick", "Hit", "Death"],
+      desc: "下っ端と同じ体を2.5m に拡大（クリップも同じ）。パンチとキックのみ" },
+    { id: "No.063", name: "ベリット", rig: "Berit", color: "#b91c1c", clips: ["Idle", "Move", "Run", "Attack_Punch", "Attack_Kick", "Attack_Flame", "Attack_Charge_Start", "Attack_Charge_Loop", "Attack_Charge_End", "Hit", "Death"],
+      desc: "格闘は下っ端と同じ。火炎放射（両腕を上げる0.55→1.8秒）、肩からの突進（肩を落とす0.55→Loop で走る→急停止0.8）" },
   ];
   const REST = buildPose({});   // 代理の骨組みの初期姿勢（立ち姿）
   // ==POSE-END==

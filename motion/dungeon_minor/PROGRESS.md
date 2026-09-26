@@ -191,12 +191,15 @@
 
 | No. | 名前 | 仕組み | 作るクリップ | 状態 |
 |---|---|---|---|---|
-| 001 | キノコ | Mushroom（体全体＋手足） | Run（追跡 3.2m/秒）/ Attack_Lunge_Std（予告0.3＋のけぞり0.55→攻撃0.18→硬直0.9） ＋ 既存の Idle / Move / Hit / Death | 未着手 |
-| 006 | 装甲バチ | Bee | Run / Attack_Lunge_Std ＋ 既存 | 未着手 |
-| 007 | 植物クリーチャー | Plant（2倍＝高さ2.4m） | Run / Attack_Lunge_Std ＋ 既存 | 未着手 |
-| 008 | 魔族（下っ端） | 人型 Demon | Idle / Move / Run / Attack_Punch / Attack_Kick（予告0.3＋0.3→攻撃0.15→硬直0.7）/ Hit / Death | 未着手 |
-| 065 | 魔族の群れ頭 | 人型 Demon（2.5倍） | 008 と同じ | 未着手 |
-| 063 | ベリット | 人型 Berit | 008 と同じ ＋ Attack_Flame（両腕を上げる→1.8秒）/ Attack_Charge_Start / Attack_Charge_Loop / Attack_Charge_End（硬直0.8） | 未着手 |
-| 095 | 空鯨 | SkyWhale（新しい体・20倍＝全長30m） | Idle / Move / Attack_Breath（0.3＋0.9→1.2）/ Attack_TailSweep（0.3＋0.7→0.5）/ Attack_Inhale（0.3＋1.2→4）/ Shake（0.4）/ Hit（銛）/ Crash / Death | 未着手 |
+| 001 | キノコ | Mushroom（体全体＋手足） | Run（追跡 3.2m/秒）/ Attack_Lunge_Std（予告0.3＋のけぞり0.55→攻撃0.18→硬直0.9） ＋ 既存の Idle / Move / Hit / Death | 完了 |
+| 006 | 装甲バチ | Bee | Run / Attack_Lunge_Std ＋ 既存 | 完了 |
+| 007 | 植物クリーチャー | Plant（2倍＝高さ2.4m） | Run / Attack_Lunge_Std ＋ 既存 | 完了 |
+| 008 | 魔族（下っ端） | 人型 Demon | Idle / Move / Run / Attack_Punch / Attack_Kick（予告0.3＋0.3→攻撃0.15→硬直0.7）/ Hit / Death | 完了 |
+| 065 | 魔族の群れ頭 | 人型 Demon（2.5倍） | 008 と同じ | 完了 |
+| 063 | ベリット | 人型 Berit | 008 と同じ ＋ Attack_Flame（両腕を上げる→1.8秒）/ Attack_Charge_Start / Attack_Charge_Loop / Attack_Charge_End（硬直0.8） | 完了 |
+| 095 | 空鯨 | SkyWhale（新しい体・20倍＝全長30m） | Idle / Move / Attack_Breath（0.3＋0.9→1.2）/ Attack_TailSweep（0.3＋0.7→0.5）/ Attack_Inhale（0.3＋1.2→4）/ Shake（0.4）/ Hit（銛）/ Crash / Death | 完了 |
 
 - 作業ファイルをコミット `564aabd` から戻して開始
+- 人型以外に追加：Mushroom / Bee / Plant の Run と Attack_Lunge_Std（イベント Telegraph 0 / Strike 0.85 / Recover 1.03 / RecoverEnd 1.93）、新しい体 SkyWhale（尾・ひれ・あご）と 9 クリップ。確認画面は大きな敵のカメラを離すよう修正
+- 人型に追加：Demon（No.008 / 065）と Berit（No.063）。パンチ・キックのイベント Telegraph 0 / Strike 0.6 / Recover 0.75 / RecoverEnd 1.45、火炎 FlameStart 0.85 / FlameEnd 2.65、突進 ChargeStart / ChargeEnd
+- 合計：人型以外 43 体・121 クリップ、人型 20 体・109 クリップ ＝ 230 クリップ

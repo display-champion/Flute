@@ -12,7 +12,7 @@ public static class LimbRigs
         public Chain(string name, params Vector3[] rest) { this.name = name; this.rest = rest; }
     }
 
-    public static readonly string[] Bodies = { "Creature", "RockBall", "Mushroom", "Bee", "Fairy", "Flyer", "Plant", "Spider", "Clockwork", "Whale", "Shears", "Box", "Barrel", "Slug" };
+    public static readonly string[] Bodies = { "Creature", "RockBall", "Mushroom", "Bee", "Fairy", "Flyer", "Plant", "Spider", "Clockwork", "Whale", "Shears", "Box", "Barrel", "Slug", "SkyWhale" };
 
     public static Chain[] Get(string body)
     {
@@ -117,6 +117,13 @@ public static class LimbRigs
             {
                 new Chain("EyeL", new Vector3(-0.05f, 0.25f, 0.3f), new Vector3(-0.05f, 0.33f, 0.3f), new Vector3(-0.05f, 0.41f, 0.3f)),
                 new Chain("EyeR", new Vector3(0.05f, 0.25f, 0.3f), new Vector3(0.05f, 0.33f, 0.3f), new Vector3(0.05f, 0.41f, 0.3f)),
+            };
+            case "SkyWhale": return new[]
+            {
+                new Chain("Tail", new Vector3(0f, 0.02f, -0.62f), new Vector3(0f, 0.04f, -0.82f), new Vector3(0f, 0.06f, -1.02f)),
+                new Chain("FinL", new Vector3(-0.27f, -0.08f, 0.1f), new Vector3(-0.48f, -0.12f, 0.06f)),
+                new Chain("FinR", new Vector3(0.27f, -0.08f, 0.1f), new Vector3(0.48f, -0.12f, 0.06f)),
+                new Chain("Jaw", new Vector3(0f, -0.1f, 0.3f), new Vector3(0f, -0.14f, 0.68f)),
             };
             default: return new Chain[0];
         }
