@@ -203,3 +203,8 @@
 - 人型以外に追加：Mushroom / Bee / Plant の Run と Attack_Lunge_Std（イベント Telegraph 0 / Strike 0.85 / Recover 1.03 / RecoverEnd 1.93）、新しい体 SkyWhale（尾・ひれ・あご）と 9 クリップ。確認画面は大きな敵のカメラを離すよう修正
 - 人型に追加：Demon（No.008 / 065）と Berit（No.063）。パンチ・キックのイベント Telegraph 0 / Strike 0.6 / Recover 0.75 / RecoverEnd 1.45、火炎 FlameStart 0.85 / FlameEnd 2.65、突進 ChargeStart / ChargeEnd
 - 合計：人型以外 43 体・121 クリップ、人型 20 体・109 クリップ ＝ 230 クリップ
+- 検証：人型以外 121 本（体全体最大 1.1mm・手足最大 0.6mm）、人型 109 本（最大 2.5mm）。長さ・ループ・イベント・編集用カーブも一致
+- **第3段階 完了・納品**：`HELLEDEN_DungeonMinor_v3.zip`（前回からファイルの削除は無いので上書き展開でよい）
+  - 作業ファイル一式はコミット `df0cf57` にある（git からは削除済み）。取り出し方：`git checkout df0cf57 -- motion/dungeon_minor`
+  - 次に再開するときは、上の「次に再開するとき（第2段階以降）」の手順で、コミット番号を `df0cf57` に読み替える
+  - 残り：ボス 40 体（I列が「未設計」）は行動が決まったら作る
