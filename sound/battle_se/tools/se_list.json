@@ -1,0 +1,785 @@
+[
+ {
+  "name": "Fina_Swing_A",
+  "group": "フィナ（剣）",
+  "desc": "短剣の素早いひと振り（空振りでも鳴らす）",
+  "use": "通常攻撃1段目（振り始め 0.1秒前後）",
+  "loop": false,
+  "sec": 0.32,
+  "peak_db": -6.1
+ },
+ {
+  "name": "Fina_Swing_B",
+  "group": "フィナ（剣）",
+  "desc": "切り返しのひと振り（1段目より少し低く長い）",
+  "use": "通常攻撃2段目",
+  "loop": false,
+  "sec": 0.36,
+  "peak_db": -3.87
+ },
+ {
+  "name": "Fina_Swing_C",
+  "group": "フィナ（剣）",
+  "desc": "締めの大振り（重く、刃鳴りが残る）",
+  "use": "通常攻撃3段目（命中 0.65秒の少し前）",
+  "loop": false,
+  "sec": 0.6,
+  "peak_db": -4.16
+ },
+ {
+  "name": "Fina_Hit_A",
+  "group": "フィナ（剣）",
+  "desc": "斬撃が当たった「ザシュッ」（軽め）",
+  "use": "通常攻撃1・2段目の命中／時間停止中の高速連撃の命中",
+  "loop": false,
+  "sec": 0.399,
+  "peak_db": -1.7
+ },
+ {
+  "name": "Fina_Hit_C",
+  "group": "フィナ（剣）",
+  "desc": "締めの斬撃が当たった重い「ズバッ」",
+  "use": "通常攻撃3段目の命中",
+  "loop": false,
+  "sec": 0.808,
+  "peak_db": -2.32
+ },
+ {
+  "name": "Fina_Spin",
+  "group": "フィナ（剣）",
+  "desc": "回転斬り（3回転ぶんの風切り、約0.5秒）",
+  "use": "回転斬りの出だし",
+  "loop": false,
+  "sec": 0.75,
+  "peak_db": -2.47
+ },
+ {
+  "name": "Fina_Spin_Hit",
+  "group": "フィナ（剣）",
+  "desc": "回転斬りの1ヒット（連続で鳴らしても耳障りでないよう短く）",
+  "use": "回転斬りの命中ごと",
+  "loop": false,
+  "sec": 0.22,
+  "peak_db": -2.8
+ },
+ {
+  "name": "Fina_JumpSlash",
+  "group": "フィナ（剣）",
+  "desc": "跳び上がって振り下ろす（踏み切り→落下の風切り→着地）",
+  "use": "ジャンプ斬り（0秒から鳴らす。命中は0.28秒）",
+  "loop": false,
+  "sec": 0.61,
+  "peak_db": -5.36
+ },
+ {
+  "name": "Fina_JumpSlash_Hit",
+  "group": "フィナ（剣）",
+  "desc": "ジャンプ斬りの命中（地面ごと叩き斬る重い一撃）",
+  "use": "ジャンプ斬りの命中（0.28秒）",
+  "loop": false,
+  "sec": 0.987,
+  "peak_db": -1.14
+ },
+ {
+  "name": "Fina_Rush_Swing",
+  "group": "フィナ（剣）",
+  "desc": "時間停止中の高速連撃（鋭く短い剣閃。きらめき入り）",
+  "use": "時間停止中の□（A・B の振りごと）",
+  "loop": false,
+  "sec": 0.25,
+  "peak_db": -5.88
+ },
+ {
+  "name": "Fina_Warp",
+  "group": "フィナ（剣）",
+  "desc": "時間停止中のワープ（吸い込まれて、目の前にパッと現れる）",
+  "use": "時間停止中、最初の□のワープ",
+  "loop": false,
+  "sec": 0.778,
+  "peak_db": -1.96
+ },
+ {
+  "name": "JustDodge_TimeStop",
+  "group": "フィナ（剣）",
+  "desc": "ジャスト回避→時間停止（世界が伸びて止まる「ヴゥン…」と、時計の音）",
+  "use": "ジャスト回避の成功",
+  "loop": false,
+  "sec": 3.18,
+  "peak_db": -1.44
+ },
+ {
+  "name": "TimeStop_End",
+  "group": "フィナ（剣）",
+  "desc": "時間停止が解ける（止まった世界が戻る、上がっていく音とガラスの響き）",
+  "use": "時間停止の終わり（5秒）",
+  "loop": false,
+  "sec": 1.788,
+  "peak_db": -2.8
+ },
+ {
+  "name": "Asuka_Jab",
+  "group": "アスカ（格闘）",
+  "desc": "拳が空を切る「シュッ」（短く低め）",
+  "use": "ジャブ（振りごと）",
+  "loop": false,
+  "sec": 0.22,
+  "peak_db": -7.36
+ },
+ {
+  "name": "Asuka_Jab_Hit",
+  "group": "アスカ（格闘）",
+  "desc": "拳が当たった「バシッ」",
+  "use": "ジャブの命中（0.27秒）",
+  "loop": false,
+  "sec": 0.367,
+  "peak_db": -4.55
+ },
+ {
+  "name": "Asuka_Kick",
+  "group": "アスカ（格闘）",
+  "desc": "ハイキックの風切り（大きく重め）",
+  "use": "キック（振り）",
+  "loop": false,
+  "sec": 0.35,
+  "peak_db": -6.24
+ },
+ {
+  "name": "Asuka_Kick_Hit",
+  "group": "アスカ（格闘）",
+  "desc": "蹴りが当たった重い「ドカッ」",
+  "use": "キックの命中（0.38秒）",
+  "loop": false,
+  "sec": 0.673,
+  "peak_db": -1.94
+ },
+ {
+  "name": "Asuka_Mach_Charge",
+  "group": "アスカ（格闘）",
+  "desc": "マッハ突進の溜め（踏みしめて力を込める、0.25秒）",
+  "use": "スキル1：マッハ突進の出だし",
+  "loop": false,
+  "sec": 0.3,
+  "peak_db": -5.88
+ },
+ {
+  "name": "Asuka_Mach_Dash",
+  "group": "アスカ（格闘）",
+  "desc": "マッハ突進（ジェットのように空気を裂いて走る）",
+  "use": "マッハ突進の突進中（溜めの後）",
+  "loop": false,
+  "sec": 0.9,
+  "peak_db": -4.47
+ },
+ {
+  "name": "Asuka_Mach_Blast",
+  "group": "アスカ（格闘）",
+  "desc": "突進の着弾と爆風（拳の衝撃がはじけ飛ぶ）",
+  "use": "マッハ突進の命中（直撃＋爆風）",
+  "loop": false,
+  "sec": 1.52,
+  "peak_db": -1.11
+ },
+ {
+  "name": "Asuka_GroundSplit",
+  "group": "アスカ（格闘）",
+  "desc": "地面割り（拳を叩きつけ、地面が割れて岩が跳ねる）",
+  "use": "スキル2：地面割り（命中0.62秒）",
+  "loop": false,
+  "sec": 1.956,
+  "peak_db": -2.47
+ },
+ {
+  "name": "Combo_Launch",
+  "group": "合体攻撃",
+  "desc": "踏み台：アスカの手を蹴って高く跳ぶ（受け止め→打ち上げ→上昇の風）",
+  "use": "合体攻撃の跳び上がり",
+  "loop": false,
+  "sec": 0.988,
+  "peak_db": -5.69
+ },
+ {
+  "name": "Combo_Stab",
+  "group": "合体攻撃",
+  "desc": "突き刺し（落下の勢いで剣を深く突き立てる）",
+  "use": "合体攻撃の突き刺し（1.70秒）",
+  "loop": false,
+  "sec": 1.36,
+  "peak_db": -1.21
+ },
+ {
+  "name": "Combo_Shockwave",
+  "group": "合体攻撃",
+  "desc": "衝撃波（地面から大きく広がる爆風と地鳴り）",
+  "use": "合体攻撃の衝撃波（1.75秒）",
+  "loop": false,
+  "sec": 2.293,
+  "peak_db": -1.22
+ },
+ {
+  "name": "Hit_Player",
+  "group": "被弾・撃破",
+  "desc": "フィナが攻撃を受けた（鈍い衝撃と、少しざらつく音）",
+  "use": "フィナの被弾（ダメージ12前後）",
+  "loop": false,
+  "sec": 0.446,
+  "peak_db": -4.42
+ },
+ {
+  "name": "Hit_Player_Heavy",
+  "group": "被弾・撃破",
+  "desc": "フィナが大きな攻撃を受けた（はじき飛ばされる重い衝撃）",
+  "use": "肩からの突進（30）、尾の薙ぎ払いなど",
+  "loop": false,
+  "sec": 0.892,
+  "peak_db": -3.32
+ },
+ {
+  "name": "Enemy_Down",
+  "group": "被弾・撃破",
+  "desc": "敵を倒した（とどめの手応えと、ふっと消える余韻）",
+  "use": "敵のHPが0になったとき",
+  "loop": false,
+  "sec": 1.013,
+  "peak_db": -3.21
+ },
+ {
+  "name": "Enemy_Telegraph",
+  "group": "敵の攻撃",
+  "desc": "攻撃の予告（赤い輪郭と同時に鳴る、鋭い「キィン」）",
+  "use": "敵の攻撃の0.3秒前（無音の影 EN-38 だけは鳴らさない）",
+  "loop": false,
+  "sec": 0.697,
+  "peak_db": -7.84
+ },
+ {
+  "name": "Enemy_Lunge",
+  "group": "敵の攻撃",
+  "desc": "飛びかかり（体ごとぶつかってくる低い風切り）",
+  "use": "キノコ・ビー・植物のランジ、跳びかかり全般",
+  "loop": false,
+  "sec": 0.35,
+  "peak_db": -8.61
+ },
+ {
+  "name": "Enemy_Bite",
+  "group": "敵の攻撃",
+  "desc": "噛みつき（歯が噛み合う「ガチッ」と湿った音）",
+  "use": "沼の魔物・幼虫・骨の小竜・箱入りの忘れ物など",
+  "loop": false,
+  "sec": 0.299,
+  "peak_db": -1.46
+ },
+ {
+  "name": "Enemy_Claw",
+  "group": "敵の攻撃",
+  "desc": "爪でひっかく（3本の爪が走る「ザザッ」）",
+  "use": "翼の悪魔（小）の急降下の爪など",
+  "loop": false,
+  "sec": 0.198,
+  "peak_db": -1.04
+ },
+ {
+  "name": "Enemy_Sting",
+  "group": "敵の攻撃",
+  "desc": "蜂の針（羽音の高まり→鋭く刺す「プスッ」）",
+  "use": "装甲バチ・毒羽のバチ・酔いバチ・受粉の蜂",
+  "loop": false,
+  "sec": 0.438,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Enemy_Punch",
+  "group": "敵の攻撃",
+  "desc": "人型の敵のパンチ・キックの命中（フィナより低くこもった音）",
+  "use": "魔族・ベリット・狼の獣人・亡者のパンチ／キック",
+  "loop": false,
+  "sec": 0.618,
+  "peak_db": -3.23
+ },
+ {
+  "name": "Enemy_Tackle",
+  "group": "敵の攻撃",
+  "desc": "体当たりの衝突（重い「ドスッ」）",
+  "use": "大蛍・炎の魔物・清掃機・歯車の子などの体当たり",
+  "loop": false,
+  "sec": 0.584,
+  "peak_db": -2.63
+ },
+ {
+  "name": "Enemy_Stomp",
+  "group": "敵の攻撃",
+  "desc": "踏みつけ（地面が揺れて砂ぼこりが舞う）",
+  "use": "輪の茸番の踏みつけ（半径1.6m）",
+  "loop": false,
+  "sec": 1.209,
+  "peak_db": -2.47
+ },
+ {
+  "name": "Enemy_HeavySmash",
+  "group": "敵の攻撃",
+  "desc": "大振りの振り下ろし（重い風切り→石や鉄が叩きつけられる）",
+  "use": "石くれ人形・動く鎧の大振り（予備動作0.8秒の後）",
+  "loop": false,
+  "sec": 1.608,
+  "peak_db": -1.1
+ },
+ {
+  "name": "Enemy_SwordSlash",
+  "group": "敵の攻撃",
+  "desc": "敵の剣の斬撃（長剣の重い風切りと刃鳴り）",
+  "use": "聖堂騎士の剣の2連撃（1撃ごと）",
+  "loop": false,
+  "sec": 0.789,
+  "peak_db": -2.58
+ },
+ {
+  "name": "Enemy_Whip",
+  "group": "敵の攻撃",
+  "desc": "鞭の横なぎ（しなる風切り→鋭い「パァン」）",
+  "use": "監督の魔物の鞭（前方120°）",
+  "loop": false,
+  "sec": 0.908,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Enemy_Baton",
+  "group": "敵の攻撃",
+  "desc": "警棒で打つ（短い風切り→木のような「ゴッ」）",
+  "use": "天の番兵の警棒",
+  "loop": false,
+  "sec": 0.42,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Enemy_Scissors",
+  "group": "敵の攻撃",
+  "desc": "大きな鋏がはさみ込む（刃がすれ合い「シャキン」と閉じる）",
+  "use": "刈り込み鋏のはさみ込み（正面2連、1回ごと）",
+  "loop": false,
+  "sec": 0.57,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Enemy_Chain",
+  "group": "敵の攻撃",
+  "desc": "鎖を伸ばして打つ（じゃらじゃら→「ジャラン」）",
+  "use": "鎖の魂の鎖",
+  "loop": false,
+  "sec": 1.297,
+  "peak_db": -1.37
+ },
+ {
+  "name": "Enemy_Grab",
+  "group": "敵の攻撃",
+  "desc": "掴みかかる（ぐっと掴まれる衣ずれと締め付け）",
+  "use": "溺れた村人・仕分けの手・笑う死者の掴み",
+  "loop": false,
+  "sec": 0.486,
+  "peak_db": -4.46
+ },
+ {
+  "name": "Enemy_Throw",
+  "group": "敵の攻撃",
+  "desc": "放り投げる（機械の腕がうなって振り抜く）",
+  "use": "仕分けの手が後ろの区画へ放り投げる",
+  "loop": false,
+  "sec": 0.9,
+  "peak_db": -1.37
+ },
+ {
+  "name": "Enemy_Roll_Loop",
+  "group": "敵の攻撃",
+  "desc": "岩が転がってくる（ごろごろ、ループ用）",
+  "use": "岩の魔物・岩ダンゴ・冷えた溶岩の殻・樽の子の転がり",
+  "loop": true,
+  "sec": 2.0,
+  "peak_db": -5.4
+ },
+ {
+  "name": "Enemy_Burst_Lava",
+  "group": "敵の攻撃",
+  "desc": "殻が割れて溶岩が飛び散る（割れる音→ジュッと焼ける）",
+  "use": "冷えた溶岩の殻が割れたとき（半径2m）",
+  "loop": false,
+  "sec": 1.387,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Enemy_Vine_Erupt",
+  "group": "敵の攻撃",
+  "desc": "地面を割って蔦が突き上がる（地鳴り→土が割れる→木がきしむ）",
+  "use": "侵食の蔦の突き上げ（花が咲いてから1秒）",
+  "loop": false,
+  "sec": 1.397,
+  "peak_db": -1.96
+ },
+ {
+  "name": "Arrow_Shoot",
+  "group": "敵の攻撃",
+  "desc": "弓を射る（弦の「ビン」と矢が飛ぶ風切り）",
+  "use": "狼の獣人（弓）の矢（2秒に1本）",
+  "loop": false,
+  "sec": 0.529,
+  "peak_db": -1.57
+ },
+ {
+  "name": "Arrow_Hit",
+  "group": "敵の攻撃",
+  "desc": "矢が刺さる（「トスッ」と軸がふるえる）",
+  "use": "矢・光の矢・本などの命中",
+  "loop": false,
+  "sec": 0.365,
+  "peak_db": -2.33
+ },
+ {
+  "name": "LightArrow_Shoot",
+  "group": "敵の攻撃",
+  "desc": "光の矢を放つ（澄んだ音が伸びて飛んでいく）",
+  "use": "光の番人の光の矢",
+  "loop": false,
+  "sec": 1.192,
+  "peak_db": -2.12
+ },
+ {
+  "name": "Book_Throw",
+  "group": "敵の攻撃",
+  "desc": "本が飛んでくる（ページがばたばたはためく）",
+  "use": "書架の魔物の本（3冊・扇形）",
+  "loop": false,
+  "sec": 0.5,
+  "peak_db": -1.26
+ },
+ {
+  "name": "Spit_Poison",
+  "group": "敵の攻撃",
+  "desc": "毒の玉を吐く（ためて「ペッ」と飛ばす、ぬめった音）",
+  "use": "毒吐き草の毒の玉",
+  "loop": false,
+  "sec": 0.411,
+  "peak_db": -1.07
+ },
+ {
+  "name": "Poison_Splash",
+  "group": "敵の攻撃",
+  "desc": "毒の玉がはじける（べちゃっと広がり、しゅわしゅわ泡立つ）",
+  "use": "毒の玉の命中・毒の大蛙など",
+  "loop": false,
+  "sec": 0.754,
+  "peak_db": -1.06
+ },
+ {
+  "name": "Web_Shoot",
+  "group": "敵の攻撃",
+  "desc": "糸を吐く（「シュルッ」と伸びて、ぺたっと絡みつく）",
+  "use": "洞の小蜘蛛の糸（当たると1.5秒動けない）",
+  "loop": false,
+  "sec": 0.454,
+  "peak_db": -1.22
+ },
+ {
+  "name": "Sleep_Powder",
+  "group": "敵の攻撃",
+  "desc": "眠り粉を撒く（ふわっと舞う柔らかいきらめき）",
+  "use": "妖精の灯の眠り粉（移動が2秒半分）",
+  "loop": false,
+  "sec": 1.742,
+  "peak_db": -2.09
+ },
+ {
+  "name": "Spore_Burst",
+  "group": "敵の攻撃",
+  "desc": "胞子がはじける（「ボフッ」と舞い散る）",
+  "use": "胞子キノコが倒れて1秒後の胞子（半径1.5m）",
+  "loop": false,
+  "sec": 0.811,
+  "peak_db": -5.15
+ },
+ {
+  "name": "Steam_Blast",
+  "group": "敵の攻撃",
+  "desc": "熱い湯気を吹きかける（「シュウゥ」と長く噴き出す、約1.5秒）",
+  "use": "湯煙の精の湯気（3秒で計12）",
+  "loop": false,
+  "sec": 1.6,
+  "peak_db": -3.55
+ },
+ {
+  "name": "Water_Splash",
+  "group": "敵の攻撃",
+  "desc": "湯・水が跳ねる（着地の「バシャッ」としぶき）",
+  "use": "湯あたりガエルの着地（半径1.5m）・水路の清掃機",
+  "loop": false,
+  "sec": 0.755,
+  "peak_db": -1.55
+ },
+ {
+  "name": "Flame_Breath",
+  "group": "敵の攻撃",
+  "desc": "短い火炎を吐く（「ボウッ」と1秒）",
+  "use": "火蜥蜴の火炎（1秒）・炎の魔物",
+  "loop": false,
+  "sec": 1.3,
+  "peak_db": -4.47
+ },
+ {
+  "name": "Flamethrower_Start",
+  "group": "敵の攻撃",
+  "desc": "火炎放射の吹き始め（点火して一気に噴き出す）",
+  "use": "ベリットの火炎放射の出だし（この後 Flamethrower_Loop をつなぐ）",
+  "loop": false,
+  "sec": 0.72,
+  "peak_db": -4.76
+ },
+ {
+  "name": "Flamethrower_Loop",
+  "group": "敵の攻撃",
+  "desc": "火炎放射の噴き続け（ループ用）",
+  "use": "ベリットの火炎放射（1.8秒）の間くり返す",
+  "loop": true,
+  "sec": 2.0,
+  "peak_db": -5.66
+ },
+ {
+  "name": "Shoulder_Charge_Loop",
+  "group": "敵の攻撃",
+  "desc": "肩からの突進（地響きの足音と空気を裂く音、ループ用）",
+  "use": "ベリットの突進・巣守りのバチ・看守の犬などの突進中",
+  "loop": true,
+  "sec": 1.6,
+  "peak_db": -7.71
+ },
+ {
+  "name": "Shoulder_Charge_Hit",
+  "group": "敵の攻撃",
+  "desc": "突進がぶつかる（全身でぶち当たる重い衝突）",
+  "use": "突進の命中・壁に止まったとき",
+  "loop": false,
+  "sec": 1.093,
+  "peak_db": -2.64
+ },
+ {
+  "name": "Whale_Inhale",
+  "group": "空鯨",
+  "desc": "大きく息を吸う（空気が渦を巻いて吸い込まれる、0.9秒）",
+  "use": "光のブレスの予備動作（0.9秒）",
+  "loop": false,
+  "sec": 1.059,
+  "peak_db": -1.91
+ },
+ {
+  "name": "Whale_Breath",
+  "group": "空鯨",
+  "desc": "光のブレス（巨大な光の奔流、1.2秒）",
+  "use": "光のブレス（幅4m×長さ40m）",
+  "loop": false,
+  "sec": 2.618,
+  "peak_db": -1.15
+ },
+ {
+  "name": "Whale_TailSwipe",
+  "group": "空鯨",
+  "desc": "尾の薙ぎ払い（巨大な尾が空気を押しのける重い風）",
+  "use": "尾の薙ぎ払い（背後270°・半径14m）",
+  "loop": false,
+  "sec": 2.103,
+  "peak_db": -2.51
+ },
+ {
+  "name": "Whale_SoulSuck_Loop",
+  "group": "空鯨",
+  "desc": "魂の吸い込み（不気味な声のような響きと吸い込む風、ループ用）",
+  "use": "魂の吸い込み（4秒）の間くり返す",
+  "loop": true,
+  "sec": 4.0,
+  "peak_db": -2.36
+ },
+ {
+  "name": "Whale_Shake",
+  "group": "空鯨",
+  "desc": "身震い（背中がぶるっと震えて、はじき飛ばされる）",
+  "use": "身震い（背のフィナを落とす）",
+  "loop": false,
+  "sec": 1.379,
+  "peak_db": -1.86
+ },
+ {
+  "name": "Magic_Circle_Appear",
+  "group": "魔法",
+  "desc": "魔法陣が現れる（光が集まって輪が広がる、澄んだ和音）",
+  "use": "魔法陣クリップの Appear",
+  "loop": false,
+  "sec": 1.894,
+  "peak_db": -3.79
+ },
+ {
+  "name": "Magic_Charge",
+  "group": "魔法",
+  "desc": "魔力を溜める（うなりが高まっていく、約0.6秒）",
+  "use": "魔法陣クリップの Charge",
+  "loop": false,
+  "sec": 1.312,
+  "peak_db": -3.62
+ },
+ {
+  "name": "Magic_Shot_Fire",
+  "group": "魔法",
+  "desc": "炎の玉を撃ち出す（「ボッ」と火がついて燃えながら飛ぶ）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.609,
+  "peak_db": -4.59
+ },
+ {
+  "name": "Magic_Shot_Ice",
+  "group": "魔法",
+  "desc": "氷の玉を撃ち出す（澄んだガラスのような響きと冷たいきらめき）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.948,
+  "peak_db": -2.45
+ },
+ {
+  "name": "Magic_Shot_Thunder",
+  "group": "魔法",
+  "desc": "雷の玉を撃ち出す（「バチッ」とはじける電気のうなり）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.7,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Magic_Shot_Wind",
+  "group": "魔法",
+  "desc": "風の玉を撃ち出す（渦を巻いて飛ぶ風）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.7,
+  "peak_db": -1.69
+ },
+ {
+  "name": "Magic_Shot_Water",
+  "group": "魔法",
+  "desc": "水の玉を撃ち出す（泡立ちながら水の玉が飛ぶ）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.609,
+  "peak_db": -1.91
+ },
+ {
+  "name": "Magic_Shot_Earth",
+  "group": "魔法",
+  "desc": "土の玉を撃ち出す（岩が「ドン」と撃ち出される）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 0.64,
+  "peak_db": -5.56
+ },
+ {
+  "name": "Magic_Shot_Light",
+  "group": "魔法",
+  "desc": "光の玉を撃ち出す（澄んだ和音がきらめきながら飛ぶ）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 1.169,
+  "peak_db": -2.61
+ },
+ {
+  "name": "Magic_Shot_Dark",
+  "group": "魔法",
+  "desc": "闇の玉を撃ち出す（低くうなる不気味な音）",
+  "use": "魔法陣クリップの Fire:番号（玉を撃つ瞬間）",
+  "loop": false,
+  "sec": 1.354,
+  "peak_db": -3.35
+ },
+ {
+  "name": "Magic_Impact_Fire",
+  "group": "魔法",
+  "desc": "炎の玉の着弾（爆発してパチパチ燃え残る）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 1.37,
+  "peak_db": -2.44
+ },
+ {
+  "name": "Magic_Impact_Ice",
+  "group": "魔法",
+  "desc": "氷の玉の着弾（氷が砕け散る）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 0.965,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Magic_Impact_Thunder",
+  "group": "魔法",
+  "desc": "雷の玉の着弾（落雷の「バリッ」と遠雷）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 1.629,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Magic_Impact_Wind",
+  "group": "魔法",
+  "desc": "風の玉の着弾（突風が吹き抜ける）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 1.504,
+  "peak_db": -1.04
+ },
+ {
+  "name": "Magic_Impact_Water",
+  "group": "魔法",
+  "desc": "水の玉の着弾（水しぶきがはじけて泡立つ）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 0.895,
+  "peak_db": -1.01
+ },
+ {
+  "name": "Magic_Impact_Earth",
+  "group": "魔法",
+  "desc": "土の玉の着弾（岩が砕けて破片が散らばる）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 1.436,
+  "peak_db": -1.31
+ },
+ {
+  "name": "Magic_Impact_Light",
+  "group": "魔法",
+  "desc": "光の玉の着弾（まぶしくはじけて鐘のように響く）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 1.949,
+  "peak_db": -1.03
+ },
+ {
+  "name": "Magic_Impact_Dark",
+  "group": "魔法",
+  "desc": "闇の玉の着弾（吸い込まれてから低く「ドゥン」と沈む）",
+  "use": "魔法陣クリップの Impact:番号",
+  "loop": false,
+  "sec": 2.103,
+  "peak_db": -1.74
+ },
+ {
+  "name": "Magic_Beam",
+  "group": "魔法",
+  "desc": "ビームを撃つ（溜めがはじけて光線が伸び続ける、約1.6秒）",
+  "use": "魔法陣クリップの BeamStart（Beam は 1.4秒、Beam_Sweep は 1.8秒）",
+  "loop": false,
+  "sec": 2.415,
+  "peak_db": -2.16
+ },
+ {
+  "name": "Magic_Pillar",
+  "group": "魔法",
+  "desc": "光の柱が噴き上がる（地面から轟音とともに立ちのぼる）",
+  "use": "魔法陣クリップの PillarStart",
+  "loop": false,
+  "sec": 1.928,
+  "peak_db": -1.39
+ }
+]
