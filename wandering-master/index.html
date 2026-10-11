@@ -1,0 +1,1364 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ワンダリング・ご主人</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+/* Layout: 地下迷宮の盤面（左）＋ 勇者の冒険日誌（右）。狭い画面では縦に積む。たいまつの灯りで照らした石壁の世界、単一のダークテーマ */
+:root{
+  --bg:#16131d;
+  --stone:#221d2c;
+  --panel:#1d1826;
+  --line:#3a3149;
+  --ink:#efe3c8;
+  --muted:#a597b5;
+  --torch:#f0a742;
+  --blood:#e0605a;
+  --leaf:#8cc46f;
+  --sky:#7fb2e5;
+  --paper:#f4ead2;
+  --paper-ink:#2a2233;
+  --display:"DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",monospace;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.6}
+#app{max-width:1360px;margin:0 auto;padding-inline:16px;padding-block:14px 24px;display:grid;gap:14px;
+  grid-template-columns:minmax(0,1fr) 300px;grid-template-areas:"head head" "stage hud" "help hud"}
+header{grid-area:head;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 20px}
+h1{font-family:var(--display);font-weight:400;color:var(--torch);font-size:clamp(1.5rem,3.2vw,2.1rem);letter-spacing:.08em;margin:0;line-height:1.2;text-wrap:balance;text-shadow:0 0 22px rgba(240,167,66,.35)}
+.tagline{color:var(--muted);margin:0}
+.floor{font-family:var(--display);font-size:1.05rem;color:var(--ink);letter-spacing:.06em;font-variant-numeric:tabular-nums}
+.floor b{color:var(--torch);font-weight:400}
+#stage{grid-area:stage;position:relative;min-width:0;border:2px solid var(--line);background:var(--bg);border-radius:3px;overflow:hidden;align-self:start}
+#cv{display:block;width:100%;height:auto}
+.overlay{position:absolute;inset:0;background:rgba(18,14,24,.86);display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto}
+.sheet{max-width:760px;width:100%;display:grid;gap:14px}
+.sheet h2{font-family:var(--display);font-weight:400;color:var(--torch);font-size:1.6rem;margin:0;letter-spacing:.06em;text-wrap:balance}
+.sheet p{margin:0;max-width:65ch}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.slot{border:1px solid var(--line);background:var(--panel);border-radius:3px;padding:10px;display:grid;gap:4px;align-content:start;min-width:0}
+.slot.on{border-color:var(--torch);box-shadow:0 0 0 1px var(--torch) inset}
+.slot .em{font-size:2rem;line-height:1.1}
+.slot b{font-family:var(--display);font-weight:400;font-size:1.05rem}
+.slot small{color:var(--muted);font-size:.78rem;line-height:1.45}
+.slot .who{font-family:var(--display);font-size:.85rem;color:var(--muted)}
+.slot.on .who{color:var(--torch)}
+.btns{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+button{font-family:var(--display);font-size:1rem;background:var(--torch);color:var(--paper-ink);border:0;border-radius:3px;padding:8px 18px;cursor:pointer;letter-spacing:.05em}
+button.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:2px solid var(--sky);outline-offset:2px}
+.keys{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:6px 14px;font-size:.82rem;color:var(--muted)}
+kbd{font-family:var(--display);background:var(--stone);border:1px solid var(--line);border-radius:3px;padding:0 5px;color:var(--ink);font-size:.8rem}
+.stats{display:flex;flex-wrap:wrap;gap:8px 22px;font-family:var(--display);font-variant-numeric:tabular-nums}
+.stats span{color:var(--muted)} .stats b{color:var(--ink);font-weight:400;font-size:1.2rem}
+
+#hud{grid-area:hud;display:grid;gap:12px;align-content:start;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:10px 12px;display:grid;gap:6px;min-width:0}
+.card h3{font-family:var(--display);font-weight:400;font-size:.8rem;letter-spacing:.14em;color:var(--muted);margin:0}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.who .face{font-size:1.7rem;line-height:1}
+.who b{font-family:var(--display);font-weight:400;font-size:1.05rem;display:block}
+.who small{color:var(--muted);font-size:.78rem;display:block;line-height:1.4}
+.bar{height:7px;background:var(--stone);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--leaf);transition:width .2s}
+.bar.low i{background:var(--blood)}
+.bar.nap i{background:var(--sky)}
+.row{display:flex;justify-content:space-between;gap:8px;font-size:.8rem;color:var(--muted);font-variant-numeric:tabular-nums;flex-wrap:wrap}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font-size:.72rem;border:1px solid var(--line);border-radius:2px;padding:0 6px;color:var(--ink);font-variant-numeric:tabular-nums}
+.chip.bad{border-color:var(--blood);color:var(--blood)} .chip.good{border-color:var(--leaf);color:var(--leaf)}
+.pet{display:grid;gap:4px;padding-block:6px;border-top:1px solid var(--line)}
+.pet:first-of-type{border-top:0;padding-top:0}
+.pl{font-family:var(--display);font-size:.72rem;padding:0 5px;border-radius:2px;color:var(--paper-ink)}
+#log{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:.8rem;max-height:240px;overflow:auto}
+#log li{color:var(--muted);line-height:1.45}
+#log li:first-child{color:var(--ink)}
+#log li.warn{color:var(--blood)} #log li.good{color:var(--leaf)} #log li.gold{color:var(--torch)}
+
+#help{grid-area:help;font-size:.82rem;color:var(--muted);display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px 18px}
+#help b{color:var(--ink);font-weight:700}
+
+#touch{display:none;grid-area:help;justify-content:space-between;align-items:center;gap:16px;user-select:none;-webkit-user-select:none;touch-action:none}
+.pad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px}
+.pad button,.abtn{padding:0;font-size:1.2rem;background:var(--stone);color:var(--ink);border:1px solid var(--line)}
+.abtn{width:76px;height:76px;border-radius:50%;background:var(--torch);color:var(--paper-ink);font-size:1.3rem}
+@media (pointer:coarse){#touch{display:flex} #help{display:none}}
+
+@media (max-width:900px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "stage" "help" "hud"}
+}
+@media (max-width:700px){
+  .overlay{position:static;background:var(--panel);border-top:2px solid var(--line)}
+  .slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <h1>ワンダリング・ご主人</h1>
+      <p class="tagline">自称・伝説の勇者を、ペットたちの力で魔王の玉座まで送り届けよう。</p>
+    </div>
+    <div class="floor" id="floorLabel">地下 <b>1</b> 階 / 5</div>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv" aria-label="ダンジョンの盤面"></canvas>
+
+    <div class="overlay" id="lobby">
+      <div class="sheet">
+        <h2>ペットを選ぼう</h2>
+        <p>1〜4人で遊べます。各自の<b>アクションボタン</b>（<kbd>Space</kbd> <kbd>Enter</kbd> <kbd>U</kbd> <kbd>R</kbd> / パッドのA）を押すと参加、<b>左右</b>で別のペットに乗り換えられます。</p>
+        <div class="slots" id="slots"></div>
+        <div class="keys">
+          <div>P1 <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> ＋ <kbd>Space</kbd></div>
+          <div>P2 <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> ＋ <kbd>Enter</kbd></div>
+          <div>P3 <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> ＋ <kbd>U</kbd></div>
+          <div>P4 <kbd>T</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd> ＋ <kbd>R</kbd></div>
+          <div>ゲームパッド：スティック ＋ A</div>
+        </div>
+        <div class="btns">
+          <button id="startBtn" disabled>冒険に出る（P）</button>
+          <button id="resetBtn" class="ghost">参加をリセット</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="endScreen" hidden>
+      <div class="sheet">
+        <h2 id="endTitle">ご主人は力尽きた…</h2>
+        <p id="endText"></p>
+        <div class="stats" id="endStats"></div>
+        <div class="btns">
+          <button id="retryBtn">同じメンバーで再挑戦（P）</button>
+          <button id="backBtn" class="ghost">ペット選びに戻る</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="hud">
+    <section class="card" id="ownerCard"></section>
+    <section class="card" id="petCard"></section>
+    <section class="card">
+      <h3>勇者の冒険日誌</h3>
+      <ol id="log"></ol>
+    </section>
+  </aside>
+
+  <div id="help">
+    <div><b>ご主人は勝手に歩きます。</b>宝箱は必ず開け、キノコは必ず食べます。ご主人が倒れたら全員の負けです。</div>
+    <div><b>体当たりで押す。</b>ペットでご主人にぶつかると1マス押せます。ご主人の進路に立てば通せんぼもできます。</div>
+    <div><b>猫が近づくと鑑定。</b>キノコと薬の正体（巨・旨・毒・眠・回・速・混）が分かります。</div>
+    <div><b>しゃべる剣を装備中</b>にご主人にぶつかると、5秒間ご主人を直接操作できます。</div>
+  </div>
+
+  <div id="touch" aria-label="タッチ操作（P1）">
+    <div class="pad">
+      <span></span><button data-d="0,-1" aria-label="上">▲</button><span></span>
+      <button data-d="-1,0" aria-label="左">◀</button><span></span><button data-d="1,0" aria-label="右">▶</button>
+      <span></span><button data-d="0,1" aria-label="下">▼</button><span></span>
+    </div>
+    <button class="abtn" id="touchA" aria-label="アクション">A</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ===== 基本設定 =====
+const W = 40, H = 26, T = 24;
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+const DPR = Math.min(2, window.devicePixelRatio || 1);
+cv.width = W * T * DPR; cv.height = H * T * DPR; ctx.scale(DPR, DPR);
+const EMOJI = '"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const DISP = '"DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",monospace';
+
+const rnd = n => Math.floor(Math.random() * n);
+const pick = a => a[rnd(a.length)];
+const chance = p => Math.random() < p;
+const idx = (x, y) => y * W + x;
+const inb = (x, y) => x >= 0 && y >= 0 && x < W && y < H;
+const man = (a, b) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const DIR_NAME = { '0,-1': '北', '1,0': '東', '0,1': '南', '-1,0': '西' };
+
+// ===== データ =====
+const PET_DEFS = {
+  dog:   { name: 'ポチ',   emoji: '🐕', hp: 10, atk: 2, step: .15, color: '#f0a742', role: '吠えて敵を引きつけ、ご主人を呼び寄せる' },
+  cat:   { name: 'タマ',   emoji: '🐈', hp: 7,  atk: 2, step: .13, color: '#d98ac4', role: '罠とキノコを見抜き、罠を解除する。たまに昼寝' },
+  owl:   { name: 'ホー助', emoji: '🦉', hp: 6,  atk: 1, step: .11, color: '#7fb2e5', role: 'ご主人の頭に止まると階全体が見える。罠を踏まない' },
+  slime: { name: 'プル',   emoji: null, hp: 14, atk: 1, step: .2,  color: '#8cc46f', role: '装備や床のアイテムを食べる。装備は別物に変わる' },
+};
+const PET_ORDER = ['dog', 'cat', 'owl', 'slime'];
+const ACTION_NAME = { dog: '吠える', cat: '罠解除 / 爪とぎ', owl: '頭に止まる / 飛び立つ', slime: '食べる' };
+
+const PERS = {
+  coward:    { name: '臆病',       desc: '敵が近いと逃げ出す',             w: { mushroom: 1, potion: 1, meat: 1, gold: 1, chest: 1, equip: 1 }, rand: .12 },
+  glutton:   { name: '食いしん坊', desc: 'キノコと肉に目がない',           w: { mushroom: 4, potion: 2, meat: 4, gold: .5, chest: .7, equip: .7 }, rand: .12 },
+  collector: { name: '収集癖',     desc: '宝箱と装備を見ると突進する',     w: { mushroom: .6, potion: 1, meat: .5, gold: 3, chest: 4, equip: 3 }, rand: .12 },
+  curious:   { name: '好奇心旺盛', desc: '寄り道ばかり。罠も踏みたがる',   w: { mushroom: 1.5, potion: 1.5, meat: 1, gold: 1, chest: 1.5, equip: 1.5, trap: 2 }, rand: .32 },
+};
+const HERO_NAMES = ['アルフレッド', 'ジークフリート', 'ロラン', 'ヘンリエッタ', 'マクシミリアン', 'ベルナデット', 'レオポルド'];
+
+const ITEMS = {
+  mushroom: { emoji: '🍄', name: 'あやしいキノコ' },
+  potion:   { emoji: '🧪', name: '謎の薬' },
+  meat:     { emoji: '🍖', name: '骨つき肉' },
+  gold:     { emoji: '💰', name: '金貨袋' },
+  chest:    { emoji: '📦', name: '宝箱' },
+  crown:    { emoji: '👑', name: '逆さまの王冠' },
+  sword:    { emoji: '🗡️', name: 'しゃべる剣' },
+  pan:      { emoji: '🍳', name: 'フライパン' },
+  plush:    { emoji: '🧸', name: 'くまのぬいぐるみ' },
+  ring:     { emoji: '💍', name: '呪いの指輪' },
+  horn:     { emoji: '📯', name: '謎の角笛' },
+};
+const SUBS = {
+  mushroom: { big: ['巨大化キノコ', '巨', 1], tasty: ['おいしいキノコ', '旨', 1], poison: ['毒キノコ', '毒', 0], sleep: ['ねむりキノコ', '眠', 0] },
+  potion:   { heal: ['回復薬', '回', 1], haste: ['俊足の薬', '速', 1], confuse: ['混乱の薬', '混', 0] },
+};
+const EQUIP = { sword: { atk: 3, hit: .9 }, pan: { atk: 2, hit: .8 }, crown: { atk: 1, hit: .6 }, plush: { atk: 0, hit: 0 } };
+const EQUIP_KINDS = ['sword', 'pan', 'crown', 'plush'];
+const itemCat = t => (t in PERS.coward.w) ? t : 'equip';
+
+const ENEMY = {
+  goblin:   { name: 'ゴブリン', emoji: '👺', hp: 4,  atk: 1, step: .75, from: 1 },
+  bat:      { name: 'コウモリ', emoji: '🦇', hp: 2,  atk: 1, step: .42, from: 1 },
+  skeleton: { name: 'ガイコツ', emoji: '💀', hp: 6,  atk: 2, step: .85, from: 2 },
+  spider:   { name: '大グモ',   emoji: '🕷️', hp: 5,  atk: 2, step: .55, from: 3 },
+  ogre:     { name: 'オーガ',   emoji: '👹', hp: 11, atk: 3, step: 1.05, from: 4 },
+  mimic:    { name: 'ミミック', emoji: '📦', hp: 6,  atk: 2, step: .7,  from: 99 },
+  boss:     { name: '魔王',     emoji: '😈', hp: 32, atk: 3, step: .9,  from: 99 },
+};
+
+const LINES = {
+  idle:     ['このダンジョン、余裕だな!', 'ぼくについてこい、みんな!', '伝説の勇者とはぼくのことさ', 'ふふふ、今日も絶好調', 'あれ、こっちだっけ?'],
+  item:     ['お、何か光ってる!', 'あれは…お宝のにおい!', '拾わないと損だよね'],
+  mushroom: ['キノコだ!食べよう!', 'いいにおいのキノコ!', '色がきれいだから大丈夫!'],
+  chest:    ['宝箱だ!開けないわけにはいかない!', '中身は何かな〜'],
+  hurt:     ['いたっ!', 'ちょ、ちょっと待って!', '今のは油断しただけ!', 'ぐえっ'],
+  miss:     ['えいっ!…あれ?', '今のはわざとだよ', '手が滑った!'],
+  pushed:   ['おっとっと', '押すなって!', 'わわっ、どうしたの?'],
+  blocked:  ['どいてよ〜', 'そこ通りたいんだけど', 'もう、甘えん坊だなあ'],
+  called:   ['どうしたポチ?', 'ん?呼んだ?', 'そっちに何かあるの?'],
+  coward:   ['ひぃぃ!', '無理無理無理!', 'せ、戦略的撤退だ!'],
+  wander:   ['ちょうちょだ!', '今なにか聞こえた?', '壁の模様が気になる…', 'こっちの方が近道な気がする'],
+  kill:     ['やった!ぼくの実力だ!', '見た?今の一撃!', '楽勝楽勝!'],
+  credit:   ['…ぼくが倒したことにしておこう', 'ふっ、ぼくの気迫で倒れたね', 'ぼくの指示どおりだね!'],
+  stairs:   ['次の階へ!ついてこい!', '階段だ!下りてみよう!'],
+  trap:     ['今の何!?', '床が…!?'],
+};
+
+// ===== 入力（キーボード4系統＋ゲームパッド＋タッチ） =====
+const KEY_SCHEMES = {
+  kbA: { label: 'WASD', up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], act: ['Space'] },
+  kbB: { label: '矢印', up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], act: ['Enter', 'ShiftRight', 'NumpadEnter'] },
+  kbC: { label: 'IJKL', up: ['KeyI'], down: ['KeyK'], left: ['KeyJ'], right: ['KeyL'], act: ['KeyU'] },
+  kbD: { label: 'TFGH', up: ['KeyT', 'Numpad8'], down: ['KeyG', 'Numpad5', 'Numpad2'], left: ['KeyF', 'Numpad4'], right: ['KeyH', 'Numpad6'], act: ['KeyR', 'Numpad0'] },
+};
+const devices = {};
+const dev = (id, label) => devices[id] || (devices[id] = { id, label, dx: 0, dy: 0, act: false, nav: 0, lastAxis: 'x', padPrev: {} });
+const held = new Set();
+let startEdge = false;
+
+function schemeOf(code) {
+  for (const id in KEY_SCHEMES) {
+    const s = KEY_SCHEMES[id];
+    for (const k of ['up', 'down', 'left', 'right', 'act']) if (s[k].includes(code)) return [id, k];
+  }
+  return null;
+}
+addEventListener('keydown', e => {
+  if (e.code === 'KeyP') { startEdge = true; return; }
+  const m = schemeOf(e.code);
+  if (!m) return;
+  e.preventDefault();
+  if (e.repeat) return;
+  held.add(e.code);
+  const d = dev(m[0], KEY_SCHEMES[m[0]].label);
+  if (m[1] === 'act') d.act = true;
+  if (m[1] === 'left' || m[1] === 'right') { d.lastAxis = 'x'; d.nav = m[1] === 'left' ? -1 : 1; }
+  if (m[1] === 'up' || m[1] === 'down') d.lastAxis = 'y';
+});
+addEventListener('keyup', e => held.delete(e.code));
+addEventListener('blur', () => held.clear());
+
+function readKeyboard() {
+  for (const id in KEY_SCHEMES) {
+    const s = KEY_SCHEMES[id], d = devices[id];
+    if (!d) continue;
+    const any = a => a.some(c => held.has(c));
+    d.dx = (any(s.right) ? 1 : 0) - (any(s.left) ? 1 : 0);
+    d.dy = (any(s.down) ? 1 : 0) - (any(s.up) ? 1 : 0);
+  }
+}
+function pollPads() {
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const p of pads) {
+    if (!p) continue;
+    const d = dev('pad' + p.index, 'パッド' + (p.index + 1));
+    const b = i => !!(p.buttons[i] && p.buttons[i].pressed);
+    const ax = p.axes[0] || 0, ay = p.axes[1] || 0;
+    const L = b(14) || ax < -.5, R = b(15) || ax > .5, U = b(12) || ay < -.5, D = b(13) || ay > .5;
+    const pv = d.padPrev;
+    if (b(0) && !pv.a) d.act = true;
+    if (b(9) && !pv.start) startEdge = true;
+    if (L && !pv.L) { d.nav = -1; d.lastAxis = 'x'; }
+    if (R && !pv.R) { d.nav = 1; d.lastAxis = 'x'; }
+    if ((U && !pv.U) || (D && !pv.D)) d.lastAxis = 'y';
+    d.dx = (R ? 1 : 0) - (L ? 1 : 0); d.dy = (D ? 1 : 0) - (U ? 1 : 0);
+    d.padPrev = { a: b(0), start: b(9), L, R, U, D };
+  }
+}
+function dirOf(d) {
+  let { dx, dy } = d;
+  if (dx && dy) { if (d.lastAxis === 'x') dy = 0; else dx = 0; }
+  return [dx, dy];
+}
+// タッチ（P1扱い）
+(function setupTouch() {
+  const d = () => dev('touch', 'タッチ');
+  document.querySelectorAll('#touch .pad button').forEach(btn => {
+    const [x, y] = btn.dataset.d.split(',').map(Number);
+    const on = e => { e.preventDefault(); const t = d(); t.dx = x; t.dy = y; t.lastAxis = x ? 'x' : 'y'; if (x) t.nav = x; };
+    const off = e => { e.preventDefault(); const t = d(); if (t.dx === x && t.dy === y) { t.dx = 0; t.dy = 0; } };
+    btn.addEventListener('pointerdown', on);
+    btn.addEventListener('pointerup', off);
+    btn.addEventListener('pointerleave', off);
+    btn.addEventListener('pointercancel', off);
+  });
+  $('#touchA').addEventListener('pointerdown', e => { e.preventDefault(); d().act = true; });
+})();
+function clearEdges() { for (const id in devices) { devices[id].act = false; devices[id].nav = 0; } startEdge = false; }
+
+// ===== ロビー =====
+const slots = { dog: null, cat: null, owl: null, slime: null };
+let mode = 'lobby';
+
+function lobbyUpdate() {
+  let changed = false;
+  for (const id in devices) {
+    const d = devices[id];
+    const mine = PET_ORDER.find(k => slots[k] === id);
+    if (d.act && !mine) {
+      const free = PET_ORDER.find(k => !slots[k]);
+      if (free) { slots[free] = id; changed = true; }
+    } else if (d.nav && mine) {
+      const i0 = PET_ORDER.indexOf(mine);
+      for (let s = 1; s < 4; s++) {
+        const k = PET_ORDER[(i0 + d.nav * s + 8) % 4];
+        if (!slots[k]) { slots[mine] = null; slots[k] = id; changed = true; break; }
+      }
+    }
+  }
+  if (changed) renderLobby();
+  if (startEdge && joinedCount() > 0) startGame();
+}
+const joinedCount = () => PET_ORDER.filter(k => slots[k]).length;
+function playerNo(k) { return PET_ORDER.filter(x => slots[x]).indexOf(k) + 1; }
+function renderLobby() {
+  $('#slots').innerHTML = PET_ORDER.map(k => {
+    const p = PET_DEFS[k], id = slots[k];
+    const em = p.emoji || '🟢';
+    return `<div class="slot ${id ? 'on' : ''}"><div class="em">${em}</div><b>${p.name}</b>
+      <small>${p.role}</small>
+      <div class="who">${id ? `P${playerNo(k)}：${devices[id].label}` : '空き'}</div></div>`;
+  }).join('');
+  $('#startBtn').disabled = joinedCount() === 0;
+}
+$('#startBtn').onclick = () => { if (joinedCount()) startGame(); };
+$('#resetBtn').onclick = () => { for (const k in slots) slots[k] = null; renderLobby(); };
+$('#retryBtn').onclick = () => startGame();
+$('#backBtn').onclick = () => toLobby();
+
+// ===== ゲーム状態 =====
+let G = null;
+
+function makeOwner(demo) {
+  const pers = pick(Object.keys(PERS));
+  const hp = 12 + (pers === 'coward' ? 2 : 0);
+  return { x: 0, y: 0, rx: 0, ry: 0, hp, maxHp: hp, pers, name: '勇者' + pick(HERO_NAMES),
+    equip: null, st: { giant: 0, haste: 0, confuse: 0, sleep: 0, invis: 0, called: 0 },
+    moveT: .8, say: null, sayCd: {}, sword: null, swordCd: 0, ctrl: null, ctrlMoveT: 0,
+    order: null, orderT: 6, regenT: 0, idleT: 4, exp: null, lastInterest: null, demo };
+}
+function makePet(kind, devId, no) {
+  const d = PET_DEFS[kind];
+  return { kind, def: d, dev: devId, no, x: 0, y: 0, rx: 0, ry: 0, hp: d.hp, maxHp: d.hp, moveT: 0, cd: 0,
+    down: 0, nap: 0, sleepT: 0, perched: false, say: null, moved: 0 };
+}
+
+function startGame() {
+  const pets = [];
+  PET_ORDER.forEach(k => { if (slots[k]) pets.push(makePet(k, slots[k], playerNo(k))); });
+  G = newState(pets, false);
+  mode = 'play';
+  $('#lobby').hidden = true; $('#endScreen').hidden = true;
+  addLog(`${G.owner.name}（${PERS[G.owner.pers].name}）の冒険が始まった。`, 'gold');
+  addLog(`本人いわく「魔王なんて楽勝さ」。`);
+  say(G.owner, '魔王なんて楽勝さ!', 3);
+}
+function startDemo() {
+  G = newState([], true);
+  G.demo = true;
+}
+function toLobby() {
+  mode = 'lobby';
+  $('#endScreen').hidden = true; $('#lobby').hidden = false;
+  renderLobby(); startDemo();
+}
+function newState(pets, demo) {
+  const s = { floor: 1, gold: 0, time: 0, kills: 0, log: [], owner: makeOwner(demo), pets, enemies: [], items: [], traps: [], fx: [], demo };
+  G = s;
+  genFloor();
+  return s;
+}
+
+// ===== ダンジョン生成 =====
+function genFloor() {
+  let m, rooms;
+  do {
+    m = new Uint8Array(W * H); rooms = [];
+    for (let t = 0; t < 500 && rooms.length < 10; t++) {
+      const w = 4 + rnd(6), h = 3 + rnd(4), x = 1 + rnd(W - w - 2), y = 1 + rnd(H - h - 2);
+      if (rooms.some(r => x < r.x + r.w + 1 && r.x < x + w + 1 && y < r.y + r.h + 1 && r.y < y + h + 1)) continue;
+      rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
+    }
+  } while (rooms.length < 6);
+  rooms.sort((a, b) => a.cx - b.cx);
+  for (const r of rooms) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) m[idx(x, y)] = 1;
+  const carve = (a, b) => {
+    let { cx: x, cy: y } = a;
+    const hFirst = chance(.5);
+    const hx = () => { while (x !== b.cx) { m[idx(x, y)] = 1; x += Math.sign(b.cx - x); } };
+    const vy = () => { while (y !== b.cy) { m[idx(x, y)] = 1; y += Math.sign(b.cy - y); } };
+    if (hFirst) { hx(); vy(); } else { vy(); hx(); }
+    m[idx(x, y)] = 1;
+  };
+  for (let i = 1; i < rooms.length; i++) carve(rooms[i - 1], rooms[i]);
+  for (let i = 0; i < 2; i++) carve(pick(rooms), pick(rooms));
+
+  G.map = m; G.rooms = rooms;
+  G.seen = new Uint8Array(W * H); G.vis = new Uint8Array(W * H);
+  G.enemies = []; G.items = []; G.traps = []; G.fx = [];
+  G.stairs = null; G.throne = null; G.boss = null;
+  const o = G.owner;
+  o.exp = null; o.lastInterest = null; o.ctrl = null; o.order = null; o.st.called = 0;
+
+  const taken = new Set();
+  const start = rooms[0], end = rooms[rooms.length - 1];
+  const inRoom = r => ({ x: r.x + rnd(r.w), y: r.y + rnd(r.h) });
+  const freeIn = (r, tries = 60) => {
+    for (let t = 0; t < tries; t++) {
+      const p = r ? inRoom(r) : { x: rnd(W), y: rnd(H) };
+      if (G.map[idx(p.x, p.y)] === 1 && !taken.has(idx(p.x, p.y)) && !(r !== start && inRect(p, start))) { taken.add(idx(p.x, p.y)); return p; }
+    }
+    return null;
+  };
+  // ご主人とペット
+  o.x = o.rx = start.cx; o.y = o.ry = start.cy; taken.add(idx(o.x, o.y));
+  for (const p of G.pets) {
+    const q = freeNear(o.x, o.y, taken) || { x: o.x, y: o.y };
+    p.x = p.rx = q.x; p.y = p.ry = q.y; taken.add(idx(q.x, q.y));
+    if (p.down) { p.down = 0; p.hp = Math.ceil(p.maxHp / 2); }
+  }
+  // 階段 / 玉座
+  if (G.floor < 5) { G.stairs = freeIn(end); }
+  else {
+    G.throne = { x: end.cx, y: end.cy }; taken.add(idx(end.cx, end.cy));
+    const b = spawnEnemy('boss', end.cx, end.cy); b.asleep = true; G.boss = b;
+  }
+  // 敵
+  const others = rooms.slice(1);
+  const pool = Object.keys(ENEMY).filter(k => ENEMY[k].from <= G.floor);
+  const nEnemy = 3 + G.floor * 2;
+  for (let i = 0; i < nEnemy; i++) {
+    const p = freeIn(pick(others)); if (!p) continue;
+    const e = spawnEnemy(pick(pool), p.x, p.y); e.asleep = chance(.5);
+  }
+  // アイテム
+  const forced = { 1: ['sword', 'crown', 'mushroom:big', 'chest'], 2: ['ring', 'horn', 'pan'], 3: ['plush', 'mushroom:big'], 4: ['sword', 'potion:heal'], 5: ['potion:heal', 'meat'] }[G.floor] || [];
+  const bag = ['mushroom', 'mushroom', 'mushroom', 'potion', 'potion', 'meat', 'meat', 'gold', 'gold', 'chest', 'chest', 'crown', 'sword', 'pan', 'plush', 'ring', 'horn'];
+  const list = forced.concat(Array.from({ length: 4 + G.floor }, () => pick(bag)));
+  for (const spec of list) {
+    const p = freeIn(chance(.85) ? pick(others) : null); if (!p) continue;
+    const [type, sub] = spec.split(':');
+    G.items.push(makeItem(type, p.x, p.y, sub));
+  }
+  // 罠
+  const trapKinds = ['spike', 'spike', 'warp', 'alarm'];
+  for (let i = 0; i < 2 + G.floor; i++) {
+    const p = freeIn(null, 200); if (!p) continue;
+    G.traps.push({ x: p.x, y: p.y, kind: pick(trapKinds), revealed: false, disarmed: false });
+  }
+  if (G.demo) G.seen.fill(1);
+  updateFloorLabel();
+}
+const inRect = (p, r) => p.x >= r.x && p.x < r.x + r.w && p.y >= r.y && p.y < r.y + r.h;
+function makeItem(type, x, y, sub) {
+  const it = { type, x, y, identified: false };
+  if (SUBS[type]) it.sub = sub || pick(Object.keys(SUBS[type]));
+  return it;
+}
+function spawnEnemy(kind, x, y) {
+  const d = ENEMY[kind];
+  const hp = d.hp + (kind === 'boss' ? 0 : Math.floor((G.floor - 1) / 2));
+  const e = { kind, def: d, x, y, rx: x, ry: y, hp, maxHp: hp, moveT: .5 + Math.random(), asleep: false, taunt: null, summonT: 8 };
+  G.enemies.push(e);
+  return e;
+}
+function freeNear(x, y, taken) {
+  for (let r = 1; r <= 5; r++) {
+    const c = [];
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const nx = x + dx, ny = y + dy;
+      if (!walkable(nx, ny)) continue;
+      if (taken ? taken.has(idx(nx, ny)) : occupied(nx, ny)) continue;
+      c.push({ x: nx, y: ny });
+    }
+    if (c.length) return pick(c);
+  }
+  return null;
+}
+
+// ===== 盤面の問い合わせ =====
+const walkable = (x, y) => inb(x, y) && G.map[idx(x, y)] === 1;
+const enemyAt = (x, y) => G.enemies.find(e => e.x === x && e.y === y);
+const petAt = (x, y, ex) => G.pets.find(p => p !== ex && !p.down && !p.perched && p.x === x && p.y === y);
+const itemAt = (x, y) => G.items.find(i => i.x === x && i.y === y);
+const trapAt = (x, y) => G.traps.find(t => t.x === x && t.y === y && !t.disarmed);
+const ownerAt = (x, y) => G.owner.x === x && G.owner.y === y;
+const occupied = (x, y) => !!enemyAt(x, y) || !!petAt(x, y) || ownerAt(x, y);
+const livePets = () => G.pets.filter(p => !p.down && !p.perched);
+
+// 幅優先探索：goal に向かう最初の1歩を返す
+function bfsStep(sx, sy, goal, block) {
+  const start = idx(sx, sy);
+  const prev = new Int32Array(W * H).fill(-1);
+  const q = [start]; prev[start] = start;
+  for (let h = 0; h < q.length; h++) {
+    const c = q[h], cx = c % W, cy = (c / W) | 0;
+    if (c !== start && goal(cx, cy)) {
+      let s = c, d = 1;
+      while (prev[s] !== start) { s = prev[s]; d++; }
+      return { x: s % W, y: (s / W) | 0, dist: d };
+    }
+    for (const [dx, dy] of DIRS) {
+      const nx = cx + dx, ny = cy + dy;
+      if (!walkable(nx, ny)) continue;
+      const n = idx(nx, ny);
+      if (prev[n] !== -1) continue;
+      if (block && block(nx, ny) && !goal(nx, ny)) continue;
+      prev[n] = c; q.push(n);
+    }
+  }
+  return null;
+}
+
+// ===== セリフ・ログ・演出 =====
+function say(ent, text, dur = 2.6) { ent.say = { text, t: dur }; }
+function sayL(key, cd = 0) {
+  const o = G.owner;
+  if (cd && (o.sayCd[key] || 0) > G.time) return;
+  if (cd) o.sayCd[key] = G.time + cd;
+  say(o, pick(LINES[key]));
+}
+function addLog(text, cls = '') {
+  if (G.demo) return;
+  G.log.unshift({ text, cls });
+  if (G.log.length > 40) G.log.pop();
+}
+function float(x, y, text, color) { G.fx.push({ k: 'txt', x, y, text, color, t: 1, max: 1 }); }
+function ring(x, y, color, r = 6) { G.fx.push({ k: 'ring', x, y, color, r, t: .7, max: .7 }); }
+function rock(x, y) { G.fx.push({ k: 'rock', x, y, t: .6, max: .6 }); }
+
+// ===== メイン更新 =====
+function update(dt) {
+  G.time += dt;
+  const o = G.owner;
+  for (const k in o.st) o.st[k] = Math.max(0, o.st[k] - dt);
+  if (o.say && (o.say.t -= dt) <= 0) o.say = null;
+  if (o.sword && (o.sword.t -= dt) <= 0) o.sword = null;
+  for (const p of G.pets) if (p.say && (p.say.t -= dt) <= 0) p.say = null;
+  G.fx = G.fx.filter(f => (f.t -= dt) > 0);
+
+  computeVision();
+  updatePets(dt);
+  updateOwner(dt);
+  updateEnemies(dt);
+
+  // 小刻みに描画位置を補間
+  const lerp = Math.min(1, dt * 16);
+  for (const e of [o, ...G.pets, ...G.enemies]) { e.rx += (e.x - e.rx) * lerp; e.ry += (e.y - e.ry) * lerp; }
+
+  if (o.hp <= 0 && mode === 'play' && !G.demo) gameOver();
+  if (G.demo && o.hp <= 0) startDemo();
+}
+
+function computeVision() {
+  const v = G.vis; v.fill(0);
+  const o = G.owner;
+  if (G.demo || G.pets.some(p => p.perched && !p.down)) { v.fill(1); G.seen.fill(1); return; }
+  const lit = (sx, sy, r) => {
+    for (let y = Math.max(0, sy - r); y <= Math.min(H - 1, sy + r); y++)
+      for (let x = Math.max(0, sx - r); x <= Math.min(W - 1, sx + r); x++)
+        if ((x - sx) ** 2 + (y - sy) ** 2 <= r * r + 1) { v[idx(x, y)] = 1; G.seen[idx(x, y)] = 1; }
+  };
+  lit(o.x, o.y, o.st.giant > 0 ? 6 : 5);
+  for (const p of G.pets) if (!p.down) lit(p.x, p.y, p.kind === 'owl' ? 5 : 4);
+}
+
+// ----- ペット -----
+function updatePets(dt) {
+  const o = G.owner;
+  for (const p of G.pets) {
+    const d = devices[p.dev];
+    if (!d) continue;
+    p.moved = Math.max(0, p.moved - dt);
+    if (p.down > 0) {
+      p.down -= dt;
+      if (p.down <= 0) {
+        const q = freeNear(o.x, o.y) || { x: o.x, y: o.y };
+        p.x = p.rx = q.x; p.y = p.ry = q.y; p.hp = Math.ceil(p.maxHp / 2); p.down = 0;
+        addLog(`${p.def.name}が起き上がった。`, 'good');
+      }
+      continue;
+    }
+    p.cd = Math.max(0, p.cd - dt);
+    p.moveT -= dt;
+    if (p.kind === 'cat') {
+      if (p.sleepT > 0) {
+        p.sleepT -= dt;
+        if (d.act) say(p, 'Zzz…', 1);
+        if (p.sleepT <= 0) { say(p, 'にゃ?', 1.2); }
+        continue;
+      }
+      p.nap += dt * (p.moved > 0 ? 2.5 : 5);
+      if (p.nap >= 100) { p.nap = 0; p.sleepT = 5; addLog('タマは昼寝を始めた…（5秒）', 'warn'); say(p, 'ふぁ〜', 1.5); continue; }
+      // 鑑定と罠発見
+      for (const it of G.items) if (!it.identified && SUBS[it.type] && cheb(p, it) <= 2) { it.identified = true; float(it.x, it.y, SUBS[it.type][it.sub][0], '#efe3c8'); }
+      for (const t of G.traps) if (!t.revealed && cheb(p, t) <= 3) { t.revealed = true; float(t.x, t.y, '罠!', '#e0605a'); }
+    }
+    if (p.perched) { p.x = o.x; p.y = o.y; }
+    const [dx, dy] = dirOf(d);
+    if (o.ctrl && o.ctrl.pet === p) {
+      if ((dx || dy) && o.ctrlMoveT <= 0) { ownerTryMove(o.x + dx, o.y + dy); o.ctrlMoveT = .2; }
+      continue;
+    }
+    if (d.act) petAction(p);
+    if ((dx || dy) && p.moveT <= 0 && !p.perched) { petTryMove(p, dx, dy); p.moveT = p.def.step; }
+  }
+}
+
+function petTryMove(p, dx, dy) {
+  const nx = p.x + dx, ny = p.y + dy, o = G.owner;
+  if (!walkable(nx, ny)) return;
+  const e = enemyAt(nx, ny);
+  if (e) { petAttack(p, e); return; }
+  if (ownerAt(nx, ny)) { bumpOwner(p, dx, dy); return; }
+  p.x = nx; p.y = ny; p.moved = .3;
+  checkOrder(p, dx, dy);
+  // 床の上のもの
+  const it = itemAt(nx, ny);
+  if (it && it.type === 'meat') {
+    G.items.splice(G.items.indexOf(it), 1);
+    p.hp = Math.min(p.maxHp, p.hp + 4); float(nx, ny, '+4', '#8cc46f');
+    say(p, 'もぐもぐ', 1.2); addLog(`${p.def.name}が骨つき肉を食べた。`);
+  }
+  const t = trapAt(nx, ny);
+  if (t && p.kind !== 'owl') triggerTrap(t, p);
+}
+
+function bumpOwner(p, dx, dy) {
+  const o = G.owner;
+  if (o.equip === 'sword' && G.time >= o.swordCd && !o.ctrl) {
+    o.ctrl = { pet: p, t: 5 }; o.swordCd = G.time + 14;
+    o.sword = { text: 'よかろう、5秒だけ体を貸してやる', t: 2.6 };
+    addLog(`しゃべる剣と交渉成立。${p.def.name}がご主人を操る！`, 'gold');
+    return;
+  }
+  const nx = o.x + dx, ny = o.y + dy;
+  if (!walkable(nx, ny) || enemyAt(nx, ny) || petAt(nx, ny, p)) { sayL('pushed', 1.5); return; }
+  const it = itemAt(nx, ny);
+  if (it && it.type === 'chest') { sayL('pushed', 1.5); return; }
+  o.x = nx; o.y = ny; o.moveT = Math.max(o.moveT, .55);
+  sayL('pushed', 2);
+  ownerEnter();
+}
+
+function petAttack(p, e) {
+  const dmg = p.def.atk;
+  damageEnemy(e, dmg, p);
+  if (p.kind === 'cat') p.nap = Math.max(0, p.nap - 15);
+}
+
+function petAction(p) {
+  const o = G.owner;
+  if (p.kind === 'dog') {
+    if (p.cd > 0) return;
+    p.cd = 5; ring(p.x, p.y, '#f0a742', 7); say(p, 'ワン!', 1);
+    let n = 0;
+    for (const e of G.enemies) if (cheb(e, p) <= 7) { e.taunt = { target: p, t: 5 }; e.asleep = false; n++; }
+    if (cheb(o, p) <= 12 && !o.ctrl) { o.st.called = 3; o.calledBy = p; sayL('called', 2); }
+    if (n) addLog(`ポチが吠えた。敵${n}体がポチをにらんでいる。`);
+  } else if (p.kind === 'cat') {
+    const t = G.traps.find(t => !t.disarmed && cheb(t, p) <= 1);
+    if (t) {
+      t.disarmed = true; t.revealed = true; float(t.x, t.y, '解除', '#8cc46f');
+      say(p, 'にゃっ', 1); addLog('タマが罠を解除した。', 'good');
+    } else if (p.cd <= 0) {
+      p.cd = 3; p.nap = Math.max(0, p.nap - 25); say(p, 'ガリガリ', 1);
+    }
+  } else if (p.kind === 'owl') {
+    if (p.perched) {
+      const q = freeNear(o.x, o.y);
+      if (!q) return;
+      p.perched = false; p.x = p.rx = q.x; p.y = p.ry = q.y;
+      say(p, 'ホー', 1);
+    } else if (cheb(p, o) <= 1) {
+      p.perched = true; p.x = o.x; p.y = o.y;
+      say(p, 'ホッホー', 1); addLog('ホー助がご主人の頭に止まった。階全体が見渡せる。');
+    } else say(p, 'ご主人のとなりで!', 1.2);
+  } else if (p.kind === 'slime') {
+    if (o.equip && cheb(p, o) <= 1) {
+      const old = o.equip;
+      const next = pick(EQUIP_KINDS.filter(k => k !== old));
+      o.equip = next;
+      say(p, 'もぐ…ぺっ', 1.3);
+      addLog(`プルが${ITEMS[old].name}を食べて、${ITEMS[next].name}を吐き出した。`, 'gold');
+      say(o, `あれ?ぼくの${ITEMS[old].name}が${ITEMS[next].name}に!?`, 2.8);
+      if (next === 'sword') o.sword = { text: '…ここはどこだ?スライムの腹の中は暗かったぞ', t: 2.6 };
+      return;
+    }
+    const it = G.items.find(i => cheb(i, p) <= 1 && i.type !== 'chest');
+    if (it) {
+      G.items.splice(G.items.indexOf(it), 1);
+      p.hp = Math.min(p.maxHp, p.hp + 2); float(it.x, it.y, 'もぐ', '#8cc46f');
+      addLog(`プルが${itemLabel(it)}を食べた。`);
+      if (o.lastInterest === it) say(o, 'あーっ!ぼくのお宝が!', 2.2);
+    } else say(p, 'ぷるん', .8);
+  }
+}
+
+// 王冠：ご主人の命令と「逆」に動くと喜ぶ
+function checkOrder(p, dx, dy) {
+  const o = G.owner;
+  if (!o.order || o.order.pet !== p) return;
+  if (dx === -o.order.dx && dy === -o.order.dy) {
+    o.hp = Math.min(o.maxHp, o.hp + 2); float(o.x, o.y, '+2', '#8cc46f');
+    say(o, '逆に行った!?…うむ、それも作戦のうちだな!', 2.6);
+    addLog(`${p.def.name}が王冠の命令と逆に動いた。ご主人はなぜかご機嫌（HP+2）。`, 'good');
+    o.order = null;
+  } else if (dx === o.order.dx && dy === o.order.dy) {
+    say(o, 'よし!…なんか物足りないな', 2);
+    o.order = null;
+  }
+}
+
+// ----- ご主人 -----
+function updateOwner(dt) {
+  const o = G.owner;
+  if (o.ctrl) {
+    o.ctrl.t -= dt; o.ctrlMoveT -= dt;
+    if (o.ctrl.t <= 0 || o.ctrl.pet.down) { o.ctrl = null; o.sword = { text: '時間切れだ。体を返すぞ', t: 2 }; }
+  }
+  if (o.equip === 'plush' && (o.regenT += dt) >= 6) { o.regenT = 0; if (o.hp < o.maxHp) { o.hp++; float(o.x, o.y, '+1', '#8cc46f'); } }
+  if (o.equip === 'crown' && !o.order) {
+    o.orderT -= dt;
+    const cands = livePets();
+    if (o.orderT <= 0 && cands.length) {
+      const p = pick(cands), [dx, dy] = pick(DIRS);
+      o.order = { pet: p, dx, dy, t: 5 };
+      say(o, `${p.def.name}よ、${DIR_NAME[dx + ',' + dy]}へ進め!`, 3);
+      o.orderT = 9;
+    }
+  }
+  if (o.order && (o.order.t -= dt) <= 0) { o.order = null; say(o, '家臣が冷たい…', 1.8); }
+  if ((o.idleT -= dt) <= 0) { o.idleT = 7 + Math.random() * 6; if (!o.say) sayL('idle'); }
+
+  if (o.ctrl) return;
+  o.moveT -= dt;
+  if (o.moveT > 0) return;
+  o.moveT = o.st.haste > 0 ? .32 : o.st.giant > 0 ? .8 : .6;
+  ownerAct();
+}
+
+function ownerAct() {
+  const o = G.owner, P = PERS[o.pers];
+  if (o.st.sleep > 0) { if (chance(.3)) say(o, 'むにゃ…魔王め…', 1.2); return; }
+  const adj = G.enemies.find(e => man(e, o) === 1);
+  if (adj) {
+    if (o.pers === 'coward' && chance(.6) && flee(adj)) { sayL('coward', 2); return; }
+    ownerAttack(adj); return;
+  }
+  if (o.st.confuse > 0) { randomStep(); return; }
+  if (o.st.called > 0 && o.calledBy && !o.calledBy.down) {
+    if (man(o, o.calledBy) > 1) { stepToward(o.calledBy.x, o.calledBy.y); return; }
+  }
+  if (o.pers === 'coward') {
+    const near = G.enemies.find(e => !e.asleep && cheb(e, o) <= 3 && G.vis[idx(e.x, e.y)]);
+    if (near && flee(near)) { sayL('coward', 3); return; }
+  }
+  if (chance(P.rand)) { randomStep(); if (chance(.35)) sayL('wander', 4); return; }
+
+  const tgt = chooseInterest();
+  if (tgt) {
+    if (tgt !== o.lastInterest) {
+      o.lastInterest = tgt;
+      if (tgt.type === 'mushroom') sayL('mushroom', 3);
+      else if (tgt.type === 'chest') sayL('chest', 3);
+      else if (tgt.kind) say(o, '床に何かあるぞ…踏んでみよう!', 2.2);
+      else sayL('item', 3);
+    }
+    stepToward(tgt.x, tgt.y); return;
+  }
+  o.lastInterest = null;
+  if (G.throne) {
+    if (G.seen[idx(G.throne.x, G.throne.y)]) { stepToward(G.throne.x, G.throne.y); return; }
+  } else if (G.stairs && G.seen[idx(G.stairs.x, G.stairs.y)]) { stepToward(G.stairs.x, G.stairs.y); return; }
+  const ex = exploreTarget();
+  if (ex) stepToward(ex.x, ex.y); else randomStep();
+}
+
+function chooseInterest() {
+  const o = G.owner, P = PERS[o.pers];
+  let best = null, bs = 0;
+  for (const it of G.items) {
+    if (!G.vis[idx(it.x, it.y)]) continue;
+    const d = man(o, it); if (d > 12) continue;
+    const s = (P.w[itemCat(it.type)] || 1) / (1 + d * .5);
+    if (s > bs) { bs = s; best = it; }
+  }
+  if (P.w.trap) for (const t of G.traps) {
+    if (!t.revealed || t.disarmed || t.tried || !G.vis[idx(t.x, t.y)]) continue;
+    const d = man(o, t); if (d > 8 || d === 0) continue;
+    const s = P.w.trap / (1 + d * .5);
+    if (s > bs) { bs = s; best = t; }
+  }
+  return best;
+}
+function exploreTarget() {
+  const o = G.owner;
+  if (o.exp && !G.seen[idx(o.exp.x, o.exp.y)]) return o.exp;
+  const c = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (G.map[idx(x, y)] === 1 && !G.seen[idx(x, y)]) c.push({ x, y, d: Math.abs(x - o.x) + Math.abs(y - o.y) });
+  if (!c.length) return null;
+  c.sort((a, b) => a.d - b.d);
+  o.exp = pick(c.slice(0, 10));
+  return o.exp;
+}
+function stepToward(tx, ty) {
+  const o = G.owner;
+  const goal = (x, y) => x === tx && y === ty;
+  let s = bfsStep(o.x, o.y, goal, (x, y) => !!enemyAt(x, y) || !!petAt(x, y));
+  if (!s) s = bfsStep(o.x, o.y, goal, null);
+  if (!s) { randomStep(); return; }
+  if (petAt(s.x, s.y)) { sayL('blocked', 3); return; }
+  ownerTryMove(s.x, s.y);
+}
+function randomStep() {
+  const o = G.owner;
+  const opts = DIRS.map(([dx, dy]) => ({ x: o.x + dx, y: o.y + dy })).filter(p => walkable(p.x, p.y) && !petAt(p.x, p.y));
+  if (opts.length) { const p = pick(opts); ownerTryMove(p.x, p.y); }
+}
+function flee(from) {
+  const o = G.owner;
+  let best = null, bd = man(o, from);
+  for (const [dx, dy] of DIRS) {
+    const nx = o.x + dx, ny = o.y + dy;
+    if (!walkable(nx, ny) || occupied(nx, ny)) continue;
+    const d = Math.abs(nx - from.x) + Math.abs(ny - from.y);
+    if (d > bd) { bd = d; best = { x: nx, y: ny }; }
+  }
+  if (!best) return false;
+  ownerTryMove(best.x, best.y);
+  return true;
+}
+function ownerTryMove(nx, ny) {
+  const o = G.owner;
+  if (!walkable(nx, ny)) return false;
+  const e = enemyAt(nx, ny);
+  if (e) { ownerAttack(e); return true; }
+  if (petAt(nx, ny)) return false;
+  const it = itemAt(nx, ny);
+  if (it && it.type === 'chest') { openChest(it); return true; }
+  o.x = nx; o.y = ny;
+  ownerEnter();
+  return true;
+}
+function ownerEnter() {
+  const o = G.owner;
+  if (o.st.giant > 0 && chance(.4)) {
+    say(o, 'ゴツン!天井が低いなあ', 1.6);
+    for (let i = 0; i < 3; i++) {
+      const x = o.x + rnd(7) - 3, y = o.y + rnd(7) - 3;
+      if (!walkable(x, y) || (x === o.x && y === o.y)) continue;
+      rock(x, y);
+      const e = enemyAt(x, y); if (e) damageEnemy(e, 2, null);
+      const p = petAt(x, y); if (p) damagePet(p, 2, '落石');
+    }
+  }
+  const it = itemAt(o.x, o.y);
+  if (it) pickUp(it);
+  const t = trapAt(o.x, o.y);
+  if (t) triggerTrap(t, o);
+  if (G.stairs && o.x === G.stairs.x && o.y === G.stairs.y) nextFloor();
+  else if (G.throne && o.x === G.throne.x && o.y === G.throne.y && !G.enemies.includes(G.boss)) victory();
+}
+
+function itemLabel(it) {
+  if (SUBS[it.type] && it.identified) return SUBS[it.type][it.sub][0];
+  return ITEMS[it.type].name;
+}
+function pickUp(it) {
+  const o = G.owner;
+  G.items.splice(G.items.indexOf(it), 1);
+  o.lastInterest = null;
+  const t = it.type;
+  if (t === 'mushroom') {
+    const name = SUBS.mushroom[it.sub][0];
+    addLog(`ご主人は${it.identified ? name : 'あやしいキノコ'}を食べた。正体は${name}！`, SUBS.mushroom[it.sub][2] ? 'good' : 'warn');
+    if (it.sub === 'big') { o.st.giant = 10; say(o, 'ぼく、大きくなってる!?', 2.4); }
+    if (it.sub === 'tasty') { heal(o, 4); say(o, 'うまい!勇者の味がする!', 2.2); }
+    if (it.sub === 'poison') { hurtOwner(2, '毒'); o.st.confuse = 5; say(o, 'せかいが…まわる…', 2.4); }
+    if (it.sub === 'sleep') { o.st.sleep = 6; say(o, 'なんだか…ねむ…', 2.4); }
+  } else if (t === 'potion') {
+    const name = SUBS.potion[it.sub][0];
+    addLog(`ご主人は謎の薬を一気飲みした。正体は${name}！`, SUBS.potion[it.sub][2] ? 'good' : 'warn');
+    if (it.sub === 'heal') { heal(o, 6); say(o, '力がみなぎる!', 2); }
+    if (it.sub === 'haste') { o.st.haste = 10; say(o, '足が勝手に!', 2); }
+    if (it.sub === 'confuse') { o.st.confuse = 8; say(o, 'あれ?右ってどっち?', 2.4); }
+  } else if (t === 'meat') {
+    heal(o, 3); say(o, 'お肉はぼくのもの!', 2); addLog('ご主人が骨つき肉をたいらげた。ペットの分は無い。');
+  } else if (t === 'gold') {
+    const g = (10 + rnd(20)) * G.floor; G.gold += g; float(o.x, o.y, '+' + g + 'G', '#f0a742');
+    say(o, 'お金持ちになっちゃう!', 1.8); addLog(`金貨袋を拾った（+${g}G）。`, 'gold');
+  } else if (t === 'ring') {
+    o.st.invis = 15; say(o, 'あれ?ぼくの手が透けてる', 2.4);
+    addLog('呪いの指輪で、ご主人は15秒間透明に。敵にも見えないが、みんなにも見えにくい。', 'gold');
+  } else if (t === 'horn') {
+    say(o, 'プオ〜〜〜ッ!', 2);
+    for (const e of G.enemies) { e.asleep = false; e.taunt = { target: o, t: 6 }; }
+    addLog('ご主人が謎の角笛を吹いた。階じゅうの敵が目を覚ました！', 'warn');
+  } else {
+    o.equip = t; o.order = null; o.orderT = 4;
+    addLog(`ご主人は${ITEMS[t].name}を装備した。`, 'gold');
+    if (t === 'sword') { o.sword = { text: '…なんだこの持ち主は。先が思いやられる', t: 3 }; say(o, '伝説の剣だ!', 1.8); }
+    if (t === 'crown') say(o, '余は王である!ひかえおろう!', 2.6);
+    if (t === 'pan') say(o, '最強の武器を手に入れた!', 2);
+    if (t === 'plush') say(o, 'かわいい…ずっと一緒だよ', 2.4);
+  }
+}
+function openChest(it) {
+  const o = G.owner;
+  G.items.splice(G.items.indexOf(it), 1);
+  if (chance(.3)) {
+    const m = spawnEnemy('mimic', it.x, it.y);
+    m.moveT = .6; say(o, 'えっ、宝箱に歯が!?', 2.4);
+    addLog('宝箱はミミックだった！', 'warn');
+  } else {
+    const t = pick(['mushroom', 'potion', 'gold', 'gold', 'meat', 'crown', 'sword', 'pan', 'plush', 'ring', 'horn']);
+    G.items.push(makeItem(t, it.x, it.y));
+    float(it.x, it.y, 'パカッ', '#f0a742'); sayL('chest', 0);
+    addLog(`ご主人が宝箱を開けた。中身は${ITEMS[t].name}。`);
+  }
+  o.lastInterest = null;
+}
+function heal(e, n) { e.hp = Math.min(e.maxHp, e.hp + n); float(e.x, e.y, '+' + n, '#8cc46f'); }
+function hurtOwner(n, by) {
+  const o = G.owner;
+  o.hp -= n; float(o.x, o.y, '-' + n, '#e0605a');
+  if (o.st.sleep > 0 && chance(.5)) { o.st.sleep = 0; say(o, 'はっ!寝てない寝てない!', 2); }
+  else sayL('hurt', 1.5);
+  if (o.hp <= 0) addLog(`ご主人は${by}にやられた。`, 'warn');
+}
+function ownerAttack(e) {
+  const o = G.owner;
+  const eq = EQUIP[o.equip] || { atk: 1, hit: .6 };
+  let atk = eq.atk, hit = eq.hit;
+  if (o.st.giant > 0) { atk += 3; hit = .95; }
+  if (atk > 0 && Math.random() < hit) {
+    damageEnemy(e, atk, o);
+    if (o.equip === 'pan') float(o.x, o.y, 'カーン!', '#efe3c8');
+  } else {
+    float(e.x, e.y, o.equip === 'plush' ? 'ぽふっ' : 'ミス', '#a597b5');
+    sayL('miss', 2);
+  }
+}
+
+function triggerTrap(t, who) {
+  t.revealed = true;
+  const isOwner = who === G.owner;
+  const name = isOwner ? 'ご主人' : who.def.name;
+  if (t.kind === 'spike') {
+    float(t.x, t.y, 'トゲ!', '#e0605a');
+    if (isOwner) hurtOwner(3, 'トゲの罠'); else damagePet(who, 2, 'トゲの罠');
+    addLog(`${name}がトゲの罠を踏んだ。`, 'warn');
+  } else if (t.kind === 'warp') {
+    const c = [];
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (G.map[idx(x, y)] === 1 && !occupied(x, y) && !itemAt(x, y)) c.push({ x, y });
+    const q = pick(c);
+    who.x = who.rx = q.x; who.y = who.ry = q.y;
+    ring(q.x, q.y, '#b48ae0', 3);
+    addLog(`${name}はワープの罠でどこかへ飛ばされた！`, 'warn');
+    if (isOwner) { say(who, 'ここどこ!?', 2); G.owner.exp = null; }
+  } else {
+    t.disarmed = true;
+    for (const e of G.enemies) { e.asleep = false; e.taunt = { target: who, t: 4 }; }
+    ring(t.x, t.y, '#e0605a', 9);
+    addLog(`${name}が警報の罠を踏んだ。敵が集まってくる！`, 'warn');
+  }
+  if (isOwner) { t.tried = true; sayL('trap', 1); }
+}
+
+function damagePet(p, n, by) {
+  if (p.down || p.perched) return;
+  p.hp -= n; float(p.x, p.y, '-' + n, '#e0605a');
+  if (p.kind === 'cat' && p.sleepT > 0) { p.sleepT = 0; say(p, 'フシャー!', 1.2); }
+  if (p.hp <= 0) { p.hp = 0; p.down = 8; addLog(`${p.def.name}は${by}で気絶した（8秒）。`, 'warn'); }
+}
+function damageEnemy(e, n, src) {
+  e.hp -= n; e.asleep = false;
+  float(e.x, e.y, '-' + n, '#f0a742');
+  if (src && src !== G.owner && !e.taunt) e.taunt = { target: src, t: 3 };
+  if (e.hp > 0) return;
+  G.enemies.splice(G.enemies.indexOf(e), 1);
+  G.kills++;
+  const o = G.owner;
+  if (e.kind === 'boss') {
+    addLog('魔王を倒した！ あとはご主人を玉座へ。', 'gold');
+    say(o, src === o ? 'ぼくが魔王を倒した!!' : '…ぼくが倒したことにしておこう', 3);
+    return;
+  }
+  if (src === o) sayL('kill', 2);
+  else if (src && cheb(o, e) <= 5 && chance(.5)) sayL('credit', 3);
+}
+
+// ----- 敵 -----
+function updateEnemies(dt) {
+  const o = G.owner;
+  for (const e of [...G.enemies]) {
+    if (!G.enemies.includes(e)) continue;
+    if (e.taunt && ((e.taunt.t -= dt) <= 0 || (e.taunt.target !== o && e.taunt.target.down))) e.taunt = null;
+    e.moveT -= dt;
+    if (e.moveT > 0) continue;
+    e.moveT = e.def.step * (.85 + Math.random() * .3);
+    const all = [o, ...livePets()];
+    if (e.asleep) {
+      const r = e.kind === 'boss' ? 5 : 3;
+      if (all.some(a => cheb(a, e) <= r)) {
+        e.asleep = false; e.moveT = .5; float(e.x, e.y, '!', '#e0605a');
+        if (e.kind === 'boss') { addLog('魔王が目を覚ました！', 'warn'); say(o, 'き、来たな魔王!…みんな、任せた!', 3); }
+      }
+      continue;
+    }
+    if (e.kind === 'boss' && (e.summonT -= e.def.step) <= 0) {
+      e.summonT = 10;
+      const q = freeNear(e.x, e.y);
+      if (q) { spawnEnemy('bat', q.x, q.y); addLog('魔王がコウモリを呼び出した。'); }
+    }
+    let target = e.taunt ? e.taunt.target : null;
+    if (!target) {
+      let bd = 99;
+      for (const a of all) {
+        if (a === o && o.st.invis > 0) continue;
+        const d = man(a, e) - (a === o ? 1.5 : 0);
+        if (d < bd && d <= 9) { bd = d; target = a; }
+      }
+    }
+    if (!target) { if (chance(.3)) enemyRandom(e); continue; }
+    if (man(target, e) === 1) {
+      if (chance(.85)) {
+        if (target === o) hurtOwner(e.def.atk, e.def.name);
+        else damagePet(target, e.def.atk, e.def.name);
+      } else float(target.x, target.y, 'かわした', '#a597b5');
+      continue;
+    }
+    if (e.kind === 'bat' && chance(.4)) { enemyRandom(e); continue; }
+    const goal = (x, y) => x === target.x && y === target.y;
+    let s = bfsStep(e.x, e.y, goal, occupied);
+    if (!s) s = bfsStep(e.x, e.y, goal, null);
+    if (s && s.dist < 25 && !occupied(s.x, s.y)) { e.x = s.x; e.y = s.y; }
+  }
+}
+function enemyRandom(e) {
+  const [dx, dy] = pick(DIRS);
+  if (walkable(e.x + dx, e.y + dy) && !occupied(e.x + dx, e.y + dy)) { e.x += dx; e.y += dy; }
+}
+
+// ----- 階層移動・決着 -----
+function nextFloor() {
+  const o = G.owner;
+  G.floor++;
+  addLog(`地下${G.floor}階へ。`, 'gold');
+  genFloor();
+  say(o, G.floor === 5 ? '魔王のにおいがする…ワクワクするね!' : pick(LINES.stairs), 2.6);
+}
+function updateFloorLabel() { $('#floorLabel').innerHTML = `地下 <b>${G.floor}</b> 階 / 5`; }
+
+function finish(win) {
+  mode = 'end';
+  const o = G.owner;
+  $('#endTitle').textContent = win ? '魔王の玉座に、ご主人が座った！' : 'ご主人は力尽きた…';
+  $('#endText').textContent = win
+    ? `${o.name}「ふっ、全部ぼくの実力さ。きみたちもよくついてきたね」 ペットたちは顔を見合わせた。`
+    : `${o.name}「作戦どおり…ちょっと休憩するだけ…」 次はもっとうまく守ってあげよう。`;
+  const m = Math.floor(G.time / 60), s = Math.floor(G.time % 60);
+  $('#endStats').innerHTML = [
+    ['到達', `地下${G.floor}階`], ['金貨', G.gold + 'G'], ['倒した敵', G.kills + '体'],
+    ['冒険時間', `${m}分${String(s).padStart(2, '0')}秒`], ['ご主人の性格', PERS[o.pers].name],
+  ].map(([k, v]) => `<div><span>${k}</span><br><b>${v}</b></div>`).join('');
+  $('#endScreen').hidden = false;
+}
+const gameOver = () => finish(false);
+const victory = () => { if (!G.demo) finish(true); else startDemo(); };
+
+// ===== 描画 =====
+const COL = { floorA: '#2a2436', floorB: '#272132', wall: '#4a3f5c', wallTop: '#5d5072', fog: 'rgba(14,11,20,.62)', bg: '#110e17' };
+
+function draw() {
+  ctx.fillStyle = COL.bg; ctx.fillRect(0, 0, W * T, H * T);
+  if (!G) return;
+  const o = G.owner;
+  // 床と壁
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (!G.seen[i]) continue;
+    if (G.map[i] === 1) {
+      ctx.fillStyle = (x + y) & 1 ? COL.floorA : COL.floorB;
+      ctx.fillRect(x * T, y * T, T, T);
+    } else if (nearFloor(x, y)) {
+      ctx.fillStyle = COL.wall; ctx.fillRect(x * T, y * T, T, T);
+      ctx.fillStyle = COL.wallTop; ctx.fillRect(x * T, y * T, T, 5);
+    }
+  }
+  // 階段・玉座
+  if (G.stairs && G.seen[idx(G.stairs.x, G.stairs.y)]) drawStairs(G.stairs.x, G.stairs.y);
+  if (G.throne && G.seen[idx(G.throne.x, G.throne.y)]) {
+    const { x, y } = G.throne;
+    ctx.fillStyle = 'rgba(240,167,66,.25)'; ctx.fillRect(x * T - 2, y * T - 2, T + 4, T + 4);
+    emoji('🪑', x, y, .8);
+  }
+  // 罠
+  for (const t of G.traps) {
+    if (!t.revealed || !G.seen[idx(t.x, t.y)]) continue;
+    ctx.globalAlpha = t.disarmed ? .3 : 1;
+    const c = t.kind === 'spike' ? '#e0605a' : t.kind === 'warp' ? '#b48ae0' : '#f0a742';
+    ctx.strokeStyle = c; ctx.lineWidth = 2;
+    ctx.strokeRect(t.x * T + 4, t.y * T + 4, T - 8, T - 8);
+    label(t.kind === 'spike' ? '刺' : t.kind === 'warp' ? '渦' : '鳴', t.x, t.y, c, 12);
+    ctx.globalAlpha = 1;
+  }
+  // アイテム
+  for (const it of G.items) {
+    if (!G.seen[idx(it.x, it.y)]) continue;
+    ctx.globalAlpha = G.vis[idx(it.x, it.y)] ? 1 : .55;
+    emoji(ITEMS[it.type].emoji, it.x, it.y, .72);
+    if (it.identified && SUBS[it.type]) {
+      const [, tag, good] = SUBS[it.type][it.sub];
+      const cx = it.x * T + T - 6, cy = it.y * T + 6;
+      ctx.fillStyle = good ? '#8cc46f' : '#e0605a';
+      ctx.beginPath(); ctx.arc(cx, cy, 6.5, 0, 7); ctx.fill();
+      ctx.fillStyle = '#16131d'; ctx.font = `9px ${DISP}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(tag, cx, cy + .5);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 霧（見えていない既知タイル）
+  ctx.fillStyle = COL.fog;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = idx(x, y);
+    if (G.seen[i] && !G.vis[i] && (G.map[i] === 1 || nearFloor(x, y))) ctx.fillRect(x * T, y * T, T, T);
+  }
+  // 敵
+  for (const e of G.enemies) {
+    if (!G.vis[idx(e.x, e.y)]) continue;
+    const big = e.kind === 'boss' ? 1.25 : .82;
+    ctx.fillStyle = 'rgba(224,96,90,.28)';
+    ctx.beginPath(); ctx.ellipse(e.rx * T + T / 2, e.ry * T + T - 3, T * .36 * big, 3.5, 0, 0, 7); ctx.fill();
+    emoji(e.def.emoji, e.rx, e.ry, big);
+    if (e.kind === 'mimic') label('牙', e.rx + .35, e.ry - .3, '#e0605a', 10);
+    if (e.asleep) label('z', e.rx + .4, e.ry - .4, '#7fb2e5', 11);
+    if (e.hp < e.maxHp) hpBar(e.rx, e.ry, e.hp / e.maxHp, '#e0605a');
+  }
+  // ペット
+  for (const p of G.pets) {
+    if (p.perched) continue;
+    const px = p.rx * T + T / 2, py = p.ry * T + T / 2;
+    ctx.fillStyle = p.def.color; ctx.globalAlpha = .35;
+    ctx.beginPath(); ctx.ellipse(px, p.ry * T + T - 3, T * .38, 4, 0, 0, 7); ctx.fill();
+    ctx.globalAlpha = p.down ? .4 : 1;
+    if (p.down) emoji('💫', p.rx, p.ry, .7);
+    else if (p.kind === 'slime') drawSlime(px, py);
+    else emoji(p.def.emoji, p.rx, p.ry, .8);
+    ctx.globalAlpha = 1;
+    tagP(p, px, p.ry * T - 2);
+    if (p.kind === 'cat' && p.sleepT > 0) label('Zz', p.rx + .45, p.ry - .35, '#7fb2e5', 11);
+    if (p.hp < p.maxHp && !p.down) hpBar(p.rx, p.ry, p.hp / p.maxHp, '#8cc46f');
+  }
+  // ご主人
+  {
+    const sc = o.st.giant > 0 ? 1.7 : .95;
+    const px = o.rx * T + T / 2, py = o.ry * T + T / 2;
+    ctx.fillStyle = 'rgba(240,167,66,.18)';
+    ctx.beginPath(); ctx.arc(px, py, T * 1.1 * (o.st.giant > 0 ? 1.4 : 1), 0, 7); ctx.fill();
+    ctx.globalAlpha = o.st.invis > 0 ? .28 : 1;
+    emoji('🦸', o.rx, o.ry - (sc - 1) * .4, sc);
+    if (o.equip) emoji(ITEMS[o.equip].emoji, o.rx + .42, o.ry + .2, .45);
+    ctx.globalAlpha = 1;
+    const perched = G.pets.find(p => p.perched);
+    if (perched) emoji('🦉', o.rx, o.ry - .7 * sc, .5);
+    if (o.st.sleep > 0) label('Zzz', o.rx + .5, o.ry - .5, '#7fb2e5', 12);
+    if (o.st.confuse > 0) label('?', o.rx - .45, o.ry - .5, '#b48ae0', 14);
+    if (o.ctrl) label('操縦中', o.rx, o.ry + .75, o.ctrl.pet.def.color, 10);
+    hpBar(o.rx, o.ry + .05, o.hp / o.maxHp, o.hp / o.maxHp < .35 ? '#e0605a' : '#8cc46f');
+  }
+  // 演出
+  for (const f of G.fx) {
+    const a = f.t / f.max;
+    if (f.k === 'txt') {
+      ctx.globalAlpha = Math.min(1, a * 1.6);
+      ctx.font = `12px ${DISP}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.lineWidth = 3; ctx.strokeStyle = '#110e17';
+      const y = f.y * T + 4 - (1 - a) * 16;
+      ctx.strokeText(f.text, f.x * T + T / 2, y); ctx.fillStyle = f.color; ctx.fillText(f.text, f.x * T + T / 2, y);
+    } else if (f.k === 'ring') {
+      ctx.globalAlpha = a; ctx.strokeStyle = f.color; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(f.x * T + T / 2, f.y * T + T / 2, (1 - a) * f.r * T + 4, 0, 7); ctx.stroke();
+    } else if (f.k === 'rock') {
+      ctx.globalAlpha = a; emoji('🪨', f.x, f.y - a * 1.2, .7);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // 吹き出し
+  for (const p of G.pets) if (p.say && !p.perched) bubble(p.rx * T + T / 2, p.ry * T, p.say.text, true);
+  if (o.sword) bubble(o.rx * T + T / 2 + 30, o.ry * T + 10, '🗡️「' + o.sword.text + '」', false, '#d7e6f5');
+  if (o.say) bubble(o.rx * T + T / 2, o.ry * T - (o.st.giant > 0 ? 14 : 0), o.say.text, false);
+}
+
+function nearFloor(x, y) {
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (walkable(x + dx, y + dy)) return true;
+  return false;
+}
+function emoji(ch, x, y, s) {
+  ctx.font = `${Math.round(T * s)}px ${EMOJI}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(ch, x * T + T / 2, y * T + T / 2 + 1);
+}
+function label(text, x, y, color, size) {
+  ctx.font = `${size}px ${DISP}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = 3; ctx.strokeStyle = '#110e17';
+  ctx.strokeText(text, x * T + T / 2, y * T + T / 2);
+  ctx.fillStyle = color; ctx.fillText(text, x * T + T / 2, y * T + T / 2);
+}
+function hpBar(x, y, r, c) {
+  const bx = x * T + 3, by = y * T + T - 2;
+  ctx.fillStyle = '#110e17'; ctx.fillRect(bx, by, T - 6, 3);
+  ctx.fillStyle = c; ctx.fillRect(bx, by, (T - 6) * Math.max(0, r), 3);
+}
+function tagP(p, x, y) {
+  ctx.font = `9px ${DISP}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const t = 'P' + p.no;
+  ctx.fillStyle = p.def.color; ctx.fillRect(x - 8, y - 5, 16, 10);
+  ctx.fillStyle = '#16131d'; ctx.fillText(t, x, y + .5);
+}
+function drawStairs(x, y) {
+  ctx.fillStyle = '#0c0a10'; ctx.fillRect(x * T + 2, y * T + 2, T - 4, T - 4);
+  ctx.fillStyle = '#f0a742';
+  for (let i = 0; i < 4; i++) ctx.fillRect(x * T + 4 + i * 2, y * T + 5 + i * 4, T - 8 - i * 4, 2);
+}
+function drawSlime(px, py) {
+  ctx.fillStyle = '#8cc46f';
+  ctx.beginPath(); ctx.ellipse(px, py + 3, 9, 7.5, 0, 0, 7); ctx.fill();
+  ctx.beginPath(); ctx.arc(px, py - 1, 6.5, Math.PI, 0); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(px - 4, py - 2, 2, 1.4, -.5, 0, 7); ctx.fill();
+  ctx.fillStyle = '#16131d';
+  ctx.fillRect(px - 4, py + 1, 2, 3); ctx.fillRect(px + 2, py + 1, 2, 3);
+}
+function bubble(px, py, text, small, bg = '#f4ead2') {
+  ctx.font = `${small ? 10 : 12}px ${DISP}`;
+  const w = ctx.measureText(text).width + 12, h = small ? 16 : 20;
+  const bx = Math.max(2, Math.min(W * T - w - 2, px - w / 2));
+  let by = py - h - 8; if (by < 2) by = py + T + 6;
+  ctx.fillStyle = bg; ctx.strokeStyle = '#2a2233'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const r = 4;
+  ctx.moveTo(bx + r, by); ctx.arcTo(bx + w, by, bx + w, by + h, r); ctx.arcTo(bx + w, by + h, bx, by + h, r);
+  ctx.arcTo(bx, by + h, bx, by, r); ctx.arcTo(bx, by, bx + w, by, r); ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#2a2233'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, bx + 6, by + h / 2 + 1);
+}
+
+// ===== HUD =====
+let hudT = 0;
+function renderHud() {
+  if (!G) return;
+  const o = G.owner, P = PERS[o.pers];
+  const r = o.hp / o.maxHp;
+  const st = [];
+  if (o.st.giant > 0) st.push(['巨大化', o.st.giant, 'good']);
+  if (o.st.haste > 0) st.push(['俊足', o.st.haste, 'good']);
+  if (o.st.invis > 0) st.push(['透明', o.st.invis, '']);
+  if (o.st.confuse > 0) st.push(['混乱', o.st.confuse, 'bad']);
+  if (o.st.sleep > 0) st.push(['睡眠', o.st.sleep, 'bad']);
+  if (o.st.called > 0) st.push(['ポチに夢中', o.st.called, '']);
+  if (o.ctrl) st.push([`${o.ctrl.pet.def.name}が操縦`, o.ctrl.t, 'good']);
+  if (o.order) st.push([`命令中：${o.order.pet.def.name}→${DIR_NAME[o.order.dx + ',' + o.order.dy]}`, o.order.t, '']);
+  $('#ownerCard').innerHTML = `<h3>ご主人</h3>
+    <div class="who"><span class="face">🦸</span><div><b>${o.name}</b><small>性格：${P.name}（${P.desc}）</small></div></div>
+    <div class="bar ${r < .35 ? 'low' : ''}"><i style="width:${Math.max(0, r) * 100}%"></i></div>
+    <div class="row"><span>HP ${Math.max(0, o.hp)} / ${o.maxHp}</span><span>装備：${o.equip ? ITEMS[o.equip].emoji + ' ' + ITEMS[o.equip].name : 'なし'}</span><span>金貨 ${G.gold}G</span></div>
+    ${st.length ? `<div class="chips">${st.map(([n, t, c]) => `<span class="chip ${c}">${n} ${Math.ceil(t)}s</span>`).join('')}</div>` : ''}`;
+
+  $('#petCard').innerHTML = `<h3>ペット</h3>` + (G.pets.length ? G.pets.map(p => {
+    const d = devices[p.dev];
+    let extra = '';
+    if (p.kind === 'dog') extra = p.cd > 0 ? `吠える：あと${p.cd.toFixed(1)}s` : '吠える：OK';
+    if (p.kind === 'cat') extra = p.sleepT > 0 ? `昼寝中 あと${p.sleepT.toFixed(1)}s` : `眠気 ${Math.floor(p.nap)}%`;
+    if (p.kind === 'owl') extra = p.perched ? '頭の上で見張り中' : '飛行中';
+    if (p.kind === 'slime') extra = o.equip ? '装備を食べられる' : '床のアイテムを食べられる';
+    const nap = p.kind === 'cat' && p.sleepT <= 0 ? `<div class="bar nap"><i style="width:${p.nap}%"></i></div>` : '';
+    return `<div class="pet"><div class="who"><span class="face">${p.def.emoji || '🟢'}</span>
+      <div><b>${p.def.name} <span class="pl" style="background:${p.def.color}">P${p.no}</span></b>
+      <small>${d ? d.label : ''}：${ACTION_NAME[p.kind]}</small></div></div>
+      <div class="bar ${p.hp / p.maxHp < .35 ? 'low' : ''}"><i style="width:${p.down ? 0 : p.hp / p.maxHp * 100}%"></i></div>
+      <div class="row"><span>${p.down ? `気絶中 あと${p.down.toFixed(1)}s` : `HP ${p.hp} / ${p.maxHp}`}</span><span>${extra}</span></div>${nap}</div>`;
+  }).join('') : '<p class="row">ペット選び中。ご主人はひとりで歩いています。</p>');
+
+  $('#log').innerHTML = (G.log.length ? G.log : [{ text: '冒険の記録がここに残ります。', cls: '' }]).slice(0, 14)
+    .map(l => `<li class="${l.cls}">${l.text}</li>`).join('');
+}
+
+// ===== ループ =====
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  readKeyboard(); pollPads();
+  if (mode === 'lobby') { lobbyUpdate(); if (G) update(dt); }
+  else if (mode === 'play') update(dt);
+  else if (mode === 'end' && startEdge) startGame();
+  draw();
+  if ((hudT -= dt) <= 0) { hudT = .12; renderHud(); }
+  clearEdges();
+  requestAnimationFrame(frame);
+}
+renderLobby();
+startDemo();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
